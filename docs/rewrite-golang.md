@@ -225,6 +225,9 @@ go get -u github.com/go-co-op/gocron
 
 # 日誌
 go get -u github.com/sirupsen/logrus
+
+# 熱重載
+go install github.com/air-verse/air@latest
 ```
 
 #### Step 0.4：建立專案目錄結構
@@ -267,7 +270,7 @@ database:
   sslmode: disable
 
 jwt:
-  secret: "your-secret-key-here"
+  secret: 'your-secret-key-here'
   expiration: 86400 # 1 day in seconds
 
 logging:
@@ -316,7 +319,7 @@ docker-down:
 **docker-compose.yml：**
 
 ```yaml
-version: "3.8"
+version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
@@ -325,7 +328,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: waterballsa
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -950,7 +953,7 @@ db.Clauses(clause.Locking{Strength: "UPDATE"}).
 
 ```json
 {
-  "error": "錯誤訊息"
+	"error": "錯誤訊息"
 }
 ```
 
@@ -1045,7 +1048,7 @@ services:
   backend:
     build: .
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
