@@ -3,54 +3,47 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/linporu/waterballsa-backend-golang/internal/config"
-	"github.com/linporu/waterballsa-backend-golang/internal/router"
+	"github.com/linporu/waterballsa-backend-golang/internal/app"
+)
+
+const (
+	shutdownTimeout = 5 * time.Second
 )
 
 func main() {
-	r := gin.Default()
-
-	pool, err := config.InitDB()
+	// Initialize application
+	application, err := app.New()
 	if err != nil {
-		log.Fatal("Failed to initialize database:", err)
-	}
-	defer pool.Close()
-
-	router.SetupRoutes(r, pool)
-
-	// Create HTTP server
-	srv := &http.Server{
-		Addr:    ":8080",
-		Handler: r,
+		log.Fatal("Failed to initialize application:", err)
 	}
 
-	// Start server in goroutine
+	// Setup graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	// Start application in goroutine
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+		if err := application.Run(); err != nil {
+			log.Fatal("Application run failed:", err)
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shutdown the server
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	// Wait for interrupt signal
 	<-quit
-	log.Println("Shutting down server...")
+	log.Println("Shutting down...")
 
-	// The context is used to inform the server it has 5 seconds to finish
-	// the request it is currently handling
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Shutdown with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+
+	if err := application.Shutdown(ctx); err != nil {
+		log.Fatal("Shutdown failed:", err)
 	}
 
-	log.Println("Server exiting")
+	log.Println("Application exited")
 }

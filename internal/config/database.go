@@ -1,16 +1,14 @@
 package config
 
 import (
-	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/viper"
 )
 
+// DatabaseConfig holds database connection configuration
 type DatabaseConfig struct {
 	Host            string
 	Port            int
@@ -24,17 +22,8 @@ type DatabaseConfig struct {
 	MaxConnIdleTime time.Duration
 }
 
-func loadConfig() (*DatabaseConfig, error) {
-	// Try to read config file, but don't fail if it doesn't exist
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./config")
-	viper.AddConfigPath("../config")
-	viper.AddConfigPath("../../config")
-
-	// Ignore error if config file doesn't exist
-	_ = viper.ReadInConfig()
-
+// loadDatabaseConfig loads database configuration from environment variables and config file
+func loadDatabaseConfig() (*DatabaseConfig, error) {
 	// Read from environment variables first, fallback to config.yaml
 	host := getEnv("DB_HOST", viper.GetString("database.host"))
 	portStr := getEnv("DB_PORT", strconv.Itoa(viper.GetInt("database.port")))
@@ -90,67 +79,4 @@ func loadConfig() (*DatabaseConfig, error) {
 	}
 
 	return config, nil
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-func InitDB() (*pgxpool.Pool, error) {
-	config, err := loadConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %w", err)
-	}
-
-	// Configure pool using Config struct to avoid exposing password in connection string
-	poolConfig, err := pgxpool.ParseConfig("")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create pool config: %w", err)
-	}
-
-	// Set connection parameters securely
-	poolConfig.ConnConfig.Host = config.Host
-	poolConfig.ConnConfig.Port = uint16(config.Port)
-	poolConfig.ConnConfig.User = config.User
-	poolConfig.ConnConfig.Password = config.Password
-	poolConfig.ConnConfig.Database = config.Name
-
-	// Set SSL mode
-	if config.SSLMode != "" {
-		poolConfig.ConnString()
-		dsn := fmt.Sprintf("sslmode=%s", config.SSLMode)
-		tempConfig, err := pgxpool.ParseConfig(dsn)
-		if err == nil {
-			poolConfig.ConnConfig.TLSConfig = tempConfig.ConnConfig.TLSConfig
-		}
-	}
-
-	// Set pool settings
-	poolConfig.MaxConns = config.MaxConns
-	poolConfig.MinConns = config.MinConns
-	poolConfig.MaxConnLifetime = config.MaxConnLifetime
-	poolConfig.MaxConnIdleTime = config.MaxConnIdleTime
-
-	// Create context with timeout for initial connection
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	// Connect to database
-	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
-	}
-
-	// Test connection
-	if err := pool.Ping(ctx); err != nil {
-		pool.Close()
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	fmt.Println("Database connection pool established successfully")
-
-	return pool, nil
 }
