@@ -4,8 +4,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/spf13/viper"
 )
 
 // ServerConfig holds HTTP server configuration
@@ -17,34 +15,34 @@ type ServerConfig struct {
 	ShutdownTimeout time.Duration
 }
 
-// loadServerConfig loads server configuration from environment variables and config file
+// loadServerConfig loads server configuration from environment variables
 func loadServerConfig() ServerConfig {
-	host := getEnv("SERVER_HOST", viper.GetString("server.host"))
+	host := os.Getenv("SERVER_HOST")
 	if host == "" {
 		host = "0.0.0.0" // default to all interfaces
 	}
 
-	portStr := getEnv("SERVER_PORT", strconv.Itoa(viper.GetInt("server.port")))
+	portStr := os.Getenv("SERVER_PORT")
 	port, err := strconv.Atoi(portStr)
 	if err != nil || port == 0 {
 		port = 8080 // default port
 	}
 
-	readTimeoutStr := getEnv("SERVER_READ_TIMEOUT", viper.GetString("server.read_timeout"))
+	readTimeoutStr := os.Getenv("SERVER_READ_TIMEOUT")
 	readTimeout, err := time.ParseDuration(readTimeoutStr)
-	if err != nil {
+	if err != nil || readTimeoutStr == "" {
 		readTimeout = 10 * time.Second // default
 	}
 
-	writeTimeoutStr := getEnv("SERVER_WRITE_TIMEOUT", viper.GetString("server.write_timeout"))
+	writeTimeoutStr := os.Getenv("SERVER_WRITE_TIMEOUT")
 	writeTimeout, err := time.ParseDuration(writeTimeoutStr)
-	if err != nil {
+	if err != nil || writeTimeoutStr == "" {
 		writeTimeout = 10 * time.Second // default
 	}
 
-	shutdownTimeoutStr := getEnv("SERVER_SHUTDOWN_TIMEOUT", viper.GetString("server.shutdown_timeout"))
+	shutdownTimeoutStr := os.Getenv("SERVER_SHUTDOWN_TIMEOUT")
 	shutdownTimeout, err := time.ParseDuration(shutdownTimeoutStr)
-	if err != nil {
+	if err != nil || shutdownTimeoutStr == "" {
 		shutdownTimeout = 5 * time.Second // default
 	}
 
@@ -55,11 +53,4 @@ func loadServerConfig() ServerConfig {
 		WriteTimeout:    writeTimeout,
 		ShutdownTimeout: shutdownTimeout,
 	}
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

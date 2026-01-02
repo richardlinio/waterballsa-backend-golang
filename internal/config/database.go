@@ -2,10 +2,9 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"time"
-
-	"github.com/spf13/viper"
 )
 
 // DatabaseConfig holds database connection configuration
@@ -22,31 +21,31 @@ type DatabaseConfig struct {
 	MaxConnIdleTime time.Duration
 }
 
-// loadDatabaseConfig loads database configuration from environment variables and config file
+// loadDatabaseConfig loads database configuration from environment variables
 func loadDatabaseConfig() (*DatabaseConfig, error) {
-	// Read from environment variables first, fallback to config.yaml
-	host := getEnv("DB_HOST", viper.GetString("database.host"))
-	portStr := getEnv("DB_PORT", strconv.Itoa(viper.GetInt("database.port")))
-	user := getEnv("DB_USER", viper.GetString("database.user"))
-	password := getEnv("DB_PASSWORD", viper.GetString("database.password"))
-	name := getEnv("DB_NAME", viper.GetString("database.name"))
-	sslmode := getEnv("DB_SSLMODE", viper.GetString("database.sslmode"))
+	// Read from environment variables
+	host := os.Getenv("DB_HOST")
+	portStr := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	name := os.Getenv("DB_NAME")
+	sslmode := os.Getenv("DB_SSLMODE")
 	if sslmode == "" {
 		sslmode = "disable" // default to disable for development
 	}
 
-	maxConnsStr := getEnv("DB_MAX_CONNS", strconv.Itoa(viper.GetInt("database.max_conns")))
-	minConnsStr := getEnv("DB_MIN_CONNS", strconv.Itoa(viper.GetInt("database.min_conns")))
+	maxConnsStr := os.Getenv("DB_MAX_CONNS")
+	minConnsStr := os.Getenv("DB_MIN_CONNS")
 
 	// Validate required fields
 	if host == "" {
-		return nil, fmt.Errorf("database host is required (set DB_HOST env var or database.host in config)")
+		return nil, fmt.Errorf("database host is required (set DB_HOST environment variable)")
 	}
 	if user == "" {
-		return nil, fmt.Errorf("database user is required (set DB_USER env var or database.user in config)")
+		return nil, fmt.Errorf("database user is required (set DB_USER environment variable)")
 	}
 	if name == "" {
-		return nil, fmt.Errorf("database name is required (set DB_NAME env var or database.name in config)")
+		return nil, fmt.Errorf("database name is required (set DB_NAME environment variable)")
 	}
 
 	port, err := strconv.Atoi(portStr)

@@ -10,11 +10,17 @@ import (
 // based on environment variables LOG_LEVEL and LOG_FORMAT
 func NewLogger() *slog.Logger {
 	// Get log level from environment (default: info)
-	levelStr := strings.ToLower(getEnv("LOG_LEVEL", "info"))
+	levelStr := strings.ToLower(os.Getenv("LOG_LEVEL"))
+	if levelStr == "" {
+		levelStr = "info"
+	}
 	level := parseLogLevel(levelStr)
 
 	// Get log format from environment (default: json)
-	formatStr := strings.ToLower(getEnv("LOG_FORMAT", "json"))
+	formatStr := strings.ToLower(os.Getenv("LOG_FORMAT"))
+	if formatStr == "" {
+		formatStr = "json"
+	}
 
 	// Create handler based on format
 	var handler slog.Handler
