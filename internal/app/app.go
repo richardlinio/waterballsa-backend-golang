@@ -2,8 +2,9 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -22,11 +23,15 @@ const (
 	shutdownTimeout = 5 * time.Second
 )
 
+// ErrShutdownSignal indicates the application is shutting down due to OS signal
+var ErrShutdownSignal = errors.New("received shutdown signal")
+
 // Application manages the application lifecycle
 type Application struct {
 	config *config.Config
 	db     *pgxpool.Pool
 	server *server.HTTPServer
+	logger *slog.Logger
 }
 
 // New creates and initializes a new Application
@@ -38,35 +43,35 @@ func New() (*Application, error) {
 	}
 
 	// Initialize database
-	pool, err := database.NewPostgresPool(cfg.Database)
+	pool, err := database.NewPostgresPool(cfg.Database, cfg.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
 	// Setup Gin router
 	ginRouter := gin.Default()
-	router.SetupRoutes(ginRouter, pool)
+	router.SetupRoutes(ginRouter, pool, cfg.Logger)
 
 	// Create HTTP server
-	httpServer := server.NewHTTPServer(cfg.Server, ginRouter)
+	httpServer := server.NewHTTPServer(cfg.Server, ginRouter, cfg.Logger)
 
 	return &Application{
 		config: cfg,
 		db:     pool,
 		server: httpServer,
+		logger: cfg.Logger,
 	}, nil
 }
 
 // Run starts the application and blocks until shutdown
 func (a *Application) Run() error {
-	log.Println("Starting application...")
+	a.logger.Info("Starting application...")
 
 	// Create errgroup with context for coordinated shutdown
 	g, ctx := errgroup.WithContext(context.Background())
 
 	// Start HTTP server in errgroup
 	g.Go(func() error {
-		log.Println("HTTP server goroutine started")
 		if err := a.server.Start(); err != nil {
 			return fmt.Errorf("server failed: %w", err)
 		}
@@ -80,8 +85,7 @@ func (a *Application) Run() error {
 
 		select {
 		case sig := <-quit:
-			log.Printf("Received signal: %v", sig)
-			return fmt.Errorf("received shutdown signal: %v", sig)
+			return fmt.Errorf("%w: %v", ErrShutdownSignal, sig)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -90,26 +94,34 @@ func (a *Application) Run() error {
 	// Wait for any goroutine to return
 	err := g.Wait()
 
+	// Log shutdown reason with context
+	switch {
+	case err == nil:
+		a.logger.Info("Initiating graceful shutdown...")
+	case errors.Is(err, ErrShutdownSignal):
+		a.logger.Info("Received shutdown signal, initiating graceful shutdown...")
+	default:
+		a.logger.Error("Application error occurred, initiating shutdown...", "error", err)
+	}
+
 	// Perform graceful shutdown
-	log.Println("Shutting down application...")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
 	// Shutdown HTTP server
 	if shutdownErr := a.server.Shutdown(shutdownCtx); shutdownErr != nil {
-		log.Printf("Error shutting down HTTP server: %v", shutdownErr)
+		a.logger.Error("Error shutting down HTTP server", "error", shutdownErr)
 	}
 
 	// Close database connection pool
 	if a.db != nil {
 		a.db.Close()
-		log.Println("Database connection pool closed")
 	}
 
-	log.Println("Application shutdown complete")
+	a.logger.Info("Application shutdown complete")
 
 	// Return the original error that triggered shutdown (if it's not a signal)
-	if err != nil && err.Error() != "received shutdown signal: interrupt" && err.Error() != "received shutdown signal: terminated" {
+	if err != nil && !errors.Is(err, ErrShutdownSignal) {
 		return err
 	}
 

@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -10,7 +11,7 @@ import (
 )
 
 // NewPostgresPool creates a new PostgreSQL connection pool
-func NewPostgresPool(cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
+func NewPostgresPool(cfg config.DatabaseConfig, logger *slog.Logger) (*pgxpool.Pool, error) {
 	// Configure pool using Config struct to avoid exposing password in connection string
 	poolConfig, err := pgxpool.ParseConfig("")
 	if err != nil {
@@ -55,8 +56,6 @@ func NewPostgresPool(cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
 		pool.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
-
-	fmt.Println("Database connection pool established successfully")
 
 	return pool, nil
 }

@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,10 +14,11 @@ import (
 type HTTPServer struct {
 	server *http.Server
 	config config.ServerConfig
+	logger *slog.Logger
 }
 
 // NewHTTPServer creates a new HTTP server with the given configuration and router
-func NewHTTPServer(cfg config.ServerConfig, router *gin.Engine) *HTTPServer {
+func NewHTTPServer(cfg config.ServerConfig, router *gin.Engine, logger *slog.Logger) *HTTPServer {
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 
 	srv := &http.Server{
@@ -30,12 +31,13 @@ func NewHTTPServer(cfg config.ServerConfig, router *gin.Engine) *HTTPServer {
 	return &HTTPServer{
 		server: srv,
 		config: cfg,
+		logger: logger,
 	}
 }
 
 // Start starts the HTTP server in a non-blocking way
 func (s *HTTPServer) Start() error {
-	log.Printf("Starting HTTP server on %s", s.server.Addr)
+	s.logger.Info("Starting HTTP server", "address", s.server.Addr)
 
 	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("HTTP server error: %w", err)
@@ -46,12 +48,12 @@ func (s *HTTPServer) Start() error {
 
 // Shutdown gracefully shuts down the HTTP server
 func (s *HTTPServer) Shutdown(ctx context.Context) error {
-	log.Println("Shutting down HTTP server...")
+	s.logger.Info("Shutting down HTTP server...")
 
 	if err := s.server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("HTTP server shutdown error: %w", err)
 	}
 
-	log.Println("HTTP server stopped")
+	s.logger.Info("HTTP server stopped")
 	return nil
 }

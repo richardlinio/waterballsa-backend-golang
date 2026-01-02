@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -11,11 +11,15 @@ import (
 )
 
 type HealthHandler struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *slog.Logger
 }
 
-func NewHealthHandler(pool *pgxpool.Pool) *HealthHandler {
-	return &HealthHandler{pool: pool}
+func NewHealthHandler(pool *pgxpool.Pool, logger *slog.Logger) *HealthHandler {
+	return &HealthHandler{
+		pool:   pool,
+		logger: logger,
+	}
 }
 
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
@@ -25,7 +29,7 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 
 	// Ping database to check connectivity
 	if err := h.pool.Ping(ctx); err != nil {
-		log.Printf("Health check failed: database ping error: %v", err)
+		h.logger.Error("Health check failed: database ping error", "error", err)
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status":   "DOWN",
 			"database": "DOWN",

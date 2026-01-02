@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/spf13/viper"
 )
@@ -10,6 +11,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	Logger   *slog.Logger
 }
 
 // Load loads configuration from environment variables and config files
@@ -33,8 +35,12 @@ func Load() (*Config, error) {
 	// Load server config
 	serverConfig := loadServerConfig()
 
+	// Initialize logger
+	logger := NewLogger()
+
 	return &Config{
 		Server:   serverConfig,
 		Database: *dbConfig,
+		Logger:   logger,
 	}, nil
 }
