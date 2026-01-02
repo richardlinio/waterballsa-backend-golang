@@ -42,6 +42,9 @@ func loadConfig() (*DatabaseConfig, error) {
 	password := getEnv("DB_PASSWORD", viper.GetString("database.password"))
 	name := getEnv("DB_NAME", viper.GetString("database.name"))
 	sslmode := getEnv("DB_SSLMODE", viper.GetString("database.sslmode"))
+	if sslmode == "" {
+		sslmode = "disable" // default to disable for development
+	}
 
 	maxConnsStr := getEnv("DB_MAX_CONNS", strconv.Itoa(viper.GetInt("database.max_conns")))
 	minConnsStr := getEnv("DB_MIN_CONNS", strconv.Itoa(viper.GetInt("database.min_conns")))
@@ -102,22 +105,30 @@ func InitDB() (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Build connection string
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-		config.User,
-		config.Password,
-		config.Host,
-		config.Port,
-		config.Name,
-		config.SSLMode,
-	)
-
-	// Configure pool
-	poolConfig, err := pgxpool.ParseConfig(dsn)
+	// Configure pool using Config struct to avoid exposing password in connection string
+	poolConfig, err := pgxpool.ParseConfig("")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse pool config: %w", err)
+		return nil, fmt.Errorf("failed to create pool config: %w", err)
 	}
 
+	// Set connection parameters securely
+	poolConfig.ConnConfig.Host = config.Host
+	poolConfig.ConnConfig.Port = uint16(config.Port)
+	poolConfig.ConnConfig.User = config.User
+	poolConfig.ConnConfig.Password = config.Password
+	poolConfig.ConnConfig.Database = config.Name
+
+	// Set SSL mode
+	if config.SSLMode != "" {
+		poolConfig.ConnString()
+		dsn := fmt.Sprintf("sslmode=%s", config.SSLMode)
+		tempConfig, err := pgxpool.ParseConfig(dsn)
+		if err == nil {
+			poolConfig.ConnConfig.TLSConfig = tempConfig.ConnConfig.TLSConfig
+		}
+	}
+
+	// Set pool settings
 	poolConfig.MaxConns = config.MaxConns
 	poolConfig.MinConns = config.MinConns
 	poolConfig.MaxConnLifetime = config.MaxConnLifetime

@@ -20,7 +20,7 @@ func NewHealthHandler(pool *pgxpool.Pool) *HealthHandler {
 
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	// Create context with timeout for database ping
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
 	defer cancel()
 
 	// Ping database to check connectivity
