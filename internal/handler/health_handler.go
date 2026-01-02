@@ -1,37 +1,39 @@
 package handler
 
 import (
+	"context"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type HealthHandler struct {
-	db *gorm.DB
+	pool *pgxpool.Pool
 }
 
-func NewHealthHandler(db *gorm.DB) *HealthHandler {
-	return &HealthHandler{db: db}
+func NewHealthHandler(pool *pgxpool.Pool) *HealthHandler {
+	return &HealthHandler{pool: pool}
 }
 
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
-	sqlDB, err := h.db.DB()
-	if err != nil {
-		c.JSON(503, gin.H{
+	// Create context with timeout for database ping
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Ping database to check connectivity
+	if err := h.pool.Ping(ctx); err != nil {
+		log.Printf("Health check failed: database ping error: %v", err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status":   "DOWN",
 			"database": "DOWN",
 		})
 		return
 	}
 
-	if err := sqlDB.Ping(); err != nil {
-		c.JSON(503, gin.H{
-			"status":   "DOWN",
-			"database": "DOWN",
-		})
-		return
-	}
-
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"status":   "UP",
 		"database": "UP",
 	})
