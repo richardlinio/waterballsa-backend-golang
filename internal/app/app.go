@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,10 +17,6 @@ import (
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/server"
 	"github.com/linporu/waterballsa-backend-golang/internal/router"
 	"golang.org/x/sync/errgroup"
-)
-
-const (
-	shutdownTimeout = 5 * time.Second
 )
 
 // ErrShutdownSignal indicates the application is shutting down due to OS signal
@@ -109,7 +104,7 @@ func (a *Application) Run() error {
 	}
 
 	// Perform graceful shutdown
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), a.config.Server.ShutdownTimeout)
 	defer cancel()
 
 	// Shutdown HTTP server
