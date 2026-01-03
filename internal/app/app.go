@@ -52,7 +52,7 @@ func New() (*Application, error) {
 	router.SetupRoutes(ginRouter, pool, log)
 
 	// Create HTTP server
-	httpServer := server.NewHTTPServer(cfg.Server, ginRouter, log)
+	httpServer := server.NewHTTPServer(cfg.Server, ginRouter)
 
 	return &Application{
 		config: cfg,
