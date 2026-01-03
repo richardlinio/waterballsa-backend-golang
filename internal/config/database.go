@@ -44,6 +44,9 @@ func loadDatabaseConfig() (*DatabaseConfig, error) {
 	if user == "" {
 		return nil, fmt.Errorf("database user is required (set DB_USER environment variable)")
 	}
+	if password == "" {
+		return nil, fmt.Errorf("database password is required (set DB_PASSWORD environment variable)")
+	}
 	if name == "" {
 		return nil, fmt.Errorf("database name is required (set DB_NAME environment variable)")
 	}
