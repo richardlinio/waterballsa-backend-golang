@@ -23,11 +23,13 @@ func NewPostgresPool(cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
 	poolConfig.ConnConfig.Password = cfg.Password
 	poolConfig.ConnConfig.Database = cfg.Name
 
-	// Set runtime parameters including SSL mode
-	if poolConfig.ConnConfig.RuntimeParams == nil {
-		poolConfig.ConnConfig.RuntimeParams = make(map[string]string)
+	// Configure TLS based on SSL mode
+	// Note: sslmode is a client-side parameter, not a server runtime parameter
+	if cfg.SSLMode == "disable" {
+		poolConfig.ConnConfig.TLSConfig = nil
 	}
-	poolConfig.ConnConfig.RuntimeParams["sslmode"] = cfg.SSLMode
+	// For other SSL modes (require, verify-ca, verify-full), TLS config would be needed
+	// Currently only 'disable' mode is fully supported for development environment
 
 	// Set pool settings
 	poolConfig.MaxConns = cfg.MaxConns
