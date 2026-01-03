@@ -1,8 +1,10 @@
 package logger
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/linporu/waterballsa-backend-golang/internal/config"
 )
@@ -12,6 +14,15 @@ import (
 func NewLogger(cfg config.LoggerConfig) *slog.Logger {
 	level := parseLogLevel(cfg.Level)
 
+	// Determine output stream based on log level
+	// WARN and ERROR go to stderr, INFO and DEBUG go to stdout
+	var output *os.File
+	if level >= slog.LevelWarn {
+		output = os.Stderr
+	} else {
+		output = os.Stdout
+	}
+
 	// Create handler based on format
 	var handler slog.Handler
 	opts := &slog.HandlerOptions{
@@ -19,12 +30,13 @@ func NewLogger(cfg config.LoggerConfig) *slog.Logger {
 	}
 
 	switch cfg.Format {
-	case "text":
-		handler = slog.NewTextHandler(os.Stdout, opts)
 	case "json":
-		fallthrough
+		handler = slog.NewJSONHandler(output, opts)
+	case "text":
+		handler = slog.NewTextHandler(output, opts)
 	default:
-		handler = slog.NewJSONHandler(os.Stdout, opts)
+		fmt.Fprintf(os.Stderr, "Warning: invalid log format '%s', using default 'text'\n", cfg.Format)
+		handler = slog.NewTextHandler(output, opts)
 	}
 
 	return slog.New(handler)
@@ -32,6 +44,9 @@ func NewLogger(cfg config.LoggerConfig) *slog.Logger {
 
 // parseLogLevel converts string to slog.Level
 func parseLogLevel(level string) slog.Level {
+	// Convert to lowercase for case-insensitive comparison
+	level = strings.ToLower(level)
+
 	switch level {
 	case "debug":
 		return slog.LevelDebug
@@ -42,6 +57,7 @@ func parseLogLevel(level string) slog.Level {
 	case "error":
 		return slog.LevelError
 	default:
+		fmt.Fprintf(os.Stderr, "Warning: invalid log level '%s', using default 'info'\n", level)
 		return slog.LevelInfo
 	}
 }

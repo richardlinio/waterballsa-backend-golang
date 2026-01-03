@@ -19,10 +19,10 @@ func loadLoggerConfig() LoggerConfig {
 		level = "info"
 	}
 
-	// Get log format from environment (default: json)
+	// Get log format from environment (default: text)
 	format := strings.ToLower(os.Getenv("LOG_FORMAT"))
 	if format == "" {
-		format = "json"
+		format = "text"
 	}
 
 	return LoggerConfig{
