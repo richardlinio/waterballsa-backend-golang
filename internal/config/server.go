@@ -13,6 +13,7 @@ type ServerConfig struct {
 	ReadTimeout     time.Duration
 	WriteTimeout    time.Duration
 	ShutdownTimeout time.Duration
+	RequestTimeout  time.Duration
 }
 
 // loadServerConfig loads server configuration from environment variables
@@ -46,11 +47,18 @@ func loadServerConfig() ServerConfig {
 		shutdownTimeout = 5 * time.Second // default
 	}
 
+	requestTimeoutStr := os.Getenv("SERVER_REQUEST_TIMEOUT")
+	requestTimeout, err := time.ParseDuration(requestTimeoutStr)
+	if err != nil || requestTimeoutStr == "" {
+		requestTimeout = 10 * time.Second // default
+	}
+
 	return ServerConfig{
 		Host:            host,
 		Port:            port,
 		ReadTimeout:     readTimeout,
 		WriteTimeout:    writeTimeout,
 		ShutdownTimeout: shutdownTimeout,
+		RequestTimeout:  requestTimeout,
 	}
 }

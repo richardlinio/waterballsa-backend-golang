@@ -11,20 +11,22 @@ import (
 )
 
 type HealthHandler struct {
-	pool   *pgxpool.Pool
-	logger *slog.Logger
+	pool           *pgxpool.Pool
+	logger         *slog.Logger
+	requestTimeout time.Duration
 }
 
-func NewHealthHandler(pool *pgxpool.Pool, logger *slog.Logger) *HealthHandler {
+func NewHealthHandler(pool *pgxpool.Pool, logger *slog.Logger, requestTimeout time.Duration) *HealthHandler {
 	return &HealthHandler{
-		pool:   pool,
-		logger: logger,
+		pool:           pool,
+		logger:         logger,
+		requestTimeout: requestTimeout,
 	}
 }
 
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	// Create context with timeout for database ping
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), h.requestTimeout)
 	defer cancel()
 
 	// Ping database to check connectivity
