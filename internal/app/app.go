@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/linporu/waterballsa-backend-golang/internal/config"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/database"
+	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/logger"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/server"
 	"github.com/linporu/waterballsa-backend-golang/internal/router"
 	"golang.org/x/sync/errgroup"
@@ -42,24 +43,27 @@ func New() (*Application, error) {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
+	// Initialize logger
+	log := logger.NewLogger(cfg.Logger)
+
 	// Initialize database
-	pool, err := database.NewPostgresPool(cfg.Database, cfg.Logger)
+	pool, err := database.NewPostgresPool(cfg.Database, log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
 	// Setup Gin router
 	ginRouter := gin.Default()
-	router.SetupRoutes(ginRouter, pool, cfg.Logger)
+	router.SetupRoutes(ginRouter, pool, log)
 
 	// Create HTTP server
-	httpServer := server.NewHTTPServer(cfg.Server, ginRouter, cfg.Logger)
+	httpServer := server.NewHTTPServer(cfg.Server, ginRouter, log)
 
 	return &Application{
 		config: cfg,
 		db:     pool,
 		server: httpServer,
-		logger: cfg.Logger,
+		logger: log,
 	}, nil
 }
 

@@ -1,57 +1,32 @@
 package config
 
 import (
-	"log/slog"
 	"os"
 	"strings"
 )
 
-// NewLogger creates and configures a new slog.Logger instance
-// based on environment variables LOG_LEVEL and LOG_FORMAT
-func NewLogger() *slog.Logger {
-	// Get log level from environment (default: info)
-	levelStr := strings.ToLower(os.Getenv("LOG_LEVEL"))
-	if levelStr == "" {
-		levelStr = "info"
-	}
-	level := parseLogLevel(levelStr)
-
-	// Get log format from environment (default: json)
-	formatStr := strings.ToLower(os.Getenv("LOG_FORMAT"))
-	if formatStr == "" {
-		formatStr = "json"
-	}
-
-	// Create handler based on format
-	var handler slog.Handler
-	opts := &slog.HandlerOptions{
-		Level: level,
-	}
-
-	switch formatStr {
-	case "text":
-		handler = slog.NewTextHandler(os.Stdout, opts)
-	case "json":
-		fallthrough
-	default:
-		handler = slog.NewJSONHandler(os.Stdout, opts)
-	}
-
-	return slog.New(handler)
+// LoggerConfig holds logger configuration
+type LoggerConfig struct {
+	Level  string
+	Format string
 }
 
-// parseLogLevel converts string to slog.Level
-func parseLogLevel(level string) slog.Level {
-	switch level {
-	case "debug":
-		return slog.LevelDebug
-	case "info":
-		return slog.LevelInfo
-	case "warn", "warning":
-		return slog.LevelWarn
-	case "error":
-		return slog.LevelError
-	default:
-		return slog.LevelInfo
+// loadLoggerConfig loads logger configuration from environment variables
+func loadLoggerConfig() LoggerConfig {
+	// Get log level from environment (default: info)
+	level := strings.ToLower(os.Getenv("LOG_LEVEL"))
+	if level == "" {
+		level = "info"
+	}
+
+	// Get log format from environment (default: json)
+	format := strings.ToLower(os.Getenv("LOG_FORMAT"))
+	if format == "" {
+		format = "json"
+	}
+
+	return LoggerConfig{
+		Level:  level,
+		Format: format,
 	}
 }

@@ -2,14 +2,13 @@ package config
 
 import (
 	"fmt"
-	"log/slog"
 )
 
 // Config holds all application configuration
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
-	Logger   *slog.Logger
+	Logger   LoggerConfig
 }
 
 // Load loads configuration from environment variables
@@ -23,12 +22,12 @@ func Load() (*Config, error) {
 	// Load server config
 	serverConfig := loadServerConfig()
 
-	// Initialize logger
-	logger := NewLogger()
+	// Load logger config
+	loggerConfig := loadLoggerConfig()
 
 	return &Config{
 		Server:   serverConfig,
 		Database: *dbConfig,
-		Logger:   logger,
+		Logger:   loggerConfig,
 	}, nil
 }
