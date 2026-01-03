@@ -3,15 +3,13 @@ package database
 import (
 	"context"
 	"fmt"
-	"log/slog"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/linporu/waterballsa-backend-golang/internal/config"
 )
 
 // NewPostgresPool creates a new PostgreSQL connection pool
-func NewPostgresPool(cfg config.DatabaseConfig, logger *slog.Logger) (*pgxpool.Pool, error) {
+func NewPostgresPool(cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
 	// Configure pool using Config struct to avoid exposing password in connection string
 	poolConfig, err := pgxpool.ParseConfig("")
 	if err != nil {
@@ -25,15 +23,11 @@ func NewPostgresPool(cfg config.DatabaseConfig, logger *slog.Logger) (*pgxpool.P
 	poolConfig.ConnConfig.Password = cfg.Password
 	poolConfig.ConnConfig.Database = cfg.Name
 
-	// Set SSL mode
-	if cfg.SSLMode != "" {
-		poolConfig.ConnString()
-		dsn := fmt.Sprintf("sslmode=%s", cfg.SSLMode)
-		tempConfig, err := pgxpool.ParseConfig(dsn)
-		if err == nil {
-			poolConfig.ConnConfig.TLSConfig = tempConfig.ConnConfig.TLSConfig
-		}
+	// Set runtime parameters including SSL mode
+	if poolConfig.ConnConfig.RuntimeParams == nil {
+		poolConfig.ConnConfig.RuntimeParams = make(map[string]string)
 	}
+	poolConfig.ConnConfig.RuntimeParams["sslmode"] = cfg.SSLMode
 
 	// Set pool settings
 	poolConfig.MaxConns = cfg.MaxConns
@@ -42,7 +36,7 @@ func NewPostgresPool(cfg config.DatabaseConfig, logger *slog.Logger) (*pgxpool.P
 	poolConfig.MaxConnIdleTime = cfg.MaxConnIdleTime
 
 	// Create context with timeout for initial connection
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.ConnectTimeout)
 	defer cancel()
 
 	// Connect to database

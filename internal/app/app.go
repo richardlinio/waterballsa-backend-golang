@@ -42,7 +42,7 @@ func New() (*Application, error) {
 	log := logger.NewLogger(cfg.Logger)
 
 	// Initialize database
-	pool, err := database.NewPostgresPool(cfg.Database, log)
+	pool, err := database.NewPostgresPool(cfg.Database)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
