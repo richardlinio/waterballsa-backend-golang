@@ -2,18 +2,21 @@ package main
 
 import (
 	"log"
+	"os"
 
-	"github.com/gin-gonic/gin"
+	"github.com/linporu/waterballsa-backend-golang/internal/app"
 )
 
 func main() {
-	r := gin.Default()
+	application, err := app.New()
+	if err != nil {
+		log.Println("Failed to initialize application:", err)
+		os.Exit(1)
+	}
 
-	r.GET("/healthz", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
-
-	if err := r.Run(":8080"); err != nil {
-		log.Fatal("Failed to start server:", err)
+	err = application.Run()
+	if err != nil {
+		log.Println("Application terminated with error:", err)
+		os.Exit(1)
 	}
 }
