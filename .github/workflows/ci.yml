@@ -17,89 +17,112 @@ on:
       - "Makefile"
 
 jobs:
-  test:
-    name: Test
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
+    container:
+      image: golang:1.25-alpine
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Cache Go modules
+        uses: actions/cache@v4
         with:
-          go-version: "1.25.0"
-          cache: true
+          path: /go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+
+      - name: Install dependencies
+        run: |
+          apk add --no-cache git curl bash
+          curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.7.2
+
+      - name: Run golangci-lint
+        run: golangci-lint run --config .golangci.yml
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.25-alpine
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: /go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+
+      - name: Install dependencies
+        run: apk add --no-cache git
 
       - name: Run tests
         run: go test -v -race ./...
 
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.25.0"
-          cache: true
-
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: v2.6.0
-          args: --config .golangci.yml
-
   generated-code:
     name: Generated Code Sync
     runs-on: ubuntu-latest
+    container:
+      image: golang:1.25-alpine
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.25.0"
-          cache: true
-
-      - name: Cache Go tools
+      - name: Cache Go modules
         uses: actions/cache@v4
         with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-go-tools-sqlc-v1.30.0
+          path: /go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-tools-sqlc-
+            ${{ runner.os }}-go-mod-
+
+      - name: Cache sqlc binary
+        uses: actions/cache@v4
+        with:
+          path: /go/bin/sqlc
+          key: ${{ runner.os }}-sqlc-v1.30.0
+
+      - name: Install dependencies
+        run: apk add --no-cache git
 
       - name: Install sqlc
         run: |
-          if ! command -v sqlc &> /dev/null; then
+          if [ ! -f /go/bin/sqlc ]; then
             go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
           fi
 
-      # 確認開發者沒有忘記 sqlc generate，檢查從 .sql 產生的檔案和現存檔案一致
       - name: Check generated code is in sync
         run: sqlc diff
 
-      # 對 SQL 查詢運行 lint 規則，提早發現反模式
       - name: Lint SQL queries
         run: sqlc vet
 
   build:
     name: Build
     runs-on: ubuntu-latest
+    container:
+      image: golang:1.25-alpine
     needs: [test, lint, generated-code]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Cache Go modules
+        uses: actions/cache@v4
         with:
-          go-version: "1.25.0"
-          cache: true
+          path: /go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+
+      - name: Install dependencies
+        run: apk add --no-cache git
 
       - name: Build
         run: go build -v ./...
