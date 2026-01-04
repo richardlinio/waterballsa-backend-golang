@@ -16,6 +16,7 @@ linters:
 
     # Code Style
     - gofumpt # Enforce stricter code formatting
+    - revive # Enforce style and best practices
     - misspell # Find commonly misspelled English words
     - whitespace # Check for unnecessary blank lines
     - nolintlint # Ensure nolint directives are properly formatted with explanations
@@ -53,6 +54,14 @@ linters:
         - G104
     misspell:
       locale: US
+    revive:
+      rules:
+        - name: exported
+          arguments:
+            - "checkPrivateReceivers"
+          disabled: true
+        - name: package-comments
+          disabled: true
     exclusions:
       generated: lax
       paths:
