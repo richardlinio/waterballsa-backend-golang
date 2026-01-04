@@ -18,7 +18,7 @@ func NewPostgresPool(cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
 
 	// Set connection parameters securely
 	poolConfig.ConnConfig.Host = cfg.Host
-	poolConfig.ConnConfig.Port = uint16(cfg.Port)
+	poolConfig.ConnConfig.Port = uint16(cfg.Port) // #nosec G115 -- cfg.Port already validated in loadDatabaseConfig (1-65535)
 	poolConfig.ConnConfig.User = cfg.User
 	poolConfig.ConnConfig.Password = cfg.Password
 	poolConfig.ConnConfig.Database = cfg.Name

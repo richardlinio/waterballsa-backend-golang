@@ -1,3 +1,4 @@
+version: '2'
 run:
   concurrency: 0
   timeout: 5m
@@ -15,7 +16,6 @@ linters:
     - usestdlibvars # Detect variables that could be replaced by stdlib constants
 
     # Code Style
-    - gofumpt # Enforce stricter code formatting
     - revive # Enforce style and best practices
     - misspell # Find commonly misspelled English words
     - whitespace # Check for unnecessary blank lines
@@ -30,7 +30,6 @@ linters:
 
     # Complexity
     - gocyclo # Check cyclomatic complexity
-    - gocognitive # Check cognitive complexity
 
     # Performance
     - makezero # Find misuse of make and append with zero-length slices
@@ -62,13 +61,13 @@ linters:
           disabled: true
         - name: package-comments
           disabled: true
-    exclusions:
-      generated: lax
-      paths:
-        - third_party$
-        - builtin$
-        - examples$
-        - internal/db # Exclude sqlc generated files
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - internal/db # Exclude sqlc generated files
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

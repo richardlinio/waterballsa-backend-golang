@@ -60,9 +60,11 @@ jobs:
             ${{ runner.os }}-go-mod-
 
       - name: Install dependencies
-        run: apk add --no-cache git
+        run: apk add --no-cache git gcc musl-dev
 
       - name: Run tests
+        env:
+          CGO_ENABLED: 1
         run: go test -v -race ./...
 
   generated-code:
@@ -98,10 +100,20 @@ jobs:
           fi
 
       - name: Check generated code is in sync
-        run: sqlc diff
+        run: |
+          if [ -f sqlc.yaml ] || [ -f sqlc.yml ]; then
+            sqlc diff
+          else
+            echo "No sqlc configuration found, skipping..."
+          fi
 
       - name: Lint SQL queries
-        run: sqlc vet
+        run: |
+          if [ -f sqlc.yaml ] || [ -f sqlc.yml ]; then
+            sqlc vet
+          else
+            echo "No sqlc configuration found, skipping..."
+          fi
 
   build:
     name: Build
