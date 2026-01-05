@@ -1,36 +1,41 @@
 # Makefile for WaterBall SA Backend (Golang)
 
-.PHONY: fmt
-fmt:
-	docker exec backend gofumpt -l -w .
-
-.PHONY: lint
-lint:
-	docker exec backend go build -o /dev/null ./...
-	docker exec backend golangci-lint run
-
-.PHONY: test
-test:
-	docker exec backend go test ./...
+# Docker command variables
+DOCKER_EXEC=docker exec backend
 
 # Database Migration Commands (using goose)
 # Environment variables are passed from docker-compose.yml
 GOOSE_DRIVER=postgres
 GOOSE_MIGRATION_DIR=./migrations
+GOOSE_DB_DSN=host=db port=5432 user=$$DB_USER password=$$DB_PASSWORD dbname=$$DB_NAME sslmode=disable
+GOOSE_CMD=goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) "$(GOOSE_DB_DSN)"
+
+.PHONY: fmt
+fmt:
+	$(DOCKER_EXEC) gofumpt -l -w .
+
+.PHONY: lint
+lint:
+	$(DOCKER_EXEC) go build -o /dev/null ./...
+	$(DOCKER_EXEC) golangci-lint run
+
+.PHONY: test
+test:
+	$(DOCKER_EXEC) go test ./...
 
 .PHONY: migrate-status
 migrate-status:
-	docker exec backend sh -c 'goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) "host=db port=5432 user=$$DB_USER password=$$DB_PASSWORD dbname=$$DB_NAME sslmode=disable" status'
+	$(DOCKER_EXEC) sh -c '$(GOOSE_CMD) status'
 
 .PHONY: migrate-up
 migrate-up:
-	docker exec backend sh -c 'goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) "host=db port=5432 user=$$DB_USER password=$$DB_PASSWORD dbname=$$DB_NAME sslmode=disable" up'
+	$(DOCKER_EXEC) sh -c '$(GOOSE_CMD) up'
 
 .PHONY: migrate-down
 migrate-down:
-	docker exec backend sh -c 'goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) "host=db port=5432 user=$$DB_USER password=$$DB_PASSWORD dbname=$$DB_NAME sslmode=disable" down'
+	$(DOCKER_EXEC) sh -c '$(GOOSE_CMD) down'
 
 .PHONY: migrate-reset
 migrate-reset:
-	docker exec backend sh -c 'goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) "host=db port=5432 user=$$DB_USER password=$$DB_PASSWORD dbname=$$DB_NAME sslmode=disable" reset'
-	docker exec backend sh -c 'goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) "host=db port=5432 user=$$DB_USER password=$$DB_PASSWORD dbname=$$DB_NAME sslmode=disable" up'
+	$(DOCKER_EXEC) sh -c '$(GOOSE_CMD) reset'
+	$(DOCKER_EXEC) sh -c '$(GOOSE_CMD) up'
