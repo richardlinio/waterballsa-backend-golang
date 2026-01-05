@@ -1,14 +1,15 @@
 -- +goose Up
 -- Add EXPIRED status to order_status enum and add expired_at column to orders table
-
 -- Add EXPIRED value to order_status enum
-ALTER TYPE order_status ADD VALUE 'EXPIRED';
+ALTER TYPE order_status
+ADD VALUE 'EXPIRED';
 
 -- Add expired_at column to orders table
-ALTER TABLE orders ADD COLUMN expired_at TIMESTAMP NULL;
+ALTER TABLE orders
+ADD COLUMN expired_at TIMESTAMP NULL;
 
 -- Add index for expired_at to optimize scheduled task queries
-CREATE INDEX idx_orders_expired_at ON orders(expired_at);
+CREATE INDEX idx_orders_expired_at ON orders (expired_at);
 
 -- Add comment for the new column
 COMMENT ON COLUMN orders.expired_at IS '訂單過期時間（建立時設為 created_at + 3天）';
@@ -16,4 +17,6 @@ COMMENT ON COLUMN orders.expired_at IS '訂單過期時間（建立時設為 cre
 -- +goose Down
 -- Note: PostgreSQL does not support removing enum values directly. Manual intervention required.
 DROP INDEX IF EXISTS idx_orders_expired_at;
-ALTER TABLE orders DROP COLUMN expired_at;
+
+ALTER TABLE orders
+DROP COLUMN expired_at;

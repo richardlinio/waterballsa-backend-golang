@@ -1,6 +1,5 @@
 -- +goose Up
 -- Seed test data for journeys, chapters, missions, contents, and rewards
-
 -- Insert test journey
 INSERT INTO
     journeys (id, title, description, cover_image_url, teacher_name, price, created_at, updated_at, deleted_at)
@@ -17,7 +16,6 @@ VALUES
         NULL
     );
 
-
 -- Insert test chapters
 INSERT INTO
     chapters (id, journey_id, title, order_index, created_at, updated_at, deleted_at)
@@ -25,7 +23,6 @@ VALUES
     (1, 1, '課程介紹', 1, NOW(), NOW(), NULL),
     (2, 1, '架構思維的 C.A. 模式', 2, NOW(), NOW(), NULL),
     (3, 1, '設計模式實戰', 3, NOW(), NOW(), NULL);
-
 
 -- Insert test missions
 INSERT INTO
@@ -54,7 +51,6 @@ VALUES
     (7, 3, 'ARTICLE', 'Observer Pattern 觀察者模式深度解析', '理解 Observer Pattern 的核心概念與實作技巧', 'PURCHASED', 2, NOW(), NOW(), NULL),
     (8, 3, 'QUESTIONNAIRE', '課程回饋問卷', '請填寫課程回饋問卷,幫助我們改進課程內容', 'AUTHENTICATED', 3, NOW(), NOW(), NULL);
 
-
 -- Insert mission contents
 INSERT INTO
     mission_contents (id, mission_id, content_type, content_url, content_order, duration_seconds, created_at, updated_at, deleted_at)
@@ -71,7 +67,6 @@ VALUES
     -- Form/Questionnaire content
     (8, 8, 'FORM', 'https://forms.waterballsa.tw/feedback-form-1', 0, NULL, NOW(), NOW(), NULL);
 
-
 -- Insert rewards for all missions
 INSERT INTO
     rewards (id, mission_id, reward_type, reward_value, created_at, updated_at, deleted_at)
@@ -85,7 +80,6 @@ VALUES
     (7, 7, 'EXPERIENCE', 100, NOW(), NOW(), NULL),
     (8, 8, 'EXPERIENCE', 50, NOW(), NOW(), NULL);
 
-
 -- Reset sequences to prevent ID conflicts
 SELECT
     SETVAL(
@@ -98,7 +92,6 @@ SELECT
         )
     );
 
-
 SELECT
     SETVAL(
         'chapters_id_seq',
@@ -109,7 +102,6 @@ SELECT
                 chapters
         )
     );
-
 
 SELECT
     SETVAL(
@@ -122,7 +114,6 @@ SELECT
         )
     );
 
-
 SELECT
     SETVAL(
         'mission_contents_id_seq',
@@ -133,7 +124,6 @@ SELECT
                 mission_contents
         )
     );
-
 
 SELECT
     SETVAL(
@@ -146,10 +136,23 @@ SELECT
         )
     );
 
-
 -- +goose Down
-DELETE FROM rewards WHERE mission_id IN (1,2,3,4,5,6,7,8);
-DELETE FROM mission_contents WHERE mission_id IN (1,2,3,4,5,6,7,8);
-DELETE FROM missions WHERE chapter_id IN (1,2,3);
-DELETE FROM chapters WHERE journey_id = 1;
-DELETE FROM journeys WHERE id = 1;
+DELETE FROM rewards
+WHERE
+    mission_id IN (1, 2, 3, 4, 5, 6, 7, 8);
+
+DELETE FROM mission_contents
+WHERE
+    mission_id IN (1, 2, 3, 4, 5, 6, 7, 8);
+
+DELETE FROM missions
+WHERE
+    chapter_id IN (1, 2, 3);
+
+DELETE FROM chapters
+WHERE
+    journey_id = 1;
+
+DELETE FROM journeys
+WHERE
+    id = 1;
