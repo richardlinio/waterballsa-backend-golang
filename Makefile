@@ -8,3 +8,7 @@ fmt:
 lint:
 	docker exec backend go build -o /dev/null ./...
 	docker exec backend golangci-lint run
+
+.PHONY: test
+test:
+	docker exec backend go test ./...
