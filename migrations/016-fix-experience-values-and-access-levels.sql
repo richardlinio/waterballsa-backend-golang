@@ -1,6 +1,5 @@
---liquibase formatted sql
---changeset liquibase:016-fix-experience-values-and-access-levels
---comment: Fix test data - set experience to 0 for PUBLIC/ARTICLE/QUESTIONNAIRE missions, and change all AUTHENTICATED missions to PURCHASED
+-- +goose Up
+-- Fix test data - set experience to 0 for PUBLIC/ARTICLE/QUESTIONNAIRE missions, and change all AUTHENTICATED missions to PURCHASED
 
 -- Update Mission 2 from PUBLIC to PURCHASED
 UPDATE missions
@@ -52,7 +51,8 @@ WHERE reward_type = 'EXPERIENCE'
   )
   AND deleted_at IS NULL;
 
---rollback UPDATE missions SET access_level = 'PUBLIC', updated_at = NOW() WHERE id = 2 AND deleted_at IS NULL;
---rollback UPDATE missions SET access_level = 'AUTHENTICATED', updated_at = NOW() WHERE id IN (3,4,8) AND deleted_at IS NULL;
---rollback UPDATE rewards SET reward_value = 100, updated_at = NOW() WHERE id IN (1,2,4,7) AND reward_type = 'EXPERIENCE' AND deleted_at IS NULL;
---rollback UPDATE rewards SET reward_value = 50, updated_at = NOW() WHERE id = 8 AND reward_type = 'EXPERIENCE' AND deleted_at IS NULL;
+-- +goose Down
+UPDATE missions SET access_level = 'PUBLIC', updated_at = NOW() WHERE id = 2 AND deleted_at IS NULL;
+UPDATE missions SET access_level = 'AUTHENTICATED', updated_at = NOW() WHERE id IN (3,4,8) AND deleted_at IS NULL;
+UPDATE rewards SET reward_value = 100, updated_at = NOW() WHERE id IN (1,2,4,7) AND reward_type = 'EXPERIENCE' AND deleted_at IS NULL;
+UPDATE rewards SET reward_value = 50, updated_at = NOW() WHERE id = 8 AND reward_type = 'EXPERIENCE' AND deleted_at IS NULL;

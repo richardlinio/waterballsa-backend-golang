@@ -1,7 +1,5 @@
---liquibase formatted sql
-
---changeset liquibase:017-create-orders-table
---comment: Create orders table and order_status enum type
+-- +goose Up
+-- Create orders table and order_status enum type
 
 -- Create order_status enum
 CREATE TYPE order_status AS ENUM ('UNPAID', 'PAID');
@@ -29,5 +27,6 @@ CREATE INDEX idx_orders_user_status ON orders(user_id, status);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_created_at ON orders(created_at);
 
---rollback DROP TABLE IF EXISTS orders;
---rollback DROP TYPE IF EXISTS order_status;
+-- +goose Down
+DROP TABLE IF EXISTS orders;
+DROP TYPE IF EXISTS order_status;

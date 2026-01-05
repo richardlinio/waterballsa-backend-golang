@@ -1,7 +1,5 @@
---liquibase formatted sql
-
---changeset liquibase:004-create-user-unit-progress-table
---comment: Create user unit progress table for tracking video watch position
+-- +goose Up
+-- Create user unit progress table for tracking video watch position
 
 -- Create user_unit_progress table
 CREATE TABLE user_unit_progress (
@@ -21,4 +19,5 @@ CREATE UNIQUE INDEX idx_progress_user_unit ON user_unit_progress(user_id, unit_i
 CREATE INDEX idx_progress_user_id ON user_unit_progress(user_id);
 CREATE INDEX idx_progress_unit_id ON user_unit_progress(unit_id);
 
---rollback DROP TABLE IF EXISTS user_unit_progress;
+-- +goose Down
+DROP TABLE IF EXISTS user_unit_progress;

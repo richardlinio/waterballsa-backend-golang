@@ -1,7 +1,5 @@
---liquibase formatted sql
-
---changeset liquibase:005-create-user-unit-submissions-table
---comment: Create user unit submissions table for tracking completed units
+-- +goose Up
+-- Create user unit submissions table for tracking completed units
 
 -- Create user_unit_submissions table
 CREATE TABLE user_unit_submissions (
@@ -21,4 +19,5 @@ CREATE UNIQUE INDEX idx_submissions_user_unit ON user_unit_submissions(user_id, 
 CREATE INDEX idx_submissions_user_id ON user_unit_submissions(user_id);
 CREATE INDEX idx_submissions_time ON user_unit_submissions(submitted_at);
 
---rollback DROP TABLE IF EXISTS user_unit_submissions;
+-- +goose Down
+DROP TABLE IF EXISTS user_unit_submissions;

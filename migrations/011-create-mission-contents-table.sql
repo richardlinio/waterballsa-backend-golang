@@ -1,7 +1,5 @@
---liquibase formatted sql
-
---changeset liquibase:011-create-mission-contents-table
---comment: Create mission contents module tables and enum types
+-- +goose Up
+-- Create mission contents module tables and enum types
 
 -- Create content_type enum
 CREATE TYPE content_type AS ENUM ('VIDEO', 'ARTICLE', 'FORM');
@@ -24,5 +22,6 @@ CREATE TABLE mission_contents (
 CREATE INDEX idx_contents_mission_id ON mission_contents(mission_id);
 CREATE UNIQUE INDEX idx_contents_mission_order ON mission_contents(mission_id, content_order);
 
---rollback DROP TABLE IF EXISTS mission_contents;
---rollback DROP TYPE IF EXISTS content_type;
+-- +goose Down
+DROP TABLE IF EXISTS mission_contents;
+DROP TYPE IF EXISTS content_type;

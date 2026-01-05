@@ -1,7 +1,5 @@
---liquibase formatted sql
-
---changeset liquibase:003-create-courses-module-tables
---comment: Create course module tables (courses, chapters, units)
+-- +goose Up
+-- Create course module tables (courses, chapters, units)
 
 -- Create courses table
 CREATE TABLE courses (
@@ -52,6 +50,7 @@ CREATE TABLE units (
 -- Create units indexes
 CREATE UNIQUE INDEX idx_units_chapter_order ON units(chapter_id, order_index);
 
---rollback DROP TABLE IF EXISTS units;
---rollback DROP TABLE IF EXISTS chapters;
---rollback DROP TABLE IF EXISTS courses;
+-- +goose Down
+DROP TABLE IF EXISTS units;
+DROP TABLE IF EXISTS chapters;
+DROP TABLE IF EXISTS courses;

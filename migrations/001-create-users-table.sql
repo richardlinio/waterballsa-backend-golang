@@ -1,7 +1,5 @@
---liquibase formatted sql
-
---changeset liquibase:001-create-users-table
---comment: Create users table (Authentication Module)
+-- +goose Up
+-- Create users table (Authentication Module)
 
 -- Create user_role ENUM type
 CREATE TYPE user_role AS ENUM ('STUDENT', 'TEACHER', 'ADMIN');
@@ -23,5 +21,6 @@ CREATE TABLE users (
 CREATE UNIQUE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_experience ON users(experience_points);
 
---rollback DROP TABLE IF EXISTS users;
---rollback DROP TYPE IF EXISTS user_role;
+-- +goose Down
+DROP TABLE IF EXISTS users;
+DROP TYPE IF EXISTS user_role;

@@ -1,7 +1,5 @@
---liquibase formatted sql
-
---changeset liquibase:019-create-user-journeys-table
---comment: Create user_journeys table to track user's purchased journeys
+-- +goose Up
+-- Create user_journeys table to track user's purchased journeys
 
 -- Create user_journeys table
 CREATE TABLE user_journeys (
@@ -23,4 +21,5 @@ CREATE INDEX idx_user_journeys_user_id ON user_journeys(user_id);
 CREATE INDEX idx_user_journeys_journey_id ON user_journeys(journey_id);
 CREATE INDEX idx_user_journeys_order_id ON user_journeys(order_id);
 
---rollback DROP TABLE IF EXISTS user_journeys;
+-- +goose Down
+DROP TABLE IF EXISTS user_journeys;
