@@ -1,0 +1,80 @@
+version: '2'
+run:
+  timeout: 5m
+linters:
+  enable:
+    # Static Analysis
+    - staticcheck # Advanced static analysis checks
+    - govet # Examine Go source code and report suspicious constructs
+    - gocritic # Comprehensive checks for bugs, performance and style issues
+
+    # Code Quality
+    - unconvert # Remove unnecessary type conversions
+    - nilnil # Detect incorrect (nil, nil) returns
+    - goconst # Find repeated strings that should be constants
+    - usestdlibvars # Detect variables that could be replaced by stdlib constants
+
+    # Code Style
+    - revive # Enforce style and best practices
+    - nolintlint # Ensure nolint directives are properly formatted with explanations
+    - predeclared # Prevent shadowing of Go predeclared identifiers
+
+    # Error handling
+    - errcheck # Check for unchecked errors
+    - errorlint # Ensure correct use of Go 1.13+ error wrapping
+    - nilerr # Detect incorrect nil error returns
+    - rowserrcheck # Check SQL rows.Err() is properly handled
+
+    # Complexity
+    - gocyclo # Check cyclomatic complexity
+
+    # Performance
+    - makezero # Find misuse of make and append with zero-length slices
+
+    # Resource management & concurrency safety
+    - bodyclose # Check HTTP response bodies are closed
+    - sqlclosecheck # Ensure SQL resources are properly closed
+    - contextcheck # Ensure proper use of context.Context
+
+    # Security
+    - gosec # Inspect code for security problems
+
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    gocyclo:
+      min-complexity: 15
+    gosec:
+      excludes:
+        - G104
+    misspell:
+      locale: US
+    revive:
+      rules:
+        - name: exported
+          arguments:
+            - "checkPrivateReceivers"
+          disabled: true
+        - name: package-comments
+          disabled: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - internal/db # Exclude sqlc generated files
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofumpt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - internal/db # Exclude sqlc generated files

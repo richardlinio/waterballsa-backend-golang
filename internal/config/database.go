@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	defaultSSLMode = "disable"
+)
+
 // DatabaseConfig holds database connection configuration
 type DatabaseConfig struct {
 	Host            string
@@ -33,16 +37,16 @@ func loadDatabaseConfig() (*DatabaseConfig, error) {
 	// Parse and validate SSL mode
 	sslmode := os.Getenv("DB_SSLMODE")
 	if sslmode == "" {
-		sslmode = "disable" // default to disable for development
+		sslmode = defaultSSLMode // default to disable for development
 	} else {
 		// Validate SSL mode
 		validModes := map[string]struct{}{
-			"disable":     {},
-			"allow":       {},
-			"prefer":      {},
-			"require":     {},
-			"verify-ca":   {},
-			"verify-full": {},
+			defaultSSLMode: {},
+			"allow":        {},
+			"prefer":       {},
+			"require":      {},
+			"verify-ca":    {},
+			"verify-full":  {},
 		}
 		if _, ok := validModes[sslmode]; !ok {
 			return nil, fmt.Errorf("invalid DB_SSLMODE: %s (must be one of: disable, allow, prefer, require, verify-ca, verify-full)", sslmode)
@@ -83,8 +87,8 @@ func loadDatabaseConfig() (*DatabaseConfig, error) {
 	}
 
 	// Parse pool settings with defaults
-	maxConns := parseInt(maxConnsStr, 10)
-	minConns := parseInt(minConnsStr, 2)
+	maxConns := parseInt32(maxConnsStr, 10)
+	minConns := parseInt32(minConnsStr, 2)
 
 	// Parse connection lifetime settings with defaults
 	maxConnLifetime := parseDuration(maxConnLifetimeStr, 1*time.Hour)
@@ -98,8 +102,8 @@ func loadDatabaseConfig() (*DatabaseConfig, error) {
 		Password:        password,
 		Name:            name,
 		SSLMode:         sslmode,
-		MaxConns:        int32(maxConns),
-		MinConns:        int32(minConns),
+		MaxConns:        maxConns,
+		MinConns:        minConns,
 		MaxConnLifetime: maxConnLifetime,
 		MaxConnIdleTime: maxConnIdleTime,
 		ConnectTimeout:  connectTimeout,
@@ -108,7 +112,7 @@ func loadDatabaseConfig() (*DatabaseConfig, error) {
 	return config, nil
 }
 
-func parseInt(s string, defaultVal int) int {
+func parseInt32(s string, defaultVal int32) int32 {
 	if s == "" {
 		return defaultVal
 	}
@@ -116,7 +120,11 @@ func parseInt(s string, defaultVal int) int {
 	if err != nil || v <= 0 {
 		return defaultVal
 	}
-	return v
+	// Validate int32 range to prevent overflow
+	if v > 2147483647 {
+		return defaultVal
+	}
+	return int32(v) // #nosec G109 -- validated above
 }
 
 func parseDuration(s string, defaultVal time.Duration) time.Duration {
