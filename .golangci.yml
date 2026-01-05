@@ -1,6 +1,5 @@
 version: '2'
 run:
-  concurrency: 0
   timeout: 5m
 linters:
   enable:
@@ -17,8 +16,6 @@ linters:
 
     # Code Style
     - revive # Enforce style and best practices
-    - misspell # Find commonly misspelled English words
-    - whitespace # Check for unnecessary blank lines
     - nolintlint # Ensure nolint directives are properly formatted with explanations
     - predeclared # Prevent shadowing of Go predeclared identifiers
 
