@@ -65,7 +65,22 @@ jobs:
           go-version: "1.25.5"
           cache: true
 
+      - name: Check sqlc requirements
+        # 檢查專案根目錄是否存在 sqlc 設定檔（sqlc.yaml 或 sqlc.yml）
+        # 如果存在，設定輸出變數 enabled=true，後續步驟會依此判斷是否執行
+        # 如果不存在，設定 enabled=false，後續 sqlc 相關步驟會被跳過
+        id: check-sqlc
+        run: |
+          if [ -f "sqlc.yaml" ] || [ -f "sqlc.yml" ]; then
+            echo "enabled=true" >> $GITHUB_OUTPUT
+            echo "✓ sqlc configuration found"
+          else
+            echo "enabled=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ sqlc not configured, skipping database code generation checks"
+          fi
+
       - name: Cache Go tools
+        if: steps.check-sqlc.outputs.enabled == 'true'
         uses: actions/cache@v4
         with:
           path: ~/go/bin
@@ -74,17 +89,24 @@ jobs:
             ${{ runner.os }}-go-tools-sqlc-
 
       - name: Install sqlc
+        # 只有當 sqlc 設定檔存在時才安裝
+        if: steps.check-sqlc.outputs.enabled == 'true'
         run: |
           if ! command -v sqlc &> /dev/null; then
             go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
           fi
 
-      # 確認開發者沒有忘記 sqlc generate，檢查從 .sql 產生的檔案和現存檔案一致
       - name: Check generated code is in sync
+        # 只有當 sqlc 設定檔存在時才執行檢查
+        # sqlc diff: 比對從 .sql 檔案產生的程式碼和現存檔案是否一致
+        # 如果不一致，表示開發者忘記執行 sqlc generate
+        if: steps.check-sqlc.outputs.enabled == 'true'
         run: sqlc diff
 
-      # 對 SQL 查詢運行 lint 規則，提早發現反模式
       - name: Lint SQL queries
+        # 只有當 sqlc 設定檔存在時才執行 lint
+        # sqlc vet: 對 SQL 查詢運行 lint 規則，提早發現反模式（anti-patterns）
+        if: steps.check-sqlc.outputs.enabled == 'true'
         run: sqlc vet
 
   build:
