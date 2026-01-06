@@ -17,6 +17,7 @@ import (
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/database"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/logger"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/server"
+	"github.com/linporu/waterballsa-backend-golang/internal/repository"
 	"github.com/linporu/waterballsa-backend-golang/internal/router"
 	"github.com/linporu/waterballsa-backend-golang/internal/service"
 	"github.com/linporu/waterballsa-backend-golang/internal/validator"
@@ -59,8 +60,11 @@ func New() (*Application, error) {
 	// Initialize data layer (sqlc queries)
 	queries := db.New(pool)
 
+	// Initialize repository layer (data access)
+	userRepo := repository.NewUserRepository(queries)
+
 	// Initialize service layer (business logic)
-	authService := service.NewAuthService(queries, log)
+	authService := service.NewAuthService(userRepo, log)
 
 	// Initialize handler layer (HTTP handlers)
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
