@@ -8,8 +8,8 @@ import (
 func SetupRoutes(
 	r *gin.Engine,
 	healthHandler *handler.HealthHandler,
-	registerHandler *handler.RegisterHandler,
+	authHandler *handler.AuthHandler,
 ) {
 	r.GET("/healthz", healthHandler.HealthCheck)
-	r.POST("/auth/register", registerHandler.Register)
+	r.POST("/auth/register", authHandler.Register)
 }

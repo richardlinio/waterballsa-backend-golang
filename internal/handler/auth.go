@@ -12,21 +12,21 @@ import (
 	"github.com/linporu/waterballsa-backend-golang/internal/service"
 )
 
-type RegisterHandler struct {
+type AuthHandler struct {
 	authService    *service.AuthService
 	logger         *slog.Logger
 	requestTimeout time.Duration
 }
 
-func NewRegisterHandler(authService *service.AuthService, logger *slog.Logger, requestTimeout time.Duration) *RegisterHandler {
-	return &RegisterHandler{
+func NewAuthHandler(authService *service.AuthService, logger *slog.Logger, requestTimeout time.Duration) *AuthHandler {
+	return &AuthHandler{
 		authService:    authService,
 		logger:         logger,
 		requestTimeout: requestTimeout,
 	}
 }
 
-func (h *RegisterHandler) Register(c *gin.Context) {
+func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 
 	// Bind and validate JSON request
