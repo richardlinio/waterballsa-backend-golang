@@ -23,6 +23,14 @@ lint:
 test:
 	$(DOCKER_EXEC) go test ./...
 
+.PHONY: build
+build:
+	$(DOCKER_EXEC) go build -o /dev/null ./...
+
+.PHONY: sqlc
+sqlc:
+	$(DOCKER_EXEC) sqlc generate
+
 .PHONY: migrate-status
 migrate-status:
 	$(DOCKER_EXEC) sh -c '$(GOOSE_CMD) status'
