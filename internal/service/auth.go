@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/linporu/waterballsa-backend-golang/internal/dto"
@@ -10,7 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrUsernameExists = errors.New("使用者名稱已存在")
+var ErrUsernameExists = errors.New("username already exists")
 
 type AuthService struct {
 	userRepo repository.UserRepository
@@ -29,7 +30,7 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (in
 	exists, err := s.userRepo.ExistsByUsername(ctx, req.Username)
 	if err != nil {
 		s.logger.Error("Failed to check username existence", "error", err, "username", req.Username)
-		return 0, err
+		return 0, fmt.Errorf("failed to check username existence [username=%s]: %w", req.Username, err)
 	}
 	if exists {
 		return 0, ErrUsernameExists
@@ -39,14 +40,14 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (in
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		s.logger.Error("Failed to hash password", "error", err)
-		return 0, err
+		return 0, fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	// Create user
 	userID, err := s.userRepo.Create(ctx, req.Username, string(passwordHash))
 	if err != nil {
 		s.logger.Error("Failed to create user", "error", err, "username", req.Username)
-		return 0, err
+		return 0, fmt.Errorf("failed to create user [username=%s]: %w", req.Username, err)
 	}
 
 	return userID, nil
