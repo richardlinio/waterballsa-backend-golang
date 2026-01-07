@@ -33,7 +33,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Warn("Invalid registration request", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "資料驗證失敗,請檢查輸入內容",
+			"error": "使用者名稱或密碼格式無效",
 		})
 		return
 	}
