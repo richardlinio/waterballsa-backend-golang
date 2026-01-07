@@ -11,7 +11,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrUsernameExists = errors.New("username already exists")
+var (
+	ErrUsernameExists  = errors.New("username already exists")
+	ErrPasswordTooLong = errors.New("password too long")
+)
 
 type AuthService interface {
 	Register(ctx context.Context, req dto.RegisterRequest) (int64, error)
@@ -30,6 +33,11 @@ func NewAuthService(userRepo repository.UserRepository, logger *slog.Logger) Aut
 }
 
 func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (int64, error) {
+	// bcrypt can only handle up to 72 bytes
+	if len(req.Password) > 72 {
+		return 0, ErrPasswordTooLong
+	}
+
 	// Check if username already exists
 	exists, err := s.userRepo.ExistsByUsername(ctx, req.Username)
 	if err != nil {

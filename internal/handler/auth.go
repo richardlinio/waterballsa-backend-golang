@@ -51,6 +51,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			})
 			return
 		}
+		if errors.Is(err, service.ErrPasswordTooLong) {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Error: "使用者名稱或密碼格式無效",
+			})
+			return
+		}
 
 		h.logger.Error("Registration failed", "error", err)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
