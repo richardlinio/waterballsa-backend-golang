@@ -11,23 +11,35 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrUsernameExists = errors.New("username already exists")
+var (
+	ErrUsernameExists  = errors.New("username already exists")
+	ErrPasswordTooLong = errors.New("password too long")
+)
 
-type AuthService struct {
-	userRepo repository.UserRepository
-	logger   *slog.Logger
+type AuthService interface {
+	Register(ctx context.Context, req dto.RegisterRequest) (int64, error)
 }
 
-func NewAuthService(userRepo repository.UserRepository, logger *slog.Logger) *AuthService {
-	return &AuthService{
-		userRepo: userRepo,
-		logger:   logger,
+type authService struct {
+	userRepository repository.UserRepository
+	logger         *slog.Logger
+}
+
+func NewAuthService(userRepository repository.UserRepository, logger *slog.Logger) AuthService {
+	return &authService{
+		userRepository: userRepository,
+		logger:         logger,
 	}
 }
 
-func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (int64, error) {
+func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (int64, error) {
+	// bcrypt can only handle up to 72 bytes
+	if len(req.Password) > 72 {
+		return 0, ErrPasswordTooLong
+	}
+
 	// Check if username already exists
-	exists, err := s.userRepo.ExistsByUsername(ctx, req.Username)
+	exists, err := s.userRepository.ExistsByUsername(ctx, req.Username)
 	if err != nil {
 		s.logger.Error("Failed to check username existence", "error", err, "username", req.Username)
 		return 0, fmt.Errorf("failed to check username existence [username=%s]: %w", req.Username, err)
@@ -44,7 +56,7 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (in
 	}
 
 	// Create user
-	userID, err := s.userRepo.Create(ctx, req.Username, string(passwordHash))
+	userID, err := s.userRepository.Create(ctx, req.Username, string(passwordHash))
 	if err != nil {
 		s.logger.Error("Failed to create user", "error", err, "username", req.Username)
 		return 0, fmt.Errorf("failed to create user [username=%s]: %w", req.Username, err)

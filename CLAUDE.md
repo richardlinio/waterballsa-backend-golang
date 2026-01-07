@@ -207,4 +207,25 @@ Handler pattern:
 - **Testing**: Add tests for new code - CI runs with race detector
 - **Config**: `.golangci.yml` defines linting rules
 
+### Code Style
+
+**Naming Conventions:**
+
+- **Use full names instead of abbreviations** for better clarity and consistency
+- Variable names should be descriptive and avoid abbreviations
+
+Examples:
+
+```go
+// Preferred ✓
+authService
+userRepository
+courseRepository
+
+// Avoid ✗
+authSvc
+userRepo
+courseRepo
+```
+
 When implementing these features, follow the layer-based architecture and maintain consistency with existing patterns.

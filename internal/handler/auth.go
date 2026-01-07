@@ -13,12 +13,12 @@ import (
 )
 
 type AuthHandler struct {
-	authService    *service.AuthService
+	authService    service.AuthService
 	logger         *slog.Logger
 	requestTimeout time.Duration
 }
 
-func NewAuthHandler(authService *service.AuthService, logger *slog.Logger, requestTimeout time.Duration) *AuthHandler {
+func NewAuthHandler(authService service.AuthService, logger *slog.Logger, requestTimeout time.Duration) *AuthHandler {
 	return &AuthHandler{
 		authService:    authService,
 		logger:         logger,
@@ -48,6 +48,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		if errors.Is(err, service.ErrUsernameExists) {
 			c.JSON(http.StatusConflict, dto.ErrorResponse{
 				Error: "使用者名稱已存在",
+			})
+			return
+		}
+		if errors.Is(err, service.ErrPasswordTooLong) {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Error: "使用者名稱或密碼格式無效",
 			})
 			return
 		}

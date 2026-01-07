@@ -46,7 +46,9 @@ func New() (*Application, error) {
 	// Initialize logger
 	log := logger.NewLogger(cfg.Logger)
 
-	// Register custom validators (application-level setup)
+	// Register custom validators (must be done before any request handling starts)
+	// These validators extend Gin's default validation rules for auth-specific fields
+	// and are registered globally for the application lifetime
 	if err := validator.RegisterAuthValidators(); err != nil {
 		return nil, fmt.Errorf("failed to register validators: %w", err)
 	}
@@ -61,10 +63,10 @@ func New() (*Application, error) {
 	queries := db.New(pool)
 
 	// Initialize repository layer (data access)
-	userRepo := repository.NewUserRepository(queries)
+	userRepository := repository.NewUserRepository(queries)
 
 	// Initialize service layer (business logic)
-	authService := service.NewAuthService(userRepo, log)
+	authService := service.NewAuthService(userRepository, log)
 
 	// Initialize handler layer (HTTP handlers)
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
@@ -72,7 +74,8 @@ func New() (*Application, error) {
 
 	// Setup Gin router
 	ginRouter := gin.Default()
-	router.SetupRoutes(ginRouter, healthHandler, authHandler)
+	r := router.NewRouter(ginRouter, healthHandler, authHandler)
+	r.Setup()
 
 	// Create HTTP server
 	httpServer := server.NewHTTPServer(cfg.Server, ginRouter)
