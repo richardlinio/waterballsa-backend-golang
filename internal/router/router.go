@@ -30,6 +30,7 @@ func NewRouter(
 
 func (r *Router) Setup() {
 	// 1. Setup middlewares
+	r.engine.Use(middleware.Security())
 	r.engine.Use(middleware.CORS(r.corsConfig))
 
 	// 2. Setup routes
