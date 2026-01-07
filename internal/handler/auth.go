@@ -13,12 +13,12 @@ import (
 )
 
 type AuthHandler struct {
-	authService    *service.AuthService
+	authService    service.AuthService
 	logger         *slog.Logger
 	requestTimeout time.Duration
 }
 
-func NewAuthHandler(authService *service.AuthService, logger *slog.Logger, requestTimeout time.Duration) *AuthHandler {
+func NewAuthHandler(authService service.AuthService, logger *slog.Logger, requestTimeout time.Duration) *AuthHandler {
 	return &AuthHandler{
 		authService:    authService,
 		logger:         logger,

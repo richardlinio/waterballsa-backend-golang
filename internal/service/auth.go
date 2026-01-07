@@ -13,19 +13,23 @@ import (
 
 var ErrUsernameExists = errors.New("username already exists")
 
-type AuthService struct {
+type AuthService interface {
+	Register(ctx context.Context, req dto.RegisterRequest) (int64, error)
+}
+
+type authService struct {
 	userRepo repository.UserRepository
 	logger   *slog.Logger
 }
 
-func NewAuthService(userRepo repository.UserRepository, logger *slog.Logger) *AuthService {
-	return &AuthService{
+func NewAuthService(userRepo repository.UserRepository, logger *slog.Logger) AuthService {
+	return &authService{
 		userRepo: userRepo,
 		logger:   logger,
 	}
 }
 
-func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (int64, error) {
+func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (int64, error) {
 	// Check if username already exists
 	exists, err := s.userRepo.ExistsByUsername(ctx, req.Username)
 	if err != nil {
