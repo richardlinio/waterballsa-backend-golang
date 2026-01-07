@@ -63,10 +63,10 @@ func New() (*Application, error) {
 	queries := db.New(pool)
 
 	// Initialize repository layer (data access)
-	userRepo := repository.NewUserRepository(queries)
+	userRepository := repository.NewUserRepository(queries)
 
 	// Initialize service layer (business logic)
-	authService := service.NewAuthService(userRepo, log)
+	authService := service.NewAuthService(userRepository, log)
 
 	// Initialize handler layer (HTTP handlers)
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
