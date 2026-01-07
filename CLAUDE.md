@@ -128,6 +128,7 @@ Configuration is loaded exclusively from environment variables (see [.env.exampl
 - **Server Config**: Port, host, timeouts (read, write, shutdown, request)
 - **Database Config**: Host, port, user, password, dbname, connection pool settings
 - **Logger Config**: Level (debug/info/warn/error), format (json/text)
+- **CORS Config**: Allowed origins, credentials, max age
 - **JWT Config**: Secret key (planned feature)
 
 All config structs are in `internal/config/` with dedicated files:
@@ -136,6 +137,7 @@ All config structs are in `internal/config/` with dedicated files:
 - [server.go](internal/config/server.go) - Server config
 - [database.go](internal/config/database.go) - Database config
 - [logger.go](internal/config/logger.go) - Logger config
+- [cors.go](internal/config/cors.go) - CORS config
 
 ### Database Layer
 
@@ -156,15 +158,49 @@ Migrations use Goose format with `-- +goose Up` and `-- +goose Down` directives:
 
 Routes are registered in [internal/router/router.go](internal/router/router.go):
 
-- Takes Gin engine, database pool, logger, and timeout as parameters
+- Takes Gin engine, CORS config, and handlers as parameters
 - Handlers are initialized with dependencies
-- Currently implements: `/healthz` endpoint
+- Currently implements: `/healthz`, `/auth/register` endpoints
 
 Handler pattern:
 
 - Each handler is a struct with dependencies (pool, logger, timeout)
 - Constructor function `NewXxxHandler()` for dependency injection
 - Methods are Gin handler functions with signature `func(c *gin.Context)`
+
+### Middleware
+
+The application uses middleware in a specific order to ensure correct behavior:
+
+**Middleware Registration Order** (registered in `router.Setup()`):
+
+1. **Recovery** (from `gin.Default()`) - Catches panics and prevents server crashes
+2. **Logger** (from `gin.Default()`) - Logs HTTP requests (method, path, status, latency)
+3. **CORS** (custom) - Handles cross-origin requests and preflight OPTIONS
+
+**Current Middleware:**
+
+- **Recovery**: Built-in Gin middleware (`gin.Recovery()`) that recovers from panics
+- **Logger**: Built-in Gin middleware (`gin.Logger()`) that logs requests
+- **CORS**: Custom middleware using `gin-contrib/cors` package
+  - Configured via environment variables (`CORS_ALLOWED_ORIGINS`, `CORS_ALLOW_CREDENTIALS`, `CORS_MAX_AGE_SECONDS`)
+  - Supports wildcard patterns (e.g., `https://*.ngrok-free.dev`)
+  - Allows credentials for JWT authentication
+  - Mirrors the Java backend's CORS configuration for consistency
+
+**Adding New Middleware:**
+
+1. Create middleware function in `internal/middleware/` returning `gin.HandlerFunc`
+2. Add middleware configuration to `internal/config/` if needed
+3. Register middleware in `router.Setup()` in the appropriate order
+4. Update `.env.example` with any new environment variables
+
+**Middleware Best Practices:**
+
+- Recovery should always be first to catch panics from all other middleware
+- CORS should be early to handle preflight requests before auth checks
+- Authentication middleware should come after logging but before route handlers
+- Rate limiting should come before expensive operations like auth
 
 ### Error Handling
 

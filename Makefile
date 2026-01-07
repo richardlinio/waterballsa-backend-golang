@@ -27,6 +27,10 @@ test:
 build:
 	$(DOCKER_EXEC) go build -o /dev/null ./...
 
+.PHONY: tidy
+tidy:
+	$(DOCKER_EXEC) go mod tidy
+
 .PHONY: sqlc
 sqlc:
 	$(DOCKER_EXEC) sqlc generate
