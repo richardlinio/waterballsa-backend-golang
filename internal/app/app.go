@@ -46,7 +46,9 @@ func New() (*Application, error) {
 	// Initialize logger
 	log := logger.NewLogger(cfg.Logger)
 
-	// Register custom validators (application-level setup)
+	// Register custom validators (must be done before any request handling starts)
+	// These validators extend Gin's default validation rules for auth-specific fields
+	// and are registered globally for the application lifetime
 	if err := validator.RegisterAuthValidators(); err != nil {
 		return nil, fmt.Errorf("failed to register validators: %w", err)
 	}
