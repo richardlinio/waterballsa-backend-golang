@@ -12,10 +12,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/linporu/waterballsa-backend-golang/internal/config"
+	"github.com/linporu/waterballsa-backend-golang/internal/db"
+	"github.com/linporu/waterballsa-backend-golang/internal/handler"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/database"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/logger"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/server"
+	"github.com/linporu/waterballsa-backend-golang/internal/repository"
 	"github.com/linporu/waterballsa-backend-golang/internal/router"
+	"github.com/linporu/waterballsa-backend-golang/internal/service"
+	"github.com/linporu/waterballsa-backend-golang/internal/validator"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -41,15 +46,33 @@ func New() (*Application, error) {
 	// Initialize logger
 	log := logger.NewLogger(cfg.Logger)
 
+	// Register custom validators (application-level setup)
+	if err := validator.RegisterAuthValidators(); err != nil {
+		return nil, fmt.Errorf("failed to register validators: %w", err)
+	}
+
 	// Initialize database
 	pool, err := database.NewPostgresPool(cfg.Database)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
+	// Initialize data layer (sqlc queries)
+	queries := db.New(pool)
+
+	// Initialize repository layer (data access)
+	userRepo := repository.NewUserRepository(queries)
+
+	// Initialize service layer (business logic)
+	authService := service.NewAuthService(userRepo, log)
+
+	// Initialize handler layer (HTTP handlers)
+	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
+	authHandler := handler.NewAuthHandler(authService, log, cfg.Server.RequestTimeout)
+
 	// Setup Gin router
 	ginRouter := gin.Default()
-	router.SetupRoutes(ginRouter, pool, log, cfg.Server.RequestTimeout)
+	router.SetupRoutes(ginRouter, healthHandler, authHandler)
 
 	// Create HTTP server
 	httpServer := server.NewHTTPServer(cfg.Server, ginRouter)
