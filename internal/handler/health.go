@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/linporu/waterballsa-backend-golang/internal/dto"
 )
 
 type HealthHandler struct {
@@ -32,15 +33,15 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	// Ping database to check connectivity
 	if err := h.pool.Ping(ctx); err != nil {
 		h.logger.Error("Health check failed: database ping error", "error", err)
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status":   "DOWN",
-			"database": "DOWN",
+		c.JSON(http.StatusServiceUnavailable, dto.HealthCheckResponse{
+			Status:   "DOWN",
+			Database: "DOWN",
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":   "UP",
-		"database": "UP",
+	c.JSON(http.StatusOK, dto.HealthCheckResponse{
+		Status:   "UP",
+		Database: "UP",
 	})
 }

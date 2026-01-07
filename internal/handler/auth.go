@@ -32,8 +32,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	// Bind and validate JSON request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Warn("Invalid registration request", "error", err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "使用者名稱或密碼格式無效",
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error: "使用者名稱或密碼格式無效",
 		})
 		return
 	}
@@ -46,15 +46,15 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	userID, err := h.authService.Register(ctx, req)
 	if err != nil {
 		if errors.Is(err, service.ErrUsernameExists) {
-			c.JSON(http.StatusConflict, gin.H{
-				"error": "使用者名稱已存在",
+			c.JSON(http.StatusConflict, dto.ErrorResponse{
+				Error: "使用者名稱已存在",
 			})
 			return
 		}
 
 		h.logger.Error("Registration failed", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "註冊失敗,請稍後再試",
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error: "註冊失敗,請稍後再試",
 		})
 		return
 	}
