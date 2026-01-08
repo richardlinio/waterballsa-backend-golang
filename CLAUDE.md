@@ -1,5 +1,3 @@
-!important: DO NOT USE SUBAGENT
-
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -31,7 +29,10 @@ make fmt
 # Run linter
 make lint
 
-# Run tests
+# Build the application (inside Docker)
+make build
+
+# Run all tests (inside Docker)
 make test
 ```
 
@@ -49,23 +50,6 @@ make migrate-down
 
 # Reset database (drop all + re-run migrations)
 make migrate-reset
-```
-
-### Build
-
-```bash
-# Build the application (inside Docker)
-docker exec backend go build -o ./tmp/main ./cmd/server
-
-# Build outside Docker (CI environment)
-go build -o /dev/null ./...
-```
-
-### Running Tests
-
-```bash
-# Run all tests (inside Docker)
-make test
 ```
 
 ## Architecture
@@ -94,33 +78,6 @@ internal/
     └── server/      → HTTP server configuration
 ```
 
-### Application Lifecycle
-
-1. **Initialization** ([cmd/server/main.go](cmd/server/main.go)):
-
-   - Delegates to `app.New()` for setup
-   - Calls `application.Run()` to start
-
-2. **Setup** ([internal/app/app.go](internal/app/app.go)):
-
-   - Loads configuration from environment variables
-   - Initializes logger (slog)
-   - Creates database connection pool (pgxpool)
-   - Sets up Gin router with routes
-   - Creates HTTP server
-
-3. **Running**:
-
-   - HTTP server runs in errgroup goroutine
-   - Signal handler runs in errgroup goroutine
-   - Waits for shutdown signal or error
-
-4. **Graceful Shutdown**:
-   - Triggered by SIGINT/SIGTERM or application error
-   - Stops HTTP server with configurable timeout
-   - Closes database connection pool
-   - Uses `errgroup` for coordinated shutdown
-
 ### Configuration Management
 
 Configuration is loaded exclusively from environment variables (see [.env.example](.env.example)):
@@ -139,13 +96,6 @@ All config structs are in `internal/config/` with dedicated files:
 - [logger.go](internal/config/logger.go) - Logger config
 - [cors.go](internal/config/cors.go) - CORS config
 
-### Database Layer
-
-- **Driver**: pgx/v5 (not using an ORM)
-- **Connection Pool**: pgxpool for efficient connection management
-- **Migrations**: Goose with SQL files in `migrations/`
-- **Planned**: sqlc for type-safe query generation (see [docs/auth-module-implementation.md](docs/auth-module-implementation.md))
-
 #### Migration Files
 
 Migrations use Goose format with `-- +goose Up` and `-- +goose Down` directives:
@@ -158,10 +108,6 @@ Migrations use Goose format with `-- +goose Up` and `-- +goose Down` directives:
 
 Routes are registered in [internal/router/router.go](internal/router/router.go):
 
-- Takes Gin engine, CORS config, and handlers as parameters
-- Handlers are initialized with dependencies
-- Currently implements: `/healthz`, `/auth/register` endpoints
-
 Handler pattern:
 
 - Each handler is a struct with dependencies (pool, logger, timeout)
@@ -172,35 +118,12 @@ Handler pattern:
 
 The application uses middleware in a specific order to ensure correct behavior:
 
-**Middleware Registration Order** (registered in `router.Setup()`):
-
-1. **Recovery** (from `gin.Default()`) - Catches panics and prevents server crashes
-2. **Logger** (from `gin.Default()`) - Logs HTTP requests (method, path, status, latency)
-3. **CORS** (custom) - Handles cross-origin requests and preflight OPTIONS
-
-**Current Middleware:**
-
-- **Recovery**: Built-in Gin middleware (`gin.Recovery()`) that recovers from panics
-- **Logger**: Built-in Gin middleware (`gin.Logger()`) that logs requests
-- **CORS**: Custom middleware using `gin-contrib/cors` package
-  - Configured via environment variables (`CORS_ALLOWED_ORIGINS`, `CORS_ALLOW_CREDENTIALS`, `CORS_MAX_AGE_SECONDS`)
-  - Supports wildcard patterns (e.g., `https://*.ngrok-free.dev`)
-  - Allows credentials for JWT authentication
-  - Mirrors the Java backend's CORS configuration for consistency
-
 **Adding New Middleware:**
 
 1. Create middleware function in `internal/middleware/` returning `gin.HandlerFunc`
 2. Add middleware configuration to `internal/config/` if needed
 3. Register middleware in `router.Setup()` in the appropriate order
 4. Update `.env.example` with any new environment variables
-
-**Middleware Best Practices:**
-
-- Recovery should always be first to catch panics from all other middleware
-- CORS should be early to handle preflight requests before auth checks
-- Authentication middleware should come after logging but before route handlers
-- Rate limiting should come before expensive operations like auth
 
 ### Error Handling
 
@@ -232,9 +155,9 @@ The application uses middleware in a specific order to ensure correct behavior:
 1. **Create migration** in `migrations/NNN_description.sql`
 2. **Run migration**: `make migrate-up`
 3. **Verify status**: `make migrate-status`
-4. If using sqlc (planned):
+4. Using sqlc:
    - Write SQL queries in `internal/db/queries/*.sql`
-   - Run `sqlc generate` to create type-safe Go code
+   - Run `make sqlc` to create type-safe Go code
 
 ### Code Quality
 
