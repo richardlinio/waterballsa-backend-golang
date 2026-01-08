@@ -2,12 +2,12 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
 	"github.com/linporu/waterballsa-backend-golang/internal/dto"
 	"github.com/linporu/waterballsa-backend-golang/internal/service"
 )
@@ -31,10 +31,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	// Bind and validate JSON request
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.logger.Warn("Invalid registration request", "error", err)
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Error: "使用者名稱或密碼格式無效",
-		})
+		_ = c.Error(apperror.NewWithError(apperror.CodeValidationFailed, err)) //nolint:errcheck // middleware handles the error
 		return
 	}
 
@@ -45,23 +42,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	// Call service to register user
 	userID, err := h.authService.Register(ctx, req)
 	if err != nil {
-		if errors.Is(err, service.ErrUsernameExists) {
-			c.JSON(http.StatusConflict, dto.ErrorResponse{
-				Error: "使用者名稱已存在",
-			})
-			return
-		}
-		if errors.Is(err, service.ErrPasswordTooLong) {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-				Error: "使用者名稱或密碼格式無效",
-			})
-			return
-		}
-
-		h.logger.Error("Registration failed", "error", err)
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Error: "註冊失敗,請稍後再試",
-		})
+		_ = c.Error(err) //nolint:errcheck // middleware handles the error
 		return
 	}
 

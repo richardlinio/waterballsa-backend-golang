@@ -127,9 +127,145 @@ The application uses middleware in a specific order to ensure correct behavior:
 
 ### Error Handling
 
-- Application-level errors use custom error types (e.g., `ErrShutdownSignal`)
-- Handlers should return appropriate HTTP status codes
-- Structured logging for error context
+The application uses a **unified error handling system** with centralized middleware to ensure consistent error responses and logging.
+
+#### Architecture
+
+**Error Flow:**
+
+```
+Handler → Service → Repository
+         ↓ returns AppError
+      Middleware intercepts and responds with JSON
+```
+
+**Package Structure:**
+
+```
+internal/apperror/
+├── error.go      → AppError struct and constructor functions
+├── codes.go      → Error code constants (ERR_*)
+├── messages.go   → Chinese error messages
+└── status.go     → HTTP status code mappings
+
+internal/middleware/
+└── error_handler.go → Centralized error handling and logging
+```
+
+#### Error Response Format
+
+All error responses follow this JSON structure:
+
+```json
+{
+	"code": "ERR_USERNAME_EXISTS",
+	"error": "使用者名稱已存在",
+	"details": {
+		"Username": "長度至少需要 3 個字元"
+	}
+}
+```
+
+- `code`: Error code constant (e.g., `ERR_USERNAME_EXISTS`)
+- `error`: User-friendly Chinese error message
+- `details`: Optional field for validation error details (field-level errors)
+
+#### How to Use in Code
+
+**In Service Layer:**
+
+Services should return `*apperror.AppError` for all business logic errors:
+
+```go
+// Return predefined errors
+if exists {
+    return 0, apperror.UsernameExists()
+}
+
+// Wrap underlying errors (database, internal errors)
+if err != nil {
+    return 0, apperror.DatabaseError(err)
+}
+```
+
+**In Handler Layer:**
+
+Handlers should **NOT** manually create JSON responses. Instead, pass errors to middleware using `c.Error()`:
+
+```go
+// For validation errors
+if err := c.ShouldBindJSON(&req); err != nil {
+    _ = c.Error(apperror.NewWithError(apperror.CodeValidationFailed, err))
+    return
+}
+
+// For service errors (service already returns AppError)
+if err := h.service.SomeMethod(ctx, req); err != nil {
+    _ = c.Error(err)
+    return
+}
+```
+
+**Key Pattern:**
+
+- ✅ Service returns `*apperror.AppError`
+- ✅ Handler calls `c.Error(err)` and returns early
+- ✅ Middleware automatically creates JSON response
+- ❌ DO NOT manually call `c.JSON()` for errors in handlers
+
+#### Adding New Error Types
+
+Follow these 5 steps to add a new error type:
+
+**Step 1:** Add error code constant in [internal/apperror/codes.go](internal/apperror/codes.go):
+
+```go
+const (
+    CodeCourseNotFound = "ERR_COURSE_NOT_FOUND"
+)
+```
+
+**Step 2:** Add error message in [internal/apperror/messages.go](internal/apperror/messages.go):
+
+```go
+var errorMessages = map[string]string{
+    CodeCourseNotFound: "課程不存在",
+}
+```
+
+**Step 3:** Map to HTTP status in [internal/apperror/status.go](internal/apperror/status.go):
+
+```go
+var httpStatusMap = map[string]int{
+    CodeCourseNotFound: http.StatusNotFound,
+}
+```
+
+**Step 4:** Create constructor function in [internal/apperror/error.go](internal/apperror/error.go):
+
+```go
+func CourseNotFound() *AppError {
+    return New(CodeCourseNotFound)
+}
+```
+
+**Step 5:** Use in service layer:
+
+```go
+if !exists {
+    return apperror.CourseNotFound()
+}
+```
+
+#### Logging
+
+Error logging is **automatic** via the error handler middleware:
+
+- **AppError with underlying error** (`Err` field set): Logs at ERROR level with underlying error details
+- **AppError without underlying error**: Logs at WARN level with code, message, status, path, method
+- **Unexpected errors** (non-AppError): Logs at ERROR level with full error details
+
+**No manual logging needed in handlers** - the middleware handles all error logging automatically.
 
 ### Testing
 

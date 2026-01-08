@@ -66,7 +66,7 @@ func New() (*Application, error) {
 	userRepository := repository.NewUserRepository(queries)
 
 	// Initialize service layer (business logic)
-	authService := service.NewAuthService(userRepository, log)
+	authService := service.NewAuthService(userRepository)
 
 	// Initialize handler layer (HTTP handlers)
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
@@ -74,7 +74,7 @@ func New() (*Application, error) {
 
 	// Setup Gin router
 	ginRouter := gin.Default()
-	r := router.NewRouter(ginRouter, cfg.CORS, healthHandler, authHandler)
+	r := router.NewRouter(ginRouter, cfg.CORS, log, healthHandler, authHandler)
 	r.Setup()
 
 	// Create HTTP server
