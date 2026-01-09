@@ -73,7 +73,7 @@ func New() (*Application, error) {
 	authHandler := handler.NewAuthHandler(authService, log, cfg.Server.RequestTimeout)
 
 	// Setup Gin router
-	ginRouter := gin.Default()
+	ginRouter := gin.New()
 	r := router.NewRouter(ginRouter, cfg.CORS, log, healthHandler, authHandler)
 	r.Setup()
 

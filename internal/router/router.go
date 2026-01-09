@@ -37,6 +37,7 @@ func NewRouter(
 
 func (r *Router) Setup() {
 	// 1. Setup middlewares
+	r.engine.Use(gin.Recovery())
 	r.setupRequestIDMiddleware()
 	r.setupLoggingMiddleware()
 	r.engine.Use(middleware.Security())
