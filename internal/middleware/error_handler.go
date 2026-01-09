@@ -15,62 +15,26 @@ import (
 
 func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Step 1: Process request first
 		c.Next()
 
-		// Step 2: Check if there are any errors
 		if len(c.Errors) == 0 {
 			return
 		}
 
-		// Step 3: Check if response has already been written (avoid duplicate writes)
+		// Check if response has already been written (avoid duplicate writes)
 		if c.Writer.Written() {
 			return
 		}
 
-		// Step 4: Get the last error
 		err := c.Errors.Last().Err
 
-		// Step 5: Get request ID for logging
 		reqID := requestid.Get(c)
 
-		// Step 6: Determine error type and respond
 		var appErr *apperror.AppError
-		if errors.As(err, &appErr) {
-			// Custom error - log and return structured error
-			logger.Warn("Application error",
-				"request_id", reqID,
-				"code", appErr.Code,
-				"message", appErr.Message,
-				"status", appErr.HTTPStatus,
-				"method", c.Request.Method,
-				"path", c.Request.URL.Path,
-				"ip", c.ClientIP(),
-				"user_agent", c.Request.UserAgent(),
-				"referer", c.Request.Referer(),
-			)
 
-			// If there's an underlying error, log it at error level
-			if appErr.Err != nil {
-				logger.Error("Underlying error",
-					"request_id", reqID,
-					"error", appErr.Err,
-				)
-			}
+		// Unexpected error - log full error and return generic error
+		if !errors.As(err, &appErr) {
 
-			response := dto.ErrorResponse{
-				Code:  appErr.Code,
-				Error: appErr.Message,
-			}
-
-			// Parse validation error details
-			if appErr.Code == apperror.CodeValidationFailed && appErr.Err != nil {
-				response.Details = parseValidationErrors(appErr.Err)
-			}
-
-			c.JSON(appErr.HTTPStatus, response)
-		} else {
-			// Unexpected error - log full error and return generic error
 			logger.Error("Unexpected error",
 				"request_id", reqID,
 				"error", err,
@@ -85,7 +49,41 @@ func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
 				Code:  apperror.CodeInternalError,
 				Error: apperror.GetMessage(apperror.CodeInternalError),
 			})
+			return
 		}
+
+		// Custom error - log and return structured error
+		logger.Warn("Application error",
+			"request_id", reqID,
+			"code", appErr.Code,
+			"message", appErr.Message,
+			"status", appErr.HTTPStatus,
+			"method", c.Request.Method,
+			"path", c.Request.URL.Path,
+			"ip", c.ClientIP(),
+			"user_agent", c.Request.UserAgent(),
+			"referer", c.Request.Referer(),
+		)
+
+		// If there's an underlying error, log it at error level
+		if appErr.Err != nil {
+			logger.Error("Underlying error",
+				"request_id", reqID,
+				"error", appErr.Err,
+			)
+		}
+
+		response := dto.ErrorResponse{
+			Code:  appErr.Code,
+			Error: appErr.Message,
+		}
+
+		// Parse validation error details
+		if appErr.Code == apperror.CodeValidationFailed && appErr.Err != nil {
+			response.Details = parseValidationErrors(appErr.Err)
+		}
+
+		c.JSON(appErr.HTTPStatus, response)
 	}
 }
 
