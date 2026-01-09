@@ -40,8 +40,8 @@ func (r *Router) Setup() {
 	r.engine.Use(gin.Recovery())
 	r.setupRequestIDMiddleware()
 	r.setupLoggingMiddleware()
-	r.engine.Use(middleware.Security())
 	r.engine.Use(middleware.CORS(r.corsConfig))
+	r.engine.Use(middleware.Security())
 	r.engine.Use(middleware.ErrorHandler(r.logger))
 
 	// 2. Setup routes
