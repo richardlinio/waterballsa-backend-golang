@@ -18,6 +18,9 @@ var errorMessages = map[string]string{
 
 	// Service unavailable errors
 	CodeServiceUnavailable: "服務暫時無法使用",
+
+	// Rate limiting errors
+	CodeRateLimitExceeded: "請求次數過多,請稍後再試",
 }
 
 func GetMessage(code string) string {

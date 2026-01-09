@@ -20,6 +20,9 @@ var httpStatusMap = map[string]int{
 
 	// Service unavailable errors (503)
 	CodeServiceUnavailable: http.StatusServiceUnavailable,
+
+	// Rate limiting errors (429)
+	CodeRateLimitExceeded: http.StatusTooManyRequests,
 }
 
 func GetHTTPStatus(code string) int {

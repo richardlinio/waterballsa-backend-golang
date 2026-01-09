@@ -6,10 +6,11 @@ import (
 
 // Config holds all application configuration
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Logger   LoggerConfig
-	CORS     CORSConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	Logger    LoggerConfig
+	CORS      CORSConfig
+	RateLimit RateLimitConfig
 }
 
 // Load loads configuration from environment variables
@@ -32,10 +33,14 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load CORS config: %w", err)
 	}
 
+	// Load rate limit config
+	rateLimitConfig := loadRateLimitConfig()
+
 	return &Config{
-		Server:   serverConfig,
-		Database: *dbConfig,
-		Logger:   loggerConfig,
-		CORS:     corsConfig,
+		Server:    serverConfig,
+		Database:  *dbConfig,
+		Logger:    loggerConfig,
+		CORS:      corsConfig,
+		RateLimit: rateLimitConfig,
 	}, nil
 }

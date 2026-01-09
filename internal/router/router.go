@@ -12,26 +12,29 @@ import (
 )
 
 type Router struct {
-	engine        *gin.Engine
-	corsConfig    config.CORSConfig
-	logger        *slog.Logger
-	healthHandler *handler.HealthHandler
-	authHandler   *handler.AuthHandler
+	engine          *gin.Engine
+	corsConfig      config.CORSConfig
+	rateLimitConfig config.RateLimitConfig
+	logger          *slog.Logger
+	healthHandler   *handler.HealthHandler
+	authHandler     *handler.AuthHandler
 }
 
 func NewRouter(
 	engine *gin.Engine,
 	corsConfig config.CORSConfig,
+	rateLimitConfig config.RateLimitConfig,
 	logger *slog.Logger,
 	healthHandler *handler.HealthHandler,
 	authHandler *handler.AuthHandler,
 ) *Router {
 	return &Router{
-		engine:        engine,
-		corsConfig:    corsConfig,
-		logger:        logger,
-		healthHandler: healthHandler,
-		authHandler:   authHandler,
+		engine:          engine,
+		corsConfig:      corsConfig,
+		rateLimitConfig: rateLimitConfig,
+		logger:          logger,
+		healthHandler:   healthHandler,
+		authHandler:     authHandler,
 	}
 }
 
@@ -40,9 +43,10 @@ func (r *Router) Setup() {
 	r.engine.Use(gin.Recovery())
 	r.setupRequestIDMiddleware()
 	r.setupLoggingMiddleware()
-	r.engine.Use(middleware.CORS(r.corsConfig))
-	r.engine.Use(middleware.Security())
 	r.engine.Use(middleware.ErrorHandler(r.logger))
+	r.engine.Use(middleware.CORS(r.corsConfig))
+	r.engine.Use(middleware.RateLimit(r.rateLimitConfig, r.logger))
+	r.engine.Use(middleware.Security())
 
 	// 2. Setup routes
 	r.setupHealthRoutes()

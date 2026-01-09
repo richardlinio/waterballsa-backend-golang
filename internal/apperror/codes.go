@@ -20,4 +20,7 @@ const (
 
 	// Service unavailable errors (503 - Service Unavailable)
 	CodeServiceUnavailable = "ERR_SERVICE_UNAVAILABLE"
+
+	// Rate limiting errors (429 - Too Many Requests)
+	CodeRateLimitExceeded = "ERR_RATE_LIMIT_EXCEEDED"
 )

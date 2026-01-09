@@ -72,3 +72,7 @@ func DatabaseError(err error) *AppError {
 func ServiceUnavailable() *AppError {
 	return New(CodeServiceUnavailable)
 }
+
+func RateLimitExceeded() *AppError {
+	return New(CodeRateLimitExceeded)
+}

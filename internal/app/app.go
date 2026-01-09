@@ -74,7 +74,7 @@ func New() (*Application, error) {
 
 	// Setup Gin router
 	ginRouter := gin.New()
-	r := router.NewRouter(ginRouter, cfg.CORS, log, healthHandler, authHandler)
+	r := router.NewRouter(ginRouter, cfg.CORS, cfg.RateLimit, log, healthHandler, authHandler)
 	r.Setup()
 
 	// Create HTTP server
