@@ -3,6 +3,8 @@ package router
 import (
 	"log/slog"
 
+	"github.com/gin-contrib/requestid"
+	ginslog "github.com/gin-contrib/slog"
 	"github.com/gin-gonic/gin"
 	"github.com/linporu/waterballsa-backend-golang/internal/config"
 	"github.com/linporu/waterballsa-backend-golang/internal/handler"
@@ -35,6 +37,8 @@ func NewRouter(
 
 func (r *Router) Setup() {
 	// 1. Setup middlewares
+	r.setupRequestIDMiddleware()
+	r.setupLoggingMiddleware()
 	r.engine.Use(middleware.Security())
 	r.engine.Use(middleware.CORS(r.corsConfig))
 	r.engine.Use(middleware.ErrorHandler(r.logger))
@@ -42,6 +46,28 @@ func (r *Router) Setup() {
 	// 2. Setup routes
 	r.setupHealthRoutes()
 	r.setupAuthRoutes()
+}
+
+func (r *Router) setupRequestIDMiddleware() {
+	r.engine.Use(requestid.New(
+		requestid.WithHandler(func(c *gin.Context, id string) {
+			c.Header("X-Request-ID", id)
+		})))
+}
+
+func (r *Router) setupLoggingMiddleware() {
+	r.engine.Use(ginslog.SetLogger(
+		ginslog.WithLogger(func(c *gin.Context, l *slog.Logger) *slog.Logger {
+			return r.logger.With("request_id", requestid.Get(c))
+		}),
+
+		ginslog.WithSkipPath([]string{"/healthz"}),
+
+		ginslog.WithSkipper(func(c *gin.Context) bool {
+			// Skip request logging for errors (ErrorHandler logs them with more detail)
+			return len(c.Errors) > 0
+		}),
+	))
 }
 
 func (r *Router) setupHealthRoutes() {

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
@@ -30,21 +31,31 @@ func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
 		// Step 4: Get the last error
 		err := c.Errors.Last().Err
 
-		// Step 5: Determine error type and respond
+		// Step 5: Get request ID for logging
+		reqID := requestid.Get(c)
+
+		// Step 6: Determine error type and respond
 		var appErr *apperror.AppError
 		if errors.As(err, &appErr) {
 			// Custom error - log and return structured error
 			logger.Warn("Application error",
+				"request_id", reqID,
 				"code", appErr.Code,
 				"message", appErr.Message,
 				"status", appErr.HTTPStatus,
-				"path", c.Request.URL.Path,
 				"method", c.Request.Method,
+				"path", c.Request.URL.Path,
+				"ip", c.ClientIP(),
+				"user_agent", c.Request.UserAgent(),
+				"referer", c.Request.Referer(),
 			)
 
 			// If there's an underlying error, log it at error level
 			if appErr.Err != nil {
-				logger.Error("Underlying error", "error", appErr.Err)
+				logger.Error("Underlying error",
+					"request_id", reqID,
+					"error", appErr.Err,
+				)
 			}
 
 			response := dto.ErrorResponse{
@@ -61,9 +72,13 @@ func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
 		} else {
 			// Unexpected error - log full error and return generic error
 			logger.Error("Unexpected error",
+				"request_id", reqID,
 				"error", err,
-				"path", c.Request.URL.Path,
 				"method", c.Request.Method,
+				"path", c.Request.URL.Path,
+				"ip", c.ClientIP(),
+				"user_agent", c.Request.UserAgent(),
+				"referer", c.Request.Referer(),
 			)
 
 			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
