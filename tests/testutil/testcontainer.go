@@ -50,7 +50,7 @@ func NewPostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 	}
 	defer func() {
 		if err := os.RemoveAll(tempDir); err != nil {
-			fmt.Printf("Warning: failed to remove temp directory %s: %v\n", tempDir, err)
+			fmt.Fprintf(os.Stderr, "[Testcontainer Cleanup] Warning: failed to remove temp directory %s: %v\n", tempDir, err)
 		}
 	}()
 

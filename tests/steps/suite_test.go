@@ -97,7 +97,7 @@ func TestMain(m *testing.M) {
 		panic(fmt.Sprintf("Failed to start postgres container: %v", err))
 	}
 
-	fmt.Printf("PostgreSQL Testcontainer started at %s:%s\n",
+	fmt.Fprintf(os.Stderr, "[BDD Setup] PostgreSQL Testcontainer started at %s:%s\n",
 		postgresContainer.Host, postgresContainer.Port)
 
 	// 2. Run tests
@@ -108,7 +108,7 @@ func TestMain(m *testing.M) {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 		if err := testServerInstance.Server.Shutdown(shutdownCtx); err != nil {
-			fmt.Printf("Error shutting down test server: %v\n", err)
+			fmt.Fprintf(os.Stderr, "[BDD Cleanup] Error shutting down test server: %v\n", err)
 		}
 		cancel()
 	}
@@ -118,7 +118,7 @@ func TestMain(m *testing.M) {
 		terminateCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 		if err := postgresContainer.Terminate(terminateCtx); err != nil {
-			fmt.Printf("Error terminating postgres container: %v\n", err)
+			fmt.Fprintf(os.Stderr, "[BDD Cleanup] Error terminating postgres container: %v\n", err)
 		}
 		cancel()
 	}
