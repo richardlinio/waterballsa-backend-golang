@@ -51,3 +51,7 @@ migrate-down:
 migrate-reset:
 	$(DOCKER_EXEC) sh -c '$(GOOSE_CMD) reset'
 	$(DOCKER_EXEC) sh -c '$(GOOSE_CMD) up'
+
+.PHONY: test-bdd-isa
+test-bdd-isa:
+	$(DOCKER_EXEC) go test -v ./tests/steps -run TestFeatures

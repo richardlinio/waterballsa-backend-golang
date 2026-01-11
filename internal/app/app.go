@@ -54,7 +54,7 @@ func New() (*Application, error) {
 	}
 
 	// Initialize database
-	pool, err := database.NewPostgresPool(cfg.Database)
+	pool, err := database.NewPostgresPool(context.Background(), cfg.Database)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
