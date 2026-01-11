@@ -141,11 +141,29 @@ func (ts *TestServer) Start() error {
 		}
 	}()
 
-	// Wait for server to be ready
-	time.Sleep(100 * time.Millisecond)
+	// Wait for server to be ready with simple retry
+	healthURL := fmt.Sprintf("http://%s/healthz", addr)
+	client := &http.Client{Timeout: 500 * time.Millisecond}
 
-	ts.Logger.Info("Test server started", "address", addr)
-	return nil
+	for i := 0; i < 20; i++ { // Maximum wait 1 second (20 * 50ms)
+		time.Sleep(50 * time.Millisecond)
+
+		resp, err := client.Get(healthURL)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				ts.Logger.Warn("Failed to close health check response body", "error", closeErr)
+			}
+			ts.Logger.Info("Test server started", "address", addr)
+			return nil
+		}
+		if resp != nil {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				ts.Logger.Warn("Failed to close health check response body", "error", closeErr)
+			}
+		}
+	}
+
+	return fmt.Errorf("test server failed to become ready within 1 second")
 }
 
 // Shutdown gracefully shuts down the test server
