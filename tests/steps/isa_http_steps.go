@@ -70,7 +70,7 @@ func iSendRequestTo(ctx context.Context, method, path string) (context.Context, 
 
 	// Read response body
 	responseBody, err := io.ReadAll(resp.Body)
-	if closeErr := resp.Body.Close(); closeErr != nil {
+	if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
 		return ctx, fmt.Errorf("failed to close response body: %w", closeErr)
 	}
 	if err != nil {

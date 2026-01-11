@@ -64,8 +64,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	// Initialize logger
 	log := logger.NewLogger(cfg.Logger)
 
-	// Register custom validators (must be done once before any validation)
-	// This is safe to call multiple times as it's idempotent
+	// Register custom validators (idempotent - safe to call multiple times)
 	if err := validator.RegisterAuthValidators(); err != nil {
 		return nil, fmt.Errorf("failed to register validators: %w", err)
 	}
