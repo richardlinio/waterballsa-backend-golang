@@ -8,9 +8,16 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/cucumber/godog"
 )
+
+// defaultHTTPClient is a shared HTTP client for all test requests
+// It reuses TCP connections via connection pooling for better performance
+var defaultHTTPClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
 
 // iSetRequestBodyTo stores the request body from a doc string for later use
 func iSetRequestBodyTo(ctx context.Context, docString *godog.DocString) (context.Context, error) {
@@ -55,9 +62,8 @@ func iSendRequestTo(ctx context.Context, method, path string) (context.Context, 
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	// Send request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	// Send request using shared HTTP client
+	resp, err := defaultHTTPClient.Do(req)
 	if err != nil {
 		return ctx, fmt.Errorf("failed to send HTTP request: %w", err)
 	}
