@@ -163,9 +163,8 @@ func NewJWTMiddleware(
 
 		// LogoutResponse customizes the logout response
 		LogoutResponse: func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"code":    http.StatusOK,
-				"message": "Successfully logged out",
+			c.JSON(http.StatusOK, dto.LogoutResponse{
+				Message: "登出成功",
 			})
 		},
 

@@ -26,3 +26,7 @@ type UserInfo struct {
 	Username   string `json:"username"`
 	Experience int32  `json:"experience"`
 }
+
+type LogoutResponse struct {
+	Message string `json:"message"`
+}
