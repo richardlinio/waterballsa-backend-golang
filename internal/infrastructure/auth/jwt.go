@@ -10,10 +10,12 @@ import (
 )
 
 // NewJWTMiddleware creates and configures a new JWT middleware instance
-// It accepts a TokenService via dependency injection for token operations
+// It accepts middleware functions via dependency injection for token operations
 func NewJWTMiddleware(
 	cfg config.JWTConfig,
-	tokenService *TokenService,
+	identityHandler func(*gin.Context) interface{},
+	authorizer func(*gin.Context, interface{}) bool,
+	unauthorized func(*gin.Context, int, string),
 ) (*jwt.GinJWTMiddleware, error) {
 	return jwt.New(&jwt.GinJWTMiddleware{
 		Realm:       "waterballsa",
@@ -39,10 +41,10 @@ func NewJWTMiddleware(
 		// Refresh token cookie configuration
 		RefreshTokenCookieName: "refresh_token",
 
-		// Use injected TokenService methods for token operations
-		IdentityHandler: tokenService.ExtractIdentity,
-		Authorizer:      tokenService.Authorize,
-		Unauthorized:    tokenService.HandleUnauthorized,
+		// Use injected middleware functions for token operations
+		IdentityHandler: identityHandler,
+		Authorizer:      authorizer,
+		Unauthorized:    unauthorized,
 
 		// HTTPStatusMessageFunc provides custom error messages
 		HTTPStatusMessageFunc: func(c *gin.Context, e error) string {

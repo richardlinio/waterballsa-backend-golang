@@ -18,6 +18,7 @@ import (
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/database"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/logger"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/server"
+	"github.com/linporu/waterballsa-backend-golang/internal/middleware"
 	"github.com/linporu/waterballsa-backend-golang/internal/repository"
 	"github.com/linporu/waterballsa-backend-golang/internal/router"
 	"github.com/linporu/waterballsa-backend-golang/internal/service"
@@ -66,14 +67,14 @@ func New() (*Application, error) {
 	// Initialize repository layer (data access)
 	userRepository := repository.NewUserRepository(queries)
 
-	// Initialize token service (JWT token operations)
-	tokenService := auth.NewTokenService(cfg.JWT)
+	// Initialize token generator (JWT token operations)
+	tokenGenerator := auth.NewTokenGenerator(cfg.JWT)
 
 	// Initialize service layer (business logic)
-	authService := service.NewAuthService(userRepository, tokenService)
+	authService := service.NewAuthService(userRepository, tokenGenerator)
 
 	// Initialize JWT middleware
-	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, tokenService)
+	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize JWT middleware: %w", err)
 	}
@@ -85,7 +86,7 @@ func New() (*Application, error) {
 
 	// Initialize handler layer (HTTP handlers)
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
-	authHandler := handler.NewAuthHandler(authService, tokenService, jwtMiddleware, log, cfg.Server.RequestTimeout)
+	authHandler := handler.NewAuthHandler(authService, tokenGenerator, jwtMiddleware, cfg.JWT, log, cfg.Server.RequestTimeout)
 
 	// Setup Gin router
 	ginRouter := gin.New()

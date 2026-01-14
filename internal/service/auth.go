@@ -19,7 +19,7 @@ type AuthService interface {
 
 type authService struct {
 	userRepository repository.UserRepository
-	tokenService   *auth.TokenService
+	tokenGenerator auth.TokenGenerator
 }
 
 // LoginResult holds the complete result of a successful login
@@ -29,10 +29,10 @@ type LoginResult struct {
 	UserInfo dto.UserInfo
 }
 
-func NewAuthService(userRepository repository.UserRepository, tokenService *auth.TokenService) AuthService {
+func NewAuthService(userRepository repository.UserRepository, tokenGenerator auth.TokenGenerator) AuthService {
 	return &authService{
 		userRepository: userRepository,
-		tokenService:   tokenService,
+		tokenGenerator: tokenGenerator,
 	}
 }
 
@@ -79,7 +79,7 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*LoginRe
 	}
 
 	// Generate token
-	token, expire, err := s.tokenService.Generate(user)
+	token, expire, err := s.tokenGenerator.Generate(user)
 	if err != nil {
 		return nil, apperror.InternalError(err)
 	}
