@@ -1,4 +1,4 @@
-package steps
+package bdd
 
 import (
 	"context"
@@ -9,12 +9,14 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
+	"github.com/linporu/waterballsa-backend-golang/tests/bdd/steps/common"
+	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
 	"github.com/linporu/waterballsa-backend-golang/tests/testutil"
 )
 
 var (
 	// Global test server instance (initialized once per test suite)
-	testServerInstance *TestServerWrapper
+	testServerInstance *testcontext.TestServerWrapper
 	// Global Testcontainer PostgreSQL instance
 	postgresContainer *testutil.PostgresContainer
 	testServerOnce    sync.Once
@@ -27,7 +29,7 @@ func TestFeatures(t *testing.T) {
 		ScenarioInitializer: InitializeScenario,
 		Options: &godog.Options{
 			Format: "pretty",
-			Paths:  []string{"../features/isa"},
+			Paths:  []string{"features/isa"},
 			// Uncomment below to run tests concurrently
 			// Concurrency: 4,
 			TestingT: t,
@@ -57,7 +59,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 			panic(fmt.Sprintf("Failed to start test server: %v", err))
 		}
 
-		testServerInstance = &TestServerWrapper{
+		testServerInstance = &testcontext.TestServerWrapper{
 			Server: server,
 		}
 	})
@@ -68,22 +70,22 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		testServerInstance.mu.Lock()
-		defer testServerInstance.mu.Unlock()
+		testServerInstance.Mu.Lock()
+		defer testServerInstance.Mu.Unlock()
 
 		if err := testutil.CleanDatabase(cleanCtx, testServerInstance.Server.Pool); err != nil {
 			return ctx, fmt.Errorf("failed to clean database before scenario '%s': %w", sc.Name, err)
 		}
 
 		// Add test server to scenario context
-		ctx = context.WithValue(ctx, contextKeyTestServer, testServerInstance)
+		ctx = context.WithValue(ctx, testcontext.ContextKeyTestServer, testServerInstance)
 
 		return ctx, nil
 	})
 
 	// Register all step definitions
-	RegisterHTTPSteps(sc)
-	RegisterDatabaseSteps(sc)
+	common.RegisterHTTPSteps(sc)
+	common.RegisterDatabaseSteps(sc)
 }
 
 // TestMain handles suite-level setup and teardown
