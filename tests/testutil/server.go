@@ -90,12 +90,14 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	// Initialize repository layer
 	userRepository := repository.NewUserRepository(queries)
 
+	// Initialize token service
+	tokenService := auth.NewTokenService(cfg.JWT)
+
 	// Initialize service layer
-	authService := service.NewAuthService(userRepository)
+	authService := service.NewAuthService(userRepository, tokenService)
 
 	// Initialize JWT middleware
-	//nolint:contextcheck // Context is properly created and used within Authenticator function
-	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, authService, log)
+	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, tokenService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize JWT middleware: %w", err)
 	}
@@ -107,7 +109,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 
 	// Initialize handler layer
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
-	authHandler := handler.NewAuthHandler(authService, jwtMiddleware, log, cfg.Server.RequestTimeout)
+	authHandler := handler.NewAuthHandler(authService, tokenService, jwtMiddleware, log, cfg.Server.RequestTimeout)
 
 	// Setup Gin router with test mode
 	gin.SetMode(gin.TestMode)

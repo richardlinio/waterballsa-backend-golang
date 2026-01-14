@@ -66,11 +66,14 @@ func New() (*Application, error) {
 	// Initialize repository layer (data access)
 	userRepository := repository.NewUserRepository(queries)
 
+	// Initialize token service (JWT token operations)
+	tokenService := auth.NewTokenService(cfg.JWT)
+
 	// Initialize service layer (business logic)
-	authService := service.NewAuthService(userRepository)
+	authService := service.NewAuthService(userRepository, tokenService)
 
 	// Initialize JWT middleware
-	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, authService, log)
+	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, tokenService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize JWT middleware: %w", err)
 	}
@@ -82,7 +85,7 @@ func New() (*Application, error) {
 
 	// Initialize handler layer (HTTP handlers)
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
-	authHandler := handler.NewAuthHandler(authService, jwtMiddleware, log, cfg.Server.RequestTimeout)
+	authHandler := handler.NewAuthHandler(authService, tokenService, jwtMiddleware, log, cfg.Server.RequestTimeout)
 
 	// Setup Gin router
 	ginRouter := gin.New()
