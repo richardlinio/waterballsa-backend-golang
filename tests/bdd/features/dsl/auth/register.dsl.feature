@@ -1,6 +1,10 @@
 # Language: zh-TW
 # DSL Layer (L1): Business Domain Language
 # Source: Release-1-Spec.md - 1.1 使用者註冊
+#
+# 這個檔案屬於 DSL 層 (Domain-Specific Language)
+# 用途: 描述業務需求和場景,供產品經理、業務分析師閱讀
+# 注意: 此檔案不會執行測試,實際測試請參考 ISA 層 (features/isa/)
 
 Feature: 使用者註冊 (Release 1.1)
   作為一個新訪客

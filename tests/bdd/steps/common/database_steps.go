@@ -1,10 +1,11 @@
-package steps
+package common
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/cucumber/godog"
+	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
 	"github.com/linporu/waterballsa-backend-golang/tests/testutil"
 )
 
@@ -15,7 +16,7 @@ import (
 //	| password | Secure123!  |
 func theDatabaseHasAUser(ctx context.Context, table *godog.Table) (context.Context, error) {
 	// Get test server from suite context
-	testServer, ok := ctx.Value(contextKeyTestServer).(*TestServerWrapper)
+	testServer, ok := ctx.Value(testcontext.ContextKeyTestServer).(*testcontext.TestServerWrapper)
 	if !ok {
 		return ctx, fmt.Errorf("test server not found in context")
 	}

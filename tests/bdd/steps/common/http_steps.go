@@ -1,4 +1,4 @@
-package steps
+package common
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
+	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
 )
 
 // defaultHTTPClient is a shared HTTP client for all test requests
@@ -31,20 +32,20 @@ func iSetRequestBodyTo(ctx context.Context, docString *godog.DocString) (context
 		return ctx, fmt.Errorf("invalid JSON in request body: %w", err)
 	}
 
-	return context.WithValue(ctx, contextKeyRequestBody, docString.Content), nil
+	return context.WithValue(ctx, testcontext.ContextKeyRequestBody, docString.Content), nil
 }
 
 // iSendRequestTo makes an HTTP request with the specified method and path
 func iSendRequestTo(ctx context.Context, method, path string) (context.Context, error) {
 	// Get test server from suite context
-	testServer, ok := ctx.Value(contextKeyTestServer).(*TestServerWrapper)
+	testServer, ok := ctx.Value(testcontext.ContextKeyTestServer).(*testcontext.TestServerWrapper)
 	if !ok {
 		return ctx, fmt.Errorf("test server not found in context")
 	}
 
 	// Get request body if it was set
 	var requestBody io.Reader
-	if body, ok := ctx.Value(contextKeyRequestBody).(string); ok {
+	if body, ok := ctx.Value(testcontext.ContextKeyRequestBody).(string); ok {
 		requestBody = strings.NewReader(body)
 	}
 
@@ -78,22 +79,22 @@ func iSendRequestTo(ctx context.Context, method, path string) (context.Context, 
 	}
 
 	// Store response and response body in context
-	ctx = context.WithValue(ctx, contextKeyResponse, resp)
-	ctx = context.WithValue(ctx, contextKeyResponseBody, responseBody)
+	ctx = context.WithValue(ctx, testcontext.ContextKeyResponse, resp)
+	ctx = context.WithValue(ctx, testcontext.ContextKeyResponseBody, responseBody)
 
 	return ctx, nil
 }
 
 // theResponseStatusCodeShouldBe asserts that the response status code matches expected value
 func theResponseStatusCodeShouldBe(ctx context.Context, expectedStatusCode int) error {
-	resp, ok := ctx.Value(contextKeyResponse).(*http.Response)
+	resp, ok := ctx.Value(testcontext.ContextKeyResponse).(*http.Response)
 	if !ok {
 		return fmt.Errorf("response not found in context")
 	}
 
 	if resp.StatusCode != expectedStatusCode {
 		// Include response body in error for debugging
-		body, ok := ctx.Value(contextKeyResponseBody).([]byte)
+		body, ok := ctx.Value(testcontext.ContextKeyResponseBody).([]byte)
 		if ok {
 			return fmt.Errorf("expected status code %d, got %d. Response body: %s",
 				expectedStatusCode, resp.StatusCode, string(body))
@@ -107,7 +108,7 @@ func theResponseStatusCodeShouldBe(ctx context.Context, expectedStatusCode int) 
 
 // theResponseBodyShouldContainField asserts that the response body contains the specified field
 func theResponseBodyShouldContainField(ctx context.Context, fieldName string) error {
-	body, ok := ctx.Value(contextKeyResponseBody).([]byte)
+	body, ok := ctx.Value(testcontext.ContextKeyResponseBody).([]byte)
 	if !ok {
 		return fmt.Errorf("response body not found in context")
 	}
@@ -129,7 +130,7 @@ func theResponseBodyShouldContainField(ctx context.Context, fieldName string) er
 
 // theResponseBodyFieldShouldEqualString asserts that a response field equals a specific string value
 func theResponseBodyFieldShouldEqualString(ctx context.Context, fieldName, expectedValue string) error {
-	body, ok := ctx.Value(contextKeyResponseBody).([]byte)
+	body, ok := ctx.Value(testcontext.ContextKeyResponseBody).([]byte)
 	if !ok {
 		return fmt.Errorf("response body not found in context")
 	}
@@ -161,7 +162,7 @@ func theResponseBodyFieldShouldEqualString(ctx context.Context, fieldName, expec
 
 // theResponseBodyFieldShouldEqualNumber asserts that a response field equals a specific number value
 func theResponseBodyFieldShouldEqualNumber(ctx context.Context, fieldName string, expectedValue float64) error {
-	body, ok := ctx.Value(contextKeyResponseBody).([]byte)
+	body, ok := ctx.Value(testcontext.ContextKeyResponseBody).([]byte)
 	if !ok {
 		return fmt.Errorf("response body not found in context")
 	}
