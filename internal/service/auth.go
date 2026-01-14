@@ -5,12 +5,14 @@ import (
 
 	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
 	"github.com/linporu/waterballsa-backend-golang/internal/dto"
+	"github.com/linporu/waterballsa-backend-golang/internal/model"
 	"github.com/linporu/waterballsa-backend-golang/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService interface {
 	Register(ctx context.Context, req dto.RegisterRequest) (int64, error)
+	Login(ctx context.Context, req dto.LoginRequest) (*model.User, error)
 }
 
 type authService struct {
@@ -51,4 +53,19 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (in
 	}
 
 	return userID, nil
+}
+
+func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*model.User, error) {
+	// Get user by username
+	user, err := s.userRepository.GetByUsername(ctx, req.Username)
+	if err != nil {
+		return nil, apperror.AuthFailed()
+	}
+
+	// Verify password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		return nil, apperror.AuthFailed()
+	}
+
+	return user, nil
 }

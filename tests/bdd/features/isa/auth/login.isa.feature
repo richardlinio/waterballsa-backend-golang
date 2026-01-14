@@ -63,7 +63,7 @@ Feature: User Login API Implementation
 
     # Verification: Error response
     And the response body should contain field "error"
-    And the response body field "error" should equal string "帳號或密碼錯誤"
+    And the response body field "error" should equal string "使用者名稱或密碼無效"
 
   Scenario: Failed login with non-existent username
     # No setup needed - user doesn't exist
@@ -85,4 +85,4 @@ Feature: User Login API Implementation
 
     # Verification: Error response
     And the response body should contain field "error"
-    And the response body field "error" should equal string "帳號或密碼錯誤"
+    And the response body field "error" should equal string "使用者名稱或密碼無效"
