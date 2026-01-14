@@ -88,14 +88,14 @@ func (r *Router) setupAuthRoutes() {
 	{
 		// Public routes
 		auth.POST("/register", r.authHandler.Register)
-		auth.POST("/login", r.jwtMiddleware.LoginHandler)
-		auth.POST("/refresh", r.jwtMiddleware.RefreshHandler)
+		auth.POST("/login", r.authHandler.Login)
+		auth.POST("/refresh", r.authHandler.Refresh)
 	}
 
 	// Protected routes (require JWT authentication)
 	authProtected := r.engine.Group("/auth")
-	authProtected.Use(r.jwtMiddleware.MiddlewareFunc())
+	authProtected.Use(middleware.JWTAuth(r.jwtMiddleware))
 	{
-		authProtected.POST("/logout", r.jwtMiddleware.LogoutHandler)
+		authProtected.POST("/logout", r.authHandler.Logout)
 	}
 }

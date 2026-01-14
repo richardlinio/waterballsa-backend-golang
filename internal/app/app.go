@@ -82,7 +82,7 @@ func New() (*Application, error) {
 
 	// Initialize handler layer (HTTP handlers)
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
-	authHandler := handler.NewAuthHandler(authService, log, cfg.Server.RequestTimeout)
+	authHandler := handler.NewAuthHandler(authService, jwtMiddleware, log, cfg.Server.RequestTimeout)
 
 	// Setup Gin router
 	ginRouter := gin.New()

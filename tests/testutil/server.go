@@ -107,7 +107,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 
 	// Initialize handler layer
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
-	authHandler := handler.NewAuthHandler(authService, log, cfg.Server.RequestTimeout)
+	authHandler := handler.NewAuthHandler(authService, jwtMiddleware, log, cfg.Server.RequestTimeout)
 
 	// Setup Gin router with test mode
 	gin.SetMode(gin.TestMode)
