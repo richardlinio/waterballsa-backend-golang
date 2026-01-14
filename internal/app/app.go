@@ -14,6 +14,7 @@ import (
 	"github.com/linporu/waterballsa-backend-golang/internal/config"
 	"github.com/linporu/waterballsa-backend-golang/internal/db"
 	"github.com/linporu/waterballsa-backend-golang/internal/handler"
+	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/auth"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/database"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/logger"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/server"
@@ -68,13 +69,24 @@ func New() (*Application, error) {
 	// Initialize service layer (business logic)
 	authService := service.NewAuthService(userRepository)
 
+	// Initialize JWT middleware
+	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, authService, log)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize JWT middleware: %w", err)
+	}
+
+	// Initialize middleware (must be called to enable refresh token store)
+	if err := jwtMiddleware.MiddlewareInit(); err != nil {
+		return nil, fmt.Errorf("failed to initialize JWT middleware: %w", err)
+	}
+
 	// Initialize handler layer (HTTP handlers)
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
 	authHandler := handler.NewAuthHandler(authService, log, cfg.Server.RequestTimeout)
 
 	// Setup Gin router
 	ginRouter := gin.New()
-	r := router.NewRouter(ginRouter, cfg.CORS, cfg.RateLimit, log, healthHandler, authHandler)
+	r := router.NewRouter(ginRouter, cfg.CORS, cfg.RateLimit, log, healthHandler, authHandler, jwtMiddleware)
 	r.Setup()
 
 	// Create HTTP server

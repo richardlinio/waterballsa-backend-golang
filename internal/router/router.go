@@ -3,6 +3,7 @@ package router
 import (
 	"log/slog"
 
+	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-contrib/requestid"
 	ginslog "github.com/gin-contrib/slog"
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,7 @@ type Router struct {
 	logger          *slog.Logger
 	healthHandler   *handler.HealthHandler
 	authHandler     *handler.AuthHandler
+	jwtMiddleware   *jwt.GinJWTMiddleware
 }
 
 func NewRouter(
@@ -27,6 +29,7 @@ func NewRouter(
 	logger *slog.Logger,
 	healthHandler *handler.HealthHandler,
 	authHandler *handler.AuthHandler,
+	jwtMiddleware *jwt.GinJWTMiddleware,
 ) *Router {
 	return &Router{
 		engine:          engine,
@@ -35,6 +38,7 @@ func NewRouter(
 		logger:          logger,
 		healthHandler:   healthHandler,
 		authHandler:     authHandler,
+		jwtMiddleware:   jwtMiddleware,
 	}
 }
 
@@ -82,6 +86,16 @@ func (r *Router) setupHealthRoutes() {
 func (r *Router) setupAuthRoutes() {
 	auth := r.engine.Group("/auth")
 	{
+		// Public routes
 		auth.POST("/register", r.authHandler.Register)
+		auth.POST("/login", r.jwtMiddleware.LoginHandler)
+		auth.POST("/refresh", r.jwtMiddleware.RefreshHandler)
+	}
+
+	// Protected routes (require JWT authentication)
+	authProtected := r.engine.Group("/auth")
+	authProtected.Use(r.jwtMiddleware.MiddlewareFunc())
+	{
+		authProtected.POST("/logout", r.jwtMiddleware.LogoutHandler)
 	}
 }

@@ -107,6 +107,7 @@ func theResponseStatusCodeShouldBe(ctx context.Context, expectedStatusCode int) 
 }
 
 // theResponseBodyShouldContainField asserts that the response body contains the specified field
+// Supports nested field access using dot notation (e.g., "user.id")
 func theResponseBodyShouldContainField(ctx context.Context, fieldName string) error {
 	body, ok := ctx.Value(testcontext.ContextKeyResponseBody).([]byte)
 	if !ok {
@@ -119,8 +120,9 @@ func theResponseBodyShouldContainField(ctx context.Context, fieldName string) er
 		return fmt.Errorf("failed to parse JSON response: %w. Body: %s", err, string(body))
 	}
 
-	// Check if field exists
-	if _, exists := jsonBody[fieldName]; !exists {
+	// Check if field exists (supports nested fields with dot notation)
+	_, exists := getNestedField(jsonBody, fieldName)
+	if !exists {
 		return fmt.Errorf("field '%s' not found in response body. Available fields: %v",
 			fieldName, getMapKeys(jsonBody))
 	}
@@ -129,6 +131,7 @@ func theResponseBodyShouldContainField(ctx context.Context, fieldName string) er
 }
 
 // theResponseBodyFieldShouldEqualString asserts that a response field equals a specific string value
+// Supports nested field access using dot notation (e.g., "user.username")
 func theResponseBodyFieldShouldEqualString(ctx context.Context, fieldName, expectedValue string) error {
 	body, ok := ctx.Value(testcontext.ContextKeyResponseBody).([]byte)
 	if !ok {
@@ -141,8 +144,8 @@ func theResponseBodyFieldShouldEqualString(ctx context.Context, fieldName, expec
 		return fmt.Errorf("failed to parse JSON response: %w. Body: %s", err, string(body))
 	}
 
-	// Get field value
-	actualValue, exists := jsonBody[fieldName]
+	// Get field value (supports nested fields with dot notation)
+	actualValue, exists := getNestedField(jsonBody, fieldName)
 	if !exists {
 		return fmt.Errorf("field '%s' not found in response body. Available fields: %v",
 			fieldName, getMapKeys(jsonBody))
@@ -161,6 +164,7 @@ func theResponseBodyFieldShouldEqualString(ctx context.Context, fieldName, expec
 }
 
 // theResponseBodyFieldShouldEqualNumber asserts that a response field equals a specific number value
+// Supports nested field access using dot notation (e.g., "user.experience")
 func theResponseBodyFieldShouldEqualNumber(ctx context.Context, fieldName string, expectedValue float64) error {
 	body, ok := ctx.Value(testcontext.ContextKeyResponseBody).([]byte)
 	if !ok {
@@ -173,8 +177,8 @@ func theResponseBodyFieldShouldEqualNumber(ctx context.Context, fieldName string
 		return fmt.Errorf("failed to parse JSON response: %w. Body: %s", err, string(body))
 	}
 
-	// Get field value
-	actualValue, exists := jsonBody[fieldName]
+	// Get field value (supports nested fields with dot notation)
+	actualValue, exists := getNestedField(jsonBody, fieldName)
 	if !exists {
 		return fmt.Errorf("field '%s' not found in response body. Available fields: %v",
 			fieldName, getMapKeys(jsonBody))
@@ -194,6 +198,34 @@ func theResponseBodyFieldShouldEqualNumber(ctx context.Context, fieldName string
 	}
 
 	return nil
+}
+
+// Helper function to get nested field from JSON object using dot notation
+// Supports accessing nested fields like "user.id" or "data.user.profile.name"
+func getNestedField(data map[string]interface{}, fieldPath string) (interface{}, bool) {
+	// Split the field path by dots
+	parts := strings.Split(fieldPath, ".")
+
+	var current interface{} = data
+
+	// Navigate through each part of the path
+	for _, part := range parts {
+		// Check if current is a map
+		currentMap, ok := current.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+
+		// Get the next level
+		next, exists := currentMap[part]
+		if !exists {
+			return nil, false
+		}
+
+		current = next
+	}
+
+	return current, true
 }
 
 // Helper function to get all keys from a map for error messages
