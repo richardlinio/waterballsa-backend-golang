@@ -154,8 +154,7 @@ func (lt *LoadTester) sendRequest(targetURL string) error {
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }() //nolint:errcheck // Close error in deferred call is not critical for load testing
-
+	defer func() { _ = resp.Body.Close() }()
 	// Read and discard response body to properly reuse connections
 	_, err = io.Copy(io.Discard, resp.Body)
 	if err != nil {
@@ -321,7 +320,7 @@ func (lt *LoadTester) sendRegisterRequest(targetURL, username, password string) 
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }() //nolint:errcheck // Close error in deferred call is not critical for load testing
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read and discard response body to properly reuse connections
 	_, err = io.Copy(io.Discard, resp.Body)

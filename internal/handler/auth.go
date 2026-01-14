@@ -31,7 +31,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	// Bind and validate JSON request
 	if err := c.ShouldBindJSON(&req); err != nil {
-		_ = c.Error(apperror.NewWithError(apperror.CodeValidationFailed, err)) //nolint:errcheck // ErrorHandler middleware will handle this error
+		_ = c.Error(apperror.NewWithError(apperror.CodeValidationFailed, err))
 		return
 	}
 
@@ -42,7 +42,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	// Call service to register user
 	userID, err := h.authService.Register(ctx, req)
 	if err != nil {
-		_ = c.Error(err) //nolint:errcheck // ErrorHandler middleware will handle this error
+		_ = c.Error(err)
 		return
 	}
 

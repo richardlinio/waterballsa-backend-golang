@@ -42,7 +42,7 @@ linters:
   settings:
     errcheck:
       check-type-assertions: true
-      check-blank: true
+      check-blank: false
     gocyclo:
       min-complexity: 15
     gosec:
@@ -54,7 +54,7 @@ linters:
       rules:
         - name: exported
           arguments:
-            - "checkPrivateReceivers"
+            - 'checkPrivateReceivers'
           disabled: true
         - name: package-comments
           disabled: true

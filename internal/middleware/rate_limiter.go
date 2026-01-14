@@ -126,7 +126,7 @@ func RateLimit(config config.RateLimitConfig, logger *slog.Logger) gin.HandlerFu
 
 		// Check if request is allowed
 		if !limiter.Allow(ip) {
-			_ = c.Error(apperror.RateLimitExceeded()) //nolint:errcheck // ErrorHandler middleware will handle this error
+			_ = c.Error(apperror.RateLimitExceeded())
 			c.Abort()
 			return
 		}
