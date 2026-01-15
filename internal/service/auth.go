@@ -2,24 +2,50 @@ package service
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
 	"github.com/linporu/waterballsa-backend-golang/internal/dto"
+	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/auth"
 	"github.com/linporu/waterballsa-backend-golang/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService interface {
 	Register(ctx context.Context, req dto.RegisterRequest) (int64, error)
+	Login(ctx context.Context, req dto.LoginRequest) (*LoginResult, error)
+	Logout(ctx context.Context, accessToken, refreshToken string) error
+	Refresh(ctx context.Context, refreshToken string) (*LoginResult, error)
 }
 
 type authService struct {
-	userRepository repository.UserRepository
+	userRepository         repository.UserRepository
+	accessTokenRepository  repository.AccessTokenRepository
+	refreshTokenRepository repository.RefreshTokenRepository
+	tokenGenerator         auth.TokenGenerator
 }
 
-func NewAuthService(userRepository repository.UserRepository) AuthService {
+// LoginResult holds the complete result of a successful login
+type LoginResult struct {
+	AccessToken        string
+	AccessTokenExpire  time.Time
+	RefreshToken       string
+	RefreshTokenExpire time.Time
+	UserInfo           dto.UserInfo
+}
+
+func NewAuthService(
+	userRepository repository.UserRepository,
+	accessTokenRepository repository.AccessTokenRepository,
+	refreshTokenRepository repository.RefreshTokenRepository,
+	tokenGenerator auth.TokenGenerator,
+) AuthService {
 	return &authService{
-		userRepository: userRepository,
+		userRepository:         userRepository,
+		accessTokenRepository:  accessTokenRepository,
+		refreshTokenRepository: refreshTokenRepository,
+		tokenGenerator:         tokenGenerator,
 	}
 }
 
@@ -41,7 +67,7 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (in
 	// Hash password
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return 0, apperror.InternalError(err)
+		return 0, apperror.InternalServerError(err)
 	}
 
 	// Create user
@@ -51,4 +77,134 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (in
 	}
 
 	return userID, nil
+}
+
+func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*LoginResult, error) {
+	// Get user by username
+	user, err := s.userRepository.GetByUsername(ctx, req.Username)
+	if err != nil {
+		return nil, apperror.AuthFailed()
+	}
+
+	// Verify password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		return nil, apperror.AuthFailed()
+	}
+
+	// Generate access token
+	accessToken, _, accessExpire, err := s.tokenGenerator.GenerateAccessToken(user)
+	if err != nil {
+		return nil, apperror.InternalServerError(err)
+	}
+
+	// Generate refresh token
+	refreshToken, refreshJTI, refreshExpire, err := s.tokenGenerator.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, apperror.InternalServerError(err)
+	}
+
+	// Store refresh token in database
+	if err := s.refreshTokenRepository.Create(ctx, refreshJTI, user.ID, refreshExpire); err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	return &LoginResult{
+		AccessToken:        accessToken,
+		AccessTokenExpire:  accessExpire,
+		RefreshToken:       refreshToken,
+		RefreshTokenExpire: refreshExpire,
+		UserInfo: dto.UserInfo{
+			ID:         user.ID,
+			Username:   user.Username,
+			Experience: user.ExperiencePoints,
+		},
+	}, nil
+}
+
+func (s *authService) Logout(ctx context.Context, accessToken, refreshToken string) error {
+	// Invalidate access token if provided
+	if accessToken != "" {
+		jti, userID, expiresAt, err := s.tokenGenerator.ParseAccessToken(accessToken)
+		if err == nil {
+			// Best effort: add to blacklist, ignore errors
+			_ = s.accessTokenRepository.Invalidate(ctx, jti, userID, expiresAt)
+		}
+	}
+
+	// Revoke refresh token if provided
+	if refreshToken != "" {
+		jti, _, _, err := s.tokenGenerator.ParseRefreshToken(refreshToken)
+		if err == nil {
+			// Best effort: revoke refresh token, ignore errors
+			_ = s.refreshTokenRepository.Revoke(ctx, jti)
+		}
+	}
+
+	return nil
+}
+
+func (s *authService) Refresh(ctx context.Context, refreshToken string) (*LoginResult, error) {
+	if refreshToken == "" {
+		return nil, apperror.Unauthorized()
+	}
+
+	// Parse refresh token
+	jti, userID, _, err := s.tokenGenerator.ParseRefreshToken(refreshToken)
+	if err != nil {
+		return nil, apperror.Unauthorized()
+	}
+
+	// Check if refresh token exists and is valid in database
+	dbToken, err := s.refreshTokenRepository.GetByJTI(ctx, jti)
+	if err != nil {
+		if errors.Is(err, repository.ErrRefreshTokenNotFound) {
+			return nil, apperror.Unauthorized()
+		}
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// Verify user ID matches
+	if dbToken.UserID != userID {
+		return nil, apperror.Unauthorized()
+	}
+
+	// Get fresh user data
+	user, err := s.userRepository.GetByID(ctx, userID)
+	if err != nil {
+		return nil, apperror.Unauthorized()
+	}
+
+	// Revoke the old refresh token (token rotation)
+	if err := s.refreshTokenRepository.Revoke(ctx, jti); err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// Generate new access token
+	newAccessToken, _, accessExpire, err := s.tokenGenerator.GenerateAccessToken(user)
+	if err != nil {
+		return nil, apperror.InternalServerError(err)
+	}
+
+	// Generate new refresh token
+	newRefreshToken, newRefreshJTI, refreshExpire, err := s.tokenGenerator.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, apperror.InternalServerError(err)
+	}
+
+	// Store new refresh token in database
+	if err := s.refreshTokenRepository.Create(ctx, newRefreshJTI, user.ID, refreshExpire); err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	return &LoginResult{
+		AccessToken:        newAccessToken,
+		AccessTokenExpire:  accessExpire,
+		RefreshToken:       newRefreshToken,
+		RefreshTokenExpire: refreshExpire,
+		UserInfo: dto.UserInfo{
+			ID:         user.ID,
+			Username:   user.Username,
+			Experience: user.ExperiencePoints,
+		},
+	}, nil
 }

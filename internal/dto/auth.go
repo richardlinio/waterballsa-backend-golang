@@ -9,3 +9,28 @@ type RegisterResponse struct {
 	Message string `json:"message"`
 	UserID  int64  `json:"userId"`
 }
+
+type LoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type LoginResponse struct {
+	AccessToken string   `json:"accessToken"`
+	User        UserInfo `json:"user"`
+}
+
+type UserInfo struct {
+	ID         int64  `json:"id"`
+	Username   string `json:"username"`
+	Experience int32  `json:"experience"`
+}
+
+type LogoutResponse struct {
+	Message string `json:"message"`
+}
+
+type RefreshResponse struct {
+	AccessToken string   `json:"accessToken"`
+	User        UserInfo `json:"user"`
+}

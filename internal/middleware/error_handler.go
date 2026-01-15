@@ -10,10 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
+	"github.com/linporu/waterballsa-backend-golang/internal/config"
 	"github.com/linporu/waterballsa-backend-golang/internal/dto"
 )
 
-func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
+func ErrorHandler(logger *slog.Logger, jwtConfig config.JWTConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
 
@@ -46,8 +47,8 @@ func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
 			)
 
 			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-				Code:  apperror.CodeInternalError,
-				Error: apperror.GetMessage(apperror.CodeInternalError),
+				Code:  apperror.CodeInternalServerError,
+				Error: apperror.GetMessage(apperror.CodeInternalServerError),
 			})
 			return
 		}
@@ -81,6 +82,11 @@ func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
 		// Parse validation error details
 		if appErr.Code == apperror.CodeValidationFailed && appErr.Err != nil {
 			response.Details = parseValidationErrors(appErr.Err)
+		}
+
+		// Add WWW-Authenticate header for 401 responses (RFC 6750)
+		if appErr.HTTPStatus == http.StatusUnauthorized {
+			c.Header("WWW-Authenticate", fmt.Sprintf(`Bearer realm="%s"`, jwtConfig.Realm))
 		}
 
 		c.JSON(appErr.HTTPStatus, response)

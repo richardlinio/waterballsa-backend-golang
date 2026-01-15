@@ -34,9 +34,14 @@ func setupTestServer(rateLimitConfig config.RateLimitConfig) *httptest.Server {
 	// Create a no-op logger for tests
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
+	// Create a default JWT config for tests
+	jwtConfig := config.JWTConfig{
+		Realm: "test",
+	}
+
 	// Add middlewares in the same order as the real application
 	router.Use(gin.Recovery())
-	router.Use(middleware.ErrorHandler(logger))
+	router.Use(middleware.ErrorHandler(logger, jwtConfig))
 	router.Use(middleware.RateLimit(rateLimitConfig, logger))
 
 	// Setup test endpoints

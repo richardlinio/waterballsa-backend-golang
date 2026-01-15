@@ -396,6 +396,15 @@ type OrderItem struct {
 	DeletedAt     pgtype.Timestamp `json:"deleted_at"`
 }
 
+type RefreshToken struct {
+	ID        int64            `json:"id"`
+	TokenJti  string           `json:"token_jti"`
+	UserID    int64            `json:"user_id"`
+	ExpiresAt pgtype.Timestamp `json:"expires_at"`
+	RevokedAt pgtype.Timestamp `json:"revoked_at"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
 type Reward struct {
 	ID          int64            `json:"id"`
 	MissionID   int64            `json:"mission_id"`

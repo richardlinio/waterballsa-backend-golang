@@ -43,6 +43,39 @@ func (q *Queries) ExistsUserByUsername(ctx context.Context, username string) (bo
 	return exists, err
 }
 
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, username, password_hash, role, experience_points, level, created_at, updated_at
+FROM users
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type GetUserByIDRow struct {
+	ID               int64            `json:"id"`
+	Username         string           `json:"username"`
+	PasswordHash     string           `json:"password_hash"`
+	Role             UserRole         `json:"role"`
+	ExperiencePoints int32            `json:"experience_points"`
+	Level            int32            `json:"level"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i GetUserByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Role,
+		&i.ExperiencePoints,
+		&i.Level,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT id, username, password_hash, role, experience_points, level, created_at, updated_at
 FROM users

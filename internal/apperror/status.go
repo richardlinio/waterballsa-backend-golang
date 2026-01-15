@@ -14,15 +14,16 @@ var httpStatusMap = map[string]int{
 	// Conflict errors (409)
 	CodeUsernameExists: http.StatusConflict,
 
+	// Rate limiting errors (429)
+	CodeRateLimitExceeded: http.StatusTooManyRequests,
+
 	// Server errors (500)
-	CodeInternalError: http.StatusInternalServerError,
-	CodeDatabaseError: http.StatusInternalServerError,
+	CodeInternalServerError: http.StatusInternalServerError,
+	CodeDatabaseError:       http.StatusInternalServerError,
+	CodeAuthStateError:      http.StatusInternalServerError, // Auth state error (internal logic error)
 
 	// Service unavailable errors (503)
 	CodeServiceUnavailable: http.StatusServiceUnavailable,
-
-	// Rate limiting errors (429)
-	CodeRateLimitExceeded: http.StatusTooManyRequests,
 }
 
 func GetHTTPStatus(code string) int {

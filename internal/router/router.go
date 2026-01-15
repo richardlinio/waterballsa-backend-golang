@@ -3,6 +3,7 @@ package router
 import (
 	"log/slog"
 
+	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-contrib/requestid"
 	ginslog "github.com/gin-contrib/slog"
 	"github.com/gin-gonic/gin"
@@ -12,29 +13,38 @@ import (
 )
 
 type Router struct {
-	engine          *gin.Engine
-	corsConfig      config.CORSConfig
-	rateLimitConfig config.RateLimitConfig
-	logger          *slog.Logger
-	healthHandler   *handler.HealthHandler
-	authHandler     *handler.AuthHandler
+	engine           *gin.Engine
+	corsConfig       config.CORSConfig
+	rateLimitConfig  config.RateLimitConfig
+	jwtConfig        config.JWTConfig
+	logger           *slog.Logger
+	healthHandler    *handler.HealthHandler
+	authHandler      *handler.AuthHandler
+	jwtMiddleware    *jwt.GinJWTMiddleware
+	blacklistChecker gin.HandlerFunc
 }
 
 func NewRouter(
 	engine *gin.Engine,
 	corsConfig config.CORSConfig,
 	rateLimitConfig config.RateLimitConfig,
+	jwtConfig config.JWTConfig,
 	logger *slog.Logger,
 	healthHandler *handler.HealthHandler,
 	authHandler *handler.AuthHandler,
+	jwtMiddleware *jwt.GinJWTMiddleware,
+	blacklistChecker gin.HandlerFunc,
 ) *Router {
 	return &Router{
-		engine:          engine,
-		corsConfig:      corsConfig,
-		rateLimitConfig: rateLimitConfig,
-		logger:          logger,
-		healthHandler:   healthHandler,
-		authHandler:     authHandler,
+		engine:           engine,
+		corsConfig:       corsConfig,
+		rateLimitConfig:  rateLimitConfig,
+		jwtConfig:        jwtConfig,
+		logger:           logger,
+		healthHandler:    healthHandler,
+		authHandler:      authHandler,
+		jwtMiddleware:    jwtMiddleware,
+		blacklistChecker: blacklistChecker,
 	}
 }
 
@@ -43,7 +53,7 @@ func (r *Router) Setup() {
 	r.engine.Use(gin.Recovery())
 	r.setupRequestIDMiddleware()
 	r.setupLoggingMiddleware()
-	r.engine.Use(middleware.ErrorHandler(r.logger))
+	r.engine.Use(middleware.ErrorHandler(r.logger, r.jwtConfig))
 	r.engine.Use(middleware.CORS(r.corsConfig))
 	r.engine.Use(middleware.RateLimit(r.rateLimitConfig, r.logger))
 	r.engine.Use(middleware.Security())
@@ -82,6 +92,17 @@ func (r *Router) setupHealthRoutes() {
 func (r *Router) setupAuthRoutes() {
 	auth := r.engine.Group("/auth")
 	{
+		// Public routes
 		auth.POST("/register", r.authHandler.Register)
+		auth.POST("/login", r.authHandler.Login)
+		auth.POST("/refresh", r.authHandler.Refresh)
+	}
+
+	// Protected routes (require JWT authentication and blacklist check)
+	authProtected := r.engine.Group("/auth")
+	authProtected.Use(middleware.JWTAuth(r.jwtMiddleware))
+	authProtected.Use(r.blacklistChecker)
+	{
+		authProtected.POST("/logout", r.authHandler.Logout)
 	}
 }

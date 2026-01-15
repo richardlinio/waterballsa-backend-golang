@@ -61,8 +61,14 @@ func Unauthorized() *AppError {
 	return New(CodeUnauthorized)
 }
 
-func InternalError(err error) *AppError {
-	return NewWithError(CodeInternalError, err)
+// AuthStateError returns an error for authentication state errors
+// Use this for: internal logic errors in auth flow (e.g., missing user data in context)
+func AuthStateError(err error) *AppError {
+	return NewWithError(CodeAuthStateError, err)
+}
+
+func InternalServerError(err error) *AppError {
+	return NewWithError(CodeInternalServerError, err)
 }
 
 func DatabaseError(err error) *AppError {

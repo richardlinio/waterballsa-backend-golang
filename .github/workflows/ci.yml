@@ -29,9 +29,14 @@ jobs:
         with:
           go-version: "1.25.5"
           cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
 
       - name: Run tests
-        run: go test -v -race ./...
+        env:
+          JWT_SECRET: test-jwt-secret-key-at-least-32-characters-long-for-ci
+        run: go test -race ./...
 
   lint:
     name: Lint
@@ -45,6 +50,9 @@ jobs:
         with:
           go-version: "1.25.5"
           cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8
@@ -64,6 +72,9 @@ jobs:
         with:
           go-version: "1.25.5"
           cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
 
       - name: Check sqlc requirements
         # 檢查專案根目錄是否存在 sqlc 設定檔（sqlc.yaml 或 sqlc.yml）
@@ -122,6 +133,9 @@ jobs:
         with:
           go-version: "1.25.5"
           cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
 
       - name: Build
         run: go build -o /dev/null ./...

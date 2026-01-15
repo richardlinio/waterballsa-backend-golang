@@ -14,6 +14,7 @@ var ErrUserNotFound = errors.New("user not found")
 
 // UserRepository defines the interface for user data access operations
 type UserRepository interface {
+	GetByID(ctx context.Context, id int64) (*model.User, error)
 	GetByUsername(ctx context.Context, username string) (*model.User, error)
 	Create(ctx context.Context, username, passwordHash string) (int64, error)
 	ExistsByUsername(ctx context.Context, username string) (bool, error)
@@ -29,6 +30,30 @@ func NewUserRepository(queries db.Querier) UserRepository {
 	return &userRepository{
 		queries: queries,
 	}
+}
+
+// GetByID retrieves a user by ID
+func (r *userRepository) GetByID(ctx context.Context, id int64) (*model.User, error) {
+	row, err := r.queries.GetUserByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	user := &model.User{
+		ID:               row.ID,
+		Username:         row.Username,
+		PasswordHash:     row.PasswordHash,
+		Role:             string(row.Role),
+		ExperiencePoints: row.ExperiencePoints,
+		Level:            row.Level,
+		CreatedAt:        row.CreatedAt.Time,
+		UpdatedAt:        row.UpdatedAt.Time,
+	}
+
+	return user, nil
 }
 
 // GetByUsername retrieves a user by username

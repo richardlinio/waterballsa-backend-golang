@@ -11,6 +11,7 @@ type Config struct {
 	Logger    LoggerConfig
 	CORS      CORSConfig
 	RateLimit RateLimitConfig
+	JWT       JWTConfig
 }
 
 // Load loads configuration from environment variables
@@ -36,11 +37,18 @@ func Load() (*Config, error) {
 	// Load rate limit config
 	rateLimitConfig := loadRateLimitConfig()
 
+	// Load JWT config
+	jwtConfig, err := loadJWTConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load JWT config: %w", err)
+	}
+
 	return &Config{
 		Server:    serverConfig,
 		Database:  *dbConfig,
 		Logger:    loggerConfig,
 		CORS:      corsConfig,
 		RateLimit: rateLimitConfig,
+		JWT:       *jwtConfig,
 	}, nil
 }

@@ -1,0 +1,88 @@
+package repository
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/linporu/waterballsa-backend-golang/internal/db"
+	"github.com/linporu/waterballsa-backend-golang/internal/model"
+)
+
+// ErrRefreshTokenNotFound is returned when a refresh token is not found or is invalid
+var ErrRefreshTokenNotFound = errors.New("refresh token not found")
+
+// RefreshTokenRepository defines the interface for refresh token operations
+type RefreshTokenRepository interface {
+	Create(ctx context.Context, jti string, userID int64, expiresAt time.Time) error
+	GetByJTI(ctx context.Context, jti string) (*model.RefreshToken, error)
+	Revoke(ctx context.Context, jti string) error
+	RevokeAllForUser(ctx context.Context, userID int64) error
+	DeleteExpired(ctx context.Context) error
+}
+
+// refreshTokenRepository implements RefreshTokenRepository using sqlc generated queries
+type refreshTokenRepository struct {
+	queries db.Querier
+}
+
+// NewRefreshTokenRepository creates a new instance of RefreshTokenRepository
+func NewRefreshTokenRepository(queries db.Querier) RefreshTokenRepository {
+	return &refreshTokenRepository{
+		queries: queries,
+	}
+}
+
+// Create adds a new refresh token to the database
+func (r *refreshTokenRepository) Create(ctx context.Context, jti string, userID int64, expiresAt time.Time) error {
+	return r.queries.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
+		TokenJti: jti,
+		UserID:   userID,
+		ExpiresAt: pgtype.Timestamp{
+			Time:  expiresAt,
+			Valid: true,
+		},
+	})
+}
+
+// GetByJTI retrieves a valid (non-revoked, non-expired) refresh token by its JTI
+func (r *refreshTokenRepository) GetByJTI(ctx context.Context, jti string) (*model.RefreshToken, error) {
+	dbToken, err := r.queries.GetRefreshToken(ctx, jti)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrRefreshTokenNotFound
+		}
+		return nil, err
+	}
+
+	token := &model.RefreshToken{
+		ID:        dbToken.ID,
+		TokenJTI:  dbToken.TokenJti,
+		UserID:    dbToken.UserID,
+		ExpiresAt: dbToken.ExpiresAt.Time,
+		CreatedAt: dbToken.CreatedAt.Time,
+	}
+
+	if dbToken.RevokedAt.Valid {
+		token.RevokedAt = &dbToken.RevokedAt.Time
+	}
+
+	return token, nil
+}
+
+// Revoke marks a refresh token as revoked
+func (r *refreshTokenRepository) Revoke(ctx context.Context, jti string) error {
+	return r.queries.RevokeRefreshToken(ctx, jti)
+}
+
+// RevokeAllForUser revokes all refresh tokens for a specific user
+func (r *refreshTokenRepository) RevokeAllForUser(ctx context.Context, userID int64) error {
+	return r.queries.RevokeAllUserRefreshTokens(ctx, userID)
+}
+
+// DeleteExpired removes expired refresh tokens from the database
+func (r *refreshTokenRepository) DeleteExpired(ctx context.Context) error {
+	return r.queries.DeleteExpiredRefreshTokens(ctx)
+}

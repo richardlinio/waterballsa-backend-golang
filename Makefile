@@ -54,4 +54,4 @@ migrate-reset:
 
 .PHONY: test-bdd-isa
 test-bdd-isa:
-	$(DOCKER_EXEC) go test -v ./tests/steps -run TestFeatures
+	$(DOCKER_EXEC) go test -v ./tests/bdd -run TestFeatures
