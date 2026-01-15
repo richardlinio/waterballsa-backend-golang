@@ -86,10 +86,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Set access token cookie
 	h.setAccessTokenCookie(c, result.AccessToken, result.AccessTokenExpire)
-
-	// Set refresh token cookie (restricted path)
 	h.setRefreshTokenCookie(c, result.RefreshToken, result.RefreshTokenExpire)
 
 	c.JSON(http.StatusOK, dto.LoginResponse{
@@ -99,10 +96,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	// Extract access token (may fail if already expired, that's ok)
+	// This may fail if already expired, that's ok
 	accessToken, _ := h.extractAccessToken(c)
-
-	// Extract refresh token
 	refreshToken, _ := h.extractRefreshToken(c)
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), h.requestTimeout)
@@ -113,7 +108,6 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	// Clear both cookies
 	h.clearAccessTokenCookie(c)
 	h.clearRefreshTokenCookie(c)
 
@@ -138,10 +132,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	// Set new access token cookie
 	h.setAccessTokenCookie(c, result.AccessToken, result.AccessTokenExpire)
-
-	// Set new refresh token cookie (token rotation)
 	h.setRefreshTokenCookie(c, result.RefreshToken, result.RefreshTokenExpire)
 
 	c.JSON(http.StatusOK, dto.RefreshResponse{
@@ -214,7 +205,7 @@ func (h *AuthHandler) clearRefreshTokenCookie(c *gin.Context) {
 func (h *AuthHandler) extractAccessToken(c *gin.Context) (string, error) {
 	// Try Authorization header first
 	authHeader := c.GetHeader("Authorization")
-	if token := strings.TrimPrefix(authHeader, bearerPrefix); token != authHeader {
+	if token, ok := strings.CutPrefix(authHeader, bearerPrefix); ok {
 		return token, nil
 	}
 
