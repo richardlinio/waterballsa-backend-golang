@@ -31,7 +31,9 @@ jobs:
           cache: true
 
       - name: Run tests
-        run: go test -v -race ./...
+        env:
+          JWT_SECRET: test-jwt-secret-key-at-least-32-characters-long-for-ci
+        run: go test -race ./...
 
   lint:
     name: Lint
