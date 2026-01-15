@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v3"
@@ -18,6 +19,7 @@ const (
 	accessTokenCookieName  = "access_token"
 	refreshTokenCookieName = "refresh_token"
 	refreshCookiePath      = "/auth/refresh"
+	bearerPrefix           = "Bearer "
 )
 
 type AuthHandler struct {
@@ -208,11 +210,8 @@ func (h *AuthHandler) clearRefreshTokenCookie(c *gin.Context) {
 func (h *AuthHandler) extractAccessToken(c *gin.Context) (string, error) {
 	// Try Authorization header first
 	authHeader := c.GetHeader("Authorization")
-	if authHeader != "" {
-		// Remove "Bearer " prefix
-		if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
-			return authHeader[7:], nil
-		}
+	if token := strings.TrimPrefix(authHeader, bearerPrefix); token != authHeader {
+		return token, nil
 	}
 
 	// Try cookie
