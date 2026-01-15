@@ -18,7 +18,7 @@ func NewJWTMiddleware(
 	unauthorized func(*gin.Context, int, string),
 ) (*jwt.GinJWTMiddleware, error) {
 	return jwt.New(&jwt.GinJWTMiddleware{
-		Realm:       "waterballsa",
+		Realm:       cfg.Realm,
 		Key:         cfg.Secret,
 		Timeout:     cfg.AccessTokenTimeout,
 		MaxRefresh:  cfg.RefreshTokenTimeout,

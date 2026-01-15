@@ -13,6 +13,7 @@ type JWTConfig struct {
 	RefreshTokenTimeout time.Duration // Refresh token validity duration
 	SecureCookie        bool          // Enable secure cookie (HTTPS only)
 	CookieDomain        string        // Cookie domain (optional)
+	Realm               string        // Bearer realm for authentication
 }
 
 // loadJWTConfig loads JWT configuration from environment variables
@@ -46,12 +47,19 @@ func loadJWTConfig() (*JWTConfig, error) {
 	// Load optional cookie domain
 	cookieDomain := os.Getenv("JWT_COOKIE_DOMAIN")
 
+	// Load optional realm (default: "waterballsa")
+	realm := os.Getenv("JWT_REALM")
+	if realm == "" {
+		realm = "API"
+	}
+
 	return &JWTConfig{
 		Secret:              []byte(secret),
 		AccessTokenTimeout:  accessTokenTimeout,
 		RefreshTokenTimeout: refreshTokenTimeout,
 		SecureCookie:        secureCookie,
 		CookieDomain:        cookieDomain,
+		Realm:               realm,
 	}, nil
 }
 
