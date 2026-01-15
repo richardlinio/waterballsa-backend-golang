@@ -73,6 +73,11 @@ func iSendRequestTo(ctx context.Context, method, path string) (context.Context, 
 		}
 	}
 
+	// Set Authorization header if present in context
+	if authHeader, ok := ctx.Value(testcontext.ContextKeyAuthHeader).(string); ok {
+		req.Header.Set("Authorization", authHeader)
+	}
+
 	// Send request using shared HTTP client
 	resp, err := defaultHTTPClient.Do(req)
 	if err != nil {
@@ -426,6 +431,84 @@ func cookieShouldHaveAttribute(ctx context.Context, cookieName, attribute string
 	return nil
 }
 
+// iStoreTheResponseFieldAs stores a field value from the response body for later use
+func iStoreTheResponseFieldAs(ctx context.Context, fieldName, variableName string) (context.Context, error) {
+	body, ok := ctx.Value(testcontext.ContextKeyResponseBody).([]byte)
+	if !ok {
+		return ctx, fmt.Errorf("response body not found in context")
+	}
+
+	// Parse JSON response
+	var jsonBody map[string]interface{}
+	if err := json.Unmarshal(body, &jsonBody); err != nil {
+		return ctx, fmt.Errorf("failed to parse JSON response: %w. Body: %s", err, string(body))
+	}
+
+	// Get field value (supports nested fields with dot notation)
+	value, exists := getNestedField(jsonBody, fieldName)
+	if !exists {
+		return ctx, fmt.Errorf("field '%s' not found in response body. Available fields: %v",
+			fieldName, getMapKeys(jsonBody))
+	}
+
+	// Get or create stored variables map
+	var storedVars map[string]interface{}
+	if existingVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]interface{}); ok {
+		storedVars = existingVars
+	} else {
+		storedVars = make(map[string]interface{})
+	}
+
+	// Store the value
+	storedVars[variableName] = value
+
+	// Update context with stored variables
+	return context.WithValue(ctx, testcontext.ContextKeyStoredVariables, storedVars), nil
+}
+
+// iSetAuthorizationHeaderTo sets the Authorization header with a token value
+// Supports variable substitution using {{variableName}} syntax
+func iSetAuthorizationHeaderTo(ctx context.Context, tokenPlaceholder string) (context.Context, error) {
+	// Check if tokenPlaceholder contains a variable reference (e.g., "{{token}}")
+	if strings.HasPrefix(tokenPlaceholder, "{{") && strings.HasSuffix(tokenPlaceholder, "}}") {
+		// Extract variable name (remove "{{" and "}}")
+		variableName := strings.TrimSuffix(strings.TrimPrefix(tokenPlaceholder, "{{"), "}}")
+
+		// Get stored variables from context
+		storedVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]interface{})
+		if !ok || storedVars == nil {
+			return ctx, fmt.Errorf("no stored variables found in context. Did you forget to store the variable '%s'?", variableName)
+		}
+
+		// Get the actual token value
+		tokenValue, exists := storedVars[variableName]
+		if !exists {
+			return ctx, fmt.Errorf("variable '%s' not found in stored variables. Available variables: %v",
+				variableName, getStoredVariableNames(storedVars))
+		}
+
+		// Convert token value to string
+		tokenStr := fmt.Sprintf("%v", tokenValue)
+
+		// Store as Authorization header with "Bearer " prefix
+		authHeader := "Bearer " + tokenStr
+		return context.WithValue(ctx, testcontext.ContextKeyAuthHeader, authHeader), nil
+	}
+
+	// If not a variable reference, use the value directly
+	authHeader := "Bearer " + tokenPlaceholder
+	return context.WithValue(ctx, testcontext.ContextKeyAuthHeader, authHeader), nil
+}
+
+// Helper function to get all stored variable names for error messages
+func getStoredVariableNames(vars map[string]interface{}) []string {
+	names := make([]string, 0, len(vars))
+	for name := range vars {
+		names = append(names, name)
+	}
+	return names
+}
+
 // RegisterHTTPSteps registers all HTTP-related step definitions
 func RegisterHTTPSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I set request body to:$`, iSetRequestBodyTo)
@@ -439,4 +522,6 @@ func RegisterHTTPSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I extract cookie "([^"]*)" from response$`, iExtractCookieFromResponse)
 	sc.Step(`^the response should set cookie "([^"]*)"$`, theResponseShouldSetCookie)
 	sc.Step(`^cookie "([^"]*)" should have attribute "([^"]*)"$`, cookieShouldHaveAttribute)
+	sc.Step(`^I store the response field "([^"]*)" as "([^"]*)"$`, iStoreTheResponseFieldAs)
+	sc.Step(`^I set Authorization header to "([^"]*)"$`, iSetAuthorizationHeaderTo)
 }

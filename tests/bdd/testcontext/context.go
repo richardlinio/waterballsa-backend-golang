@@ -11,12 +11,14 @@ type ContextKey string
 
 // Context keys for storing test state
 const (
-	ContextKeyTestServer    ContextKey = "testServer"
-	ContextKeyRequestBody   ContextKey = "requestBody"
-	ContextKeyResponse      ContextKey = "response"
-	ContextKeyResponseBody  ContextKey = "responseBody"
-	ContextKeyCookies       ContextKey = "cookies"       // Cookies to be sent with next request
-	ContextKeyStoredCookies ContextKey = "storedCookies" // Extracted cookies from response
+	ContextKeyTestServer      ContextKey = "testServer"
+	ContextKeyRequestBody     ContextKey = "requestBody"
+	ContextKeyResponse        ContextKey = "response"
+	ContextKeyResponseBody    ContextKey = "responseBody"
+	ContextKeyCookies         ContextKey = "cookies"         // Cookies to be sent with next request
+	ContextKeyStoredCookies   ContextKey = "storedCookies"   // Extracted cookies from response
+	ContextKeyStoredVariables ContextKey = "storedVariables" // map[string]interface{} for storing values between steps
+	ContextKeyAuthHeader      ContextKey = "authHeader"      // string for Authorization header value
 )
 
 // TestServerWrapper wraps the test server for sharing across scenarios
