@@ -30,3 +30,8 @@ type UserInfo struct {
 type LogoutResponse struct {
 	Message string `json:"message"`
 }
+
+type RefreshResponse struct {
+	AccessToken string   `json:"accessToken"`
+	User        UserInfo `json:"user"`
+}

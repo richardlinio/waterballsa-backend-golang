@@ -114,7 +114,27 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 func (h *AuthHandler) Refresh(c *gin.Context) {
-	h.jwtMiddleware.RefreshHandler(c)
+	token, err := h.extractToken(c)
+	if err != nil {
+		_ = c.Error(apperror.Unauthorized())
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), h.requestTimeout)
+	defer cancel()
+
+	result, err := h.authService.Refresh(ctx, token)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	h.setCookie(c, result.Token, result.Expire)
+
+	c.JSON(http.StatusOK, dto.RefreshResponse{
+		AccessToken: result.Token,
+		User:        result.UserInfo,
+	})
 }
 
 // setCookie sets the JWT token as an HTTP-only cookie

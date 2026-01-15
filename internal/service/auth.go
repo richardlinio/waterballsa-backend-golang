@@ -15,6 +15,7 @@ type AuthService interface {
 	Register(ctx context.Context, req dto.RegisterRequest) (int64, error)
 	Login(ctx context.Context, req dto.LoginRequest) (*LoginResult, error)
 	Logout(ctx context.Context, token string) error
+	Refresh(ctx context.Context, token string) (*LoginResult, error)
 }
 
 type authService struct {
@@ -121,4 +122,52 @@ func (s *authService) Logout(ctx context.Context, token string) error {
 	}
 
 	return nil
+}
+
+func (s *authService) Refresh(ctx context.Context, token string) (*LoginResult, error) {
+	if token == "" {
+		return nil, apperror.Unauthorized()
+	}
+
+	// Parse token to extract JTI, user ID, and expiry time
+	jti, userID, expiresAt, err := s.tokenGenerator.ParseToken(token)
+	if err != nil {
+		return nil, apperror.Unauthorized()
+	}
+
+	// Check if token is blacklisted
+	invalidated, err := s.accessTokenRepository.IsInvalidated(ctx, jti)
+	if err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+	if invalidated {
+		return nil, apperror.Unauthorized()
+	}
+
+	// Get fresh user data
+	user, err := s.userRepository.GetByID(ctx, userID)
+	if err != nil {
+		return nil, apperror.Unauthorized()
+	}
+
+	// Invalidate the old token
+	if err := s.accessTokenRepository.Invalidate(ctx, jti, userID, expiresAt); err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// Generate new token
+	newToken, expire, err := s.tokenGenerator.Generate(user)
+	if err != nil {
+		return nil, apperror.InternalServerError(err)
+	}
+
+	return &LoginResult{
+		Token:  newToken,
+		Expire: expire,
+		UserInfo: dto.UserInfo{
+			ID:         user.ID,
+			Username:   user.Username,
+			Experience: user.ExperiencePoints,
+		},
+	}, nil
 }

@@ -12,6 +12,7 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (int64, error)
 	DeleteExpiredTokens(ctx context.Context) error
 	ExistsUserByUsername(ctx context.Context, username string) (bool, error)
+	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
 	InvalidateToken(ctx context.Context, arg InvalidateTokenParams) error
 	IsTokenInvalidated(ctx context.Context, tokenJti string) (bool, error)
