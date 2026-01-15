@@ -32,12 +32,11 @@ func (tg *jwtTokenGenerator) Generate(user *model.User) (string, time.Time, erro
 	jti := uuid.New().String()
 
 	claims := gojwt.MapClaims{
-		"jti":        jti,
-		"user_id":    user.ID,
-		"username":   user.Username,
-		"role":       user.Role,
-		"experience": user.ExperiencePoints,
-		"exp":        expireTime.Unix(),
+		"jti":      jti,
+		"user_id":  user.ID,
+		"username": user.Username,
+		"role":     user.Role,
+		"exp":      expireTime.Unix(),
 	}
 
 	token := gojwt.NewWithClaims(gojwt.SigningMethodHS256, claims)
