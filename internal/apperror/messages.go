@@ -16,9 +16,9 @@ var errorMessages = map[string]string{
 	CodeRateLimitExceeded: "請求次數過多,請稍後再試",
 
 	// Server errors (500)
-	CodeInternalError:  "伺服器內部錯誤",
-	CodeDatabaseError:  "資料庫操作失敗",
-	CodeAuthStateError: "認證狀態異常，請重新登入",
+	CodeInternalServerError: "伺服器內部錯誤",
+	CodeDatabaseError:       "資料庫操作失敗",
+	CodeAuthStateError:      "認證狀態異常，請重新登入",
 
 	// Service unavailable errors (503)
 	CodeServiceUnavailable: "服務暫時無法使用",

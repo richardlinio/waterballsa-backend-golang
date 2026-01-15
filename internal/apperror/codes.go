@@ -18,9 +18,9 @@ const (
 	CodeRateLimitExceeded = "ERR_RATE_LIMIT_EXCEEDED"
 
 	// Server errors (500 - Internal Server Error)
-	CodeInternalError  = "ERR_INTERNAL_ERROR"
-	CodeDatabaseError  = "ERR_DATABASE_ERROR"
-	CodeAuthStateError = "ERR_AUTH_STATE_ERROR" // Auth state error (internal logic error in auth flow, should only be used for critical bugs)
+	CodeInternalServerError = "ERR_INTERNAL_SERVER_ERROR"
+	CodeDatabaseError       = "ERR_DATABASE_ERROR"
+	CodeAuthStateError      = "ERR_AUTH_STATE_ERROR" // Auth state error (internal logic error in auth flow, should only be used for critical bugs)
 
 	// Service unavailable errors (503 - Service Unavailable)
 	CodeServiceUnavailable = "ERR_SERVICE_UNAVAILABLE"

@@ -18,9 +18,9 @@ var httpStatusMap = map[string]int{
 	CodeRateLimitExceeded: http.StatusTooManyRequests,
 
 	// Server errors (500)
-	CodeInternalError:  http.StatusInternalServerError,
-	CodeDatabaseError:  http.StatusInternalServerError,
-	CodeAuthStateError: http.StatusInternalServerError, // Auth state error (internal logic error)
+	CodeInternalServerError: http.StatusInternalServerError,
+	CodeDatabaseError:       http.StatusInternalServerError,
+	CodeAuthStateError:      http.StatusInternalServerError, // Auth state error (internal logic error)
 
 	// Service unavailable errors (503)
 	CodeServiceUnavailable: http.StatusServiceUnavailable,

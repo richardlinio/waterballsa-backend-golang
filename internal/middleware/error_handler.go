@@ -46,8 +46,8 @@ func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
 			)
 
 			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-				Code:  apperror.CodeInternalError,
-				Error: apperror.GetMessage(apperror.CodeInternalError),
+				Code:  apperror.CodeInternalServerError,
+				Error: apperror.GetMessage(apperror.CodeInternalServerError),
 			})
 			return
 		}
