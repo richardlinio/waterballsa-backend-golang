@@ -9,13 +9,18 @@ import (
 )
 
 type Querier interface {
+	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (int64, error)
+	DeleteExpiredRefreshTokens(ctx context.Context) error
 	DeleteExpiredTokens(ctx context.Context) error
 	ExistsUserByUsername(ctx context.Context, username string) (bool, error)
+	GetRefreshToken(ctx context.Context, tokenJti string) (RefreshToken, error)
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
 	InvalidateToken(ctx context.Context, arg InvalidateTokenParams) error
 	IsTokenInvalidated(ctx context.Context, tokenJti string) (bool, error)
+	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
+	RevokeRefreshToken(ctx context.Context, tokenJti string) error
 }
 
 var _ Querier = (*Queries)(nil)

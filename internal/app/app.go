@@ -67,12 +67,13 @@ func New() (*Application, error) {
 	// Initialize repository layer (data access)
 	userRepository := repository.NewUserRepository(queries)
 	accessTokenRepository := repository.NewAccessTokenRepository(queries)
+	refreshTokenRepository := repository.NewRefreshTokenRepository(queries)
 
 	// Initialize token generator (JWT token operations)
 	tokenGenerator := auth.NewTokenGenerator(cfg.JWT)
 
 	// Initialize service layer (business logic)
-	authService := service.NewAuthService(userRepository, accessTokenRepository, tokenGenerator)
+	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
@@ -87,7 +88,7 @@ func New() (*Application, error) {
 
 	// Initialize handler layer (HTTP handlers)
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
-	authHandler := handler.NewAuthHandler(authService, tokenGenerator, jwtMiddleware, cfg.JWT, log, cfg.Server.RequestTimeout)
+	authHandler := handler.NewAuthHandler(authService, jwtMiddleware, cfg.JWT, log, cfg.Server.RequestTimeout)
 
 	// Initialize blacklist checker middleware
 	blacklistChecker := middleware.BlacklistChecker(accessTokenRepository)

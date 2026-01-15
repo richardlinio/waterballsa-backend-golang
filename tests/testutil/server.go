@@ -91,12 +91,13 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	// Initialize repository layer
 	userRepository := repository.NewUserRepository(queries)
 	accessTokenRepository := repository.NewAccessTokenRepository(queries)
+	refreshTokenRepository := repository.NewRefreshTokenRepository(queries)
 
 	// Initialize token generator
 	tokenGenerator := auth.NewTokenGenerator(cfg.JWT)
 
 	// Initialize service layer
-	authService := service.NewAuthService(userRepository, accessTokenRepository, tokenGenerator)
+	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
@@ -111,7 +112,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 
 	// Initialize handler layer
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
-	authHandler := handler.NewAuthHandler(authService, tokenGenerator, jwtMiddleware, cfg.JWT, log, cfg.Server.RequestTimeout)
+	authHandler := handler.NewAuthHandler(authService, jwtMiddleware, cfg.JWT, log, cfg.Server.RequestTimeout)
 
 	// Initialize blacklist checker middleware
 	blacklistChecker := middleware.BlacklistChecker(accessTokenRepository)

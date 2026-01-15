@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
@@ -14,32 +15,37 @@ import (
 type AuthService interface {
 	Register(ctx context.Context, req dto.RegisterRequest) (int64, error)
 	Login(ctx context.Context, req dto.LoginRequest) (*LoginResult, error)
-	Logout(ctx context.Context, token string) error
-	Refresh(ctx context.Context, token string) (*LoginResult, error)
+	Logout(ctx context.Context, accessToken, refreshToken string) error
+	Refresh(ctx context.Context, refreshToken string) (*LoginResult, error)
 }
 
 type authService struct {
-	userRepository        repository.UserRepository
-	accessTokenRepository repository.AccessTokenRepository
-	tokenGenerator        auth.TokenGenerator
+	userRepository         repository.UserRepository
+	accessTokenRepository  repository.AccessTokenRepository
+	refreshTokenRepository repository.RefreshTokenRepository
+	tokenGenerator         auth.TokenGenerator
 }
 
 // LoginResult holds the complete result of a successful login
 type LoginResult struct {
-	Token    string
-	Expire   time.Time
-	UserInfo dto.UserInfo
+	AccessToken        string
+	AccessTokenExpire  time.Time
+	RefreshToken       string
+	RefreshTokenExpire time.Time
+	UserInfo           dto.UserInfo
 }
 
 func NewAuthService(
 	userRepository repository.UserRepository,
 	accessTokenRepository repository.AccessTokenRepository,
+	refreshTokenRepository repository.RefreshTokenRepository,
 	tokenGenerator auth.TokenGenerator,
 ) AuthService {
 	return &authService{
-		userRepository:        userRepository,
-		accessTokenRepository: accessTokenRepository,
-		tokenGenerator:        tokenGenerator,
+		userRepository:         userRepository,
+		accessTokenRepository:  accessTokenRepository,
+		refreshTokenRepository: refreshTokenRepository,
+		tokenGenerator:         tokenGenerator,
 	}
 }
 
@@ -85,62 +91,80 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*LoginRe
 		return nil, apperror.AuthFailed()
 	}
 
-	// Generate token
-	token, expire, err := s.tokenGenerator.Generate(user)
+	// Generate access token
+	accessToken, _, accessExpire, err := s.tokenGenerator.GenerateAccessToken(user)
 	if err != nil {
 		return nil, apperror.InternalServerError(err)
 	}
 
-	// Construct result
-	result := &LoginResult{
-		Token:  token,
-		Expire: expire,
+	// Generate refresh token
+	refreshToken, refreshJTI, refreshExpire, err := s.tokenGenerator.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, apperror.InternalServerError(err)
+	}
+
+	// Store refresh token in database
+	if err := s.refreshTokenRepository.Create(ctx, refreshJTI, user.ID, refreshExpire); err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	return &LoginResult{
+		AccessToken:        accessToken,
+		AccessTokenExpire:  accessExpire,
+		RefreshToken:       refreshToken,
+		RefreshTokenExpire: refreshExpire,
 		UserInfo: dto.UserInfo{
 			ID:         user.ID,
 			Username:   user.Username,
 			Experience: user.ExperiencePoints,
 		},
-	}
-
-	return result, nil
+	}, nil
 }
 
-func (s *authService) Logout(ctx context.Context, token string) error {
-	if token == "" {
-		return apperror.Unauthorized()
+func (s *authService) Logout(ctx context.Context, accessToken, refreshToken string) error {
+	// Invalidate access token if provided
+	if accessToken != "" {
+		jti, userID, expiresAt, err := s.tokenGenerator.ParseAccessToken(accessToken)
+		if err == nil {
+			// Best effort: add to blacklist, ignore errors
+			_ = s.accessTokenRepository.Invalidate(ctx, jti, userID, expiresAt)
+		}
 	}
 
-	// Parse token to extract JTI, user ID, and expiry time
-	jti, userID, expiresAt, err := s.tokenGenerator.ParseToken(token)
-	if err != nil {
-		return apperror.InternalServerError(err)
-	}
-
-	// Add token to blacklist until it naturally expires
-	if err := s.accessTokenRepository.Invalidate(ctx, jti, userID, expiresAt); err != nil {
-		return apperror.DatabaseError(err)
+	// Revoke refresh token if provided
+	if refreshToken != "" {
+		jti, _, _, err := s.tokenGenerator.ParseRefreshToken(refreshToken)
+		if err == nil {
+			// Best effort: revoke refresh token, ignore errors
+			_ = s.refreshTokenRepository.Revoke(ctx, jti)
+		}
 	}
 
 	return nil
 }
 
-func (s *authService) Refresh(ctx context.Context, token string) (*LoginResult, error) {
-	if token == "" {
+func (s *authService) Refresh(ctx context.Context, refreshToken string) (*LoginResult, error) {
+	if refreshToken == "" {
 		return nil, apperror.Unauthorized()
 	}
 
-	// Parse token to extract JTI, user ID, and expiry time
-	jti, userID, expiresAt, err := s.tokenGenerator.ParseToken(token)
+	// Parse refresh token
+	jti, userID, _, err := s.tokenGenerator.ParseRefreshToken(refreshToken)
 	if err != nil {
 		return nil, apperror.Unauthorized()
 	}
 
-	// Check if token is blacklisted
-	invalidated, err := s.accessTokenRepository.IsInvalidated(ctx, jti)
+	// Check if refresh token exists and is valid in database
+	dbToken, err := s.refreshTokenRepository.GetByJTI(ctx, jti)
 	if err != nil {
+		if errors.Is(err, repository.ErrRefreshTokenNotFound) {
+			return nil, apperror.Unauthorized()
+		}
 		return nil, apperror.DatabaseError(err)
 	}
-	if invalidated {
+
+	// Verify user ID matches
+	if dbToken.UserID != userID {
 		return nil, apperror.Unauthorized()
 	}
 
@@ -150,20 +174,33 @@ func (s *authService) Refresh(ctx context.Context, token string) (*LoginResult, 
 		return nil, apperror.Unauthorized()
 	}
 
-	// Invalidate the old token
-	if err := s.accessTokenRepository.Invalidate(ctx, jti, userID, expiresAt); err != nil {
+	// Revoke the old refresh token (token rotation)
+	if err := s.refreshTokenRepository.Revoke(ctx, jti); err != nil {
 		return nil, apperror.DatabaseError(err)
 	}
 
-	// Generate new token
-	newToken, expire, err := s.tokenGenerator.Generate(user)
+	// Generate new access token
+	newAccessToken, _, accessExpire, err := s.tokenGenerator.GenerateAccessToken(user)
 	if err != nil {
 		return nil, apperror.InternalServerError(err)
 	}
 
+	// Generate new refresh token
+	newRefreshToken, newRefreshJTI, refreshExpire, err := s.tokenGenerator.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, apperror.InternalServerError(err)
+	}
+
+	// Store new refresh token in database
+	if err := s.refreshTokenRepository.Create(ctx, newRefreshJTI, user.ID, refreshExpire); err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
 	return &LoginResult{
-		Token:  newToken,
-		Expire: expire,
+		AccessToken:        newAccessToken,
+		AccessTokenExpire:  accessExpire,
+		RefreshToken:       newRefreshToken,
+		RefreshTokenExpire: refreshExpire,
 		UserInfo: dto.UserInfo{
 			ID:         user.ID,
 			Username:   user.Username,
