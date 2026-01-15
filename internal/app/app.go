@@ -66,12 +66,13 @@ func New() (*Application, error) {
 
 	// Initialize repository layer (data access)
 	userRepository := repository.NewUserRepository(queries)
+	accessTokenRepository := repository.NewAccessTokenRepository(queries)
 
 	// Initialize token generator (JWT token operations)
 	tokenGenerator := auth.NewTokenGenerator(cfg.JWT)
 
 	// Initialize service layer (business logic)
-	authService := service.NewAuthService(userRepository, tokenGenerator)
+	authService := service.NewAuthService(userRepository, accessTokenRepository, tokenGenerator)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
@@ -88,9 +89,12 @@ func New() (*Application, error) {
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
 	authHandler := handler.NewAuthHandler(authService, tokenGenerator, jwtMiddleware, cfg.JWT, log, cfg.Server.RequestTimeout)
 
+	// Initialize blacklist checker middleware
+	blacklistChecker := middleware.BlacklistChecker(accessTokenRepository)
+
 	// Setup Gin router
 	ginRouter := gin.New()
-	r := router.NewRouter(ginRouter, cfg.CORS, cfg.RateLimit, log, healthHandler, authHandler, jwtMiddleware)
+	r := router.NewRouter(ginRouter, cfg.CORS, cfg.RateLimit, log, healthHandler, authHandler, jwtMiddleware, blacklistChecker)
 	r.Setup()
 
 	// Create HTTP server

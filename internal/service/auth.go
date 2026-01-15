@@ -18,8 +18,9 @@ type AuthService interface {
 }
 
 type authService struct {
-	userRepository repository.UserRepository
-	tokenGenerator auth.TokenGenerator
+	userRepository        repository.UserRepository
+	accessTokenRepository repository.AccessTokenRepository
+	tokenGenerator        auth.TokenGenerator
 }
 
 // LoginResult holds the complete result of a successful login
@@ -29,10 +30,15 @@ type LoginResult struct {
 	UserInfo dto.UserInfo
 }
 
-func NewAuthService(userRepository repository.UserRepository, tokenGenerator auth.TokenGenerator) AuthService {
+func NewAuthService(
+	userRepository repository.UserRepository,
+	accessTokenRepository repository.AccessTokenRepository,
+	tokenGenerator auth.TokenGenerator,
+) AuthService {
 	return &authService{
-		userRepository: userRepository,
-		tokenGenerator: tokenGenerator,
+		userRepository:        userRepository,
+		accessTokenRepository: accessTokenRepository,
+		tokenGenerator:        tokenGenerator,
 	}
 }
 
@@ -54,7 +60,7 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (in
 	// Hash password
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return 0, apperror.InternalError(err)
+		return 0, apperror.InternalServerError(err)
 	}
 
 	// Create user
@@ -81,7 +87,7 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*LoginRe
 	// Generate token
 	token, expire, err := s.tokenGenerator.Generate(user)
 	if err != nil {
-		return nil, apperror.InternalError(err)
+		return nil, apperror.InternalServerError(err)
 	}
 
 	// Construct result
@@ -99,10 +105,20 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*LoginRe
 }
 
 func (s *authService) Logout(ctx context.Context, token string) error {
-	// Currently just validates token exists
-	// Future: can add token blacklist logic here
 	if token == "" {
 		return apperror.Unauthorized()
 	}
+
+	// Parse token to extract JTI, user ID, and expiry time
+	jti, userID, expiresAt, err := s.tokenGenerator.ParseToken(token)
+	if err != nil {
+		return apperror.InternalServerError(err)
+	}
+
+	// Add token to blacklist until it naturally expires
+	if err := s.accessTokenRepository.Invalidate(ctx, jti, userID, expiresAt); err != nil {
+		return apperror.DatabaseError(err)
+	}
+
 	return nil
 }

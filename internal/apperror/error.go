@@ -67,7 +67,7 @@ func AuthStateError(err error) *AppError {
 	return NewWithError(CodeAuthStateError, err)
 }
 
-func InternalError(err error) *AppError {
+func InternalServerError(err error) *AppError {
 	return NewWithError(CodeInternalServerError, err)
 }
 

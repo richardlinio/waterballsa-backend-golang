@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
 	"github.com/linporu/waterballsa-backend-golang/internal/model"
+	"github.com/linporu/waterballsa-backend-golang/internal/repository"
 )
 
 // JWTAuth returns a middleware that validates JWT tokens
@@ -50,4 +51,33 @@ func Authorize(_ *gin.Context, data interface{}) bool {
 // HandleUnauthorized handles unauthorized access (for middleware)
 func HandleUnauthorized(c *gin.Context, _ int, _ string) {
 	_ = c.Error(apperror.Unauthorized())
+}
+
+// BlacklistChecker returns a middleware that checks if the token's JTI is blacklisted
+func BlacklistChecker(accessTokenRepository repository.AccessTokenRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claims := jwt.ExtractClaims(c)
+
+		jti, ok := claims["jti"].(string)
+		if !ok {
+			// Token doesn't have JTI claim (legacy token), allow through
+			c.Next()
+			return
+		}
+
+		invalidated, err := accessTokenRepository.IsInvalidated(c.Request.Context(), jti)
+		if err != nil {
+			_ = c.Error(apperror.InternalServerError(err))
+			c.Abort()
+			return
+		}
+
+		if invalidated {
+			_ = c.Error(apperror.Unauthorized())
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
 }
