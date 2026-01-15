@@ -30,6 +30,12 @@ Feature: User Login API Implementation
     # Verification: HTTP layer
     Then the response status code should be 200
 
+    # Verification: Cookies
+    And the response should set cookie "access_token"
+    And the response should set cookie "refresh_token"
+    And cookie "refresh_token" should have attribute "HttpOnly"
+    And cookie "refresh_token" should have attribute "SameSite=Strict"
+
     # Verification: Response structure
     And the response body should contain field "accessToken"
     And the response body should contain field "user.id"
