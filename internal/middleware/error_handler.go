@@ -83,6 +83,11 @@ func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
 			response.Details = parseValidationErrors(appErr.Err)
 		}
 
+		// Add WWW-Authenticate header for 401 responses (RFC 6750)
+		if appErr.HTTPStatus == http.StatusUnauthorized {
+			c.Header("WWW-Authenticate", `Bearer realm="waterballsa"`)
+		}
+
 		c.JSON(appErr.HTTPStatus, response)
 	}
 }

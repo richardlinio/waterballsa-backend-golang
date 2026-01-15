@@ -154,6 +154,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 func (h *AuthHandler) setAccessTokenCookie(c *gin.Context, token string, expire time.Time) {
 	maxAge := int(time.Until(expire).Seconds())
 
+	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
 		accessTokenCookieName,
 		token,
@@ -169,6 +170,7 @@ func (h *AuthHandler) setAccessTokenCookie(c *gin.Context, token string, expire 
 func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string, expire time.Time) {
 	maxAge := int(time.Until(expire).Seconds())
 
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(
 		refreshTokenCookieName,
 		token,
@@ -182,6 +184,7 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string, expire
 
 // clearAccessTokenCookie removes the access token cookie
 func (h *AuthHandler) clearAccessTokenCookie(c *gin.Context) {
+	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
 		accessTokenCookieName,
 		"",
@@ -195,6 +198,7 @@ func (h *AuthHandler) clearAccessTokenCookie(c *gin.Context) {
 
 // clearRefreshTokenCookie removes the refresh token cookie
 func (h *AuthHandler) clearRefreshTokenCookie(c *gin.Context) {
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(
 		refreshTokenCookieName,
 		"",
