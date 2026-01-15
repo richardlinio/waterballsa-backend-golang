@@ -16,9 +16,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	AccessToken  string   `json:"accessToken"`
-	RefreshToken string   `json:"refreshToken,omitempty"` // Optional, primarily sent via cookie
-	User         UserInfo `json:"user"`
+	AccessToken string   `json:"accessToken"`
+	User        UserInfo `json:"user"`
 }
 
 type UserInfo struct {
