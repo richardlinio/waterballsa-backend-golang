@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,7 +18,9 @@ import (
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/auth"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/database"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/logger"
+	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/scheduler"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/server"
+	"github.com/linporu/waterballsa-backend-golang/internal/job"
 	"github.com/linporu/waterballsa-backend-golang/internal/middleware"
 	"github.com/linporu/waterballsa-backend-golang/internal/repository"
 	"github.com/linporu/waterballsa-backend-golang/internal/router"
@@ -31,10 +34,11 @@ var ErrShutdownSignal = errors.New("received shutdown signal")
 
 // Application manages the application lifecycle
 type Application struct {
-	config *config.Config
-	db     *pgxpool.Pool
-	server *server.HTTPServer
-	logger *slog.Logger
+	config    *config.Config
+	db        *pgxpool.Pool
+	server    *server.HTTPServer
+	logger    *slog.Logger
+	scheduler *scheduler.Scheduler
 }
 
 // New creates and initializes a new Application
@@ -101,11 +105,17 @@ func New() (*Application, error) {
 	// Create HTTP server
 	httpServer := server.NewHTTPServer(cfg.Server, ginRouter)
 
+	// Initialize scheduler and register jobs
+	jobScheduler := scheduler.NewScheduler(log)
+	tokenCleanupJob := job.NewTokenCleanup(accessTokenRepository, refreshTokenRepository, 1*time.Hour)
+	jobScheduler.Register(tokenCleanupJob.ToSchedulerJob())
+
 	return &Application{
-		config: cfg,
-		db:     pool,
-		server: httpServer,
-		logger: log,
+		config:    cfg,
+		db:        pool,
+		server:    httpServer,
+		logger:    log,
+		scheduler: jobScheduler,
 	}, nil
 }
 
@@ -135,6 +145,12 @@ func (a *Application) Run() error {
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+	})
+
+	// Start scheduler for background jobs
+	g.Go(func() error {
+		a.scheduler.Start(ctx)
+		return nil
 	})
 
 	// Wait for any goroutine to return
