@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	accessTokenCookieName  = "jwt"
+	accessTokenCookieName  = "access_token"
 	refreshTokenCookieName = "refresh_token"
 	refreshCookiePath      = "/auth/refresh"
 )
