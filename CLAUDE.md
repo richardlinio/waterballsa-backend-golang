@@ -96,6 +96,15 @@ All config structs are in `internal/config/` with dedicated files:
 - [logger.go](internal/config/logger.go) - Logger config
 - [cors.go](internal/config/cors.go) - CORS config
 
+**Adding New Config:**
+
+When adding new configuration, maintain consistency with pass-by-value pattern:
+- Loader functions return values, not pointers: `func loadXxxConfig() (XxxConfig, error)`
+- Config struct stores values: `type Config struct { Xxx XxxConfig }`
+- Functions receive values: `func NewHandler(cfg config.XxxConfig)`
+
+This expresses config immutability and ensures consistent behavior across the codebase.
+
 #### Migration Files
 
 Migrations use Goose format with `-- +goose Up` and `-- +goose Down` directives:

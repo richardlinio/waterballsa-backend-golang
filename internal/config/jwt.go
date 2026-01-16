@@ -17,28 +17,28 @@ type JWTConfig struct {
 }
 
 // loadJWTConfig loads JWT configuration from environment variables
-func loadJWTConfig() (*JWTConfig, error) {
+func loadJWTConfig() (JWTConfig, error) {
 	// Load required JWT_SECRET
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		return nil, fmt.Errorf("JWT_SECRET environment variable is required")
+		return JWTConfig{}, fmt.Errorf("JWT_SECRET environment variable is required")
 	}
 
 	// Validate secret length (at least 32 bytes for security)
 	if len(secret) < 32 {
-		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters long for security (current: %d)", len(secret))
+		return JWTConfig{}, fmt.Errorf("JWT_SECRET must be at least 32 characters long for security (current: %d)", len(secret))
 	}
 
 	// Load optional access token timeout (default: 15 minutes)
 	accessTokenTimeout, err := getDurationWithDefault("JWT_ACCESS_TOKEN_TIMEOUT", 15*time.Minute)
 	if err != nil {
-		return nil, err
+		return JWTConfig{}, err
 	}
 
 	// Load optional refresh token timeout (default: 7 days)
 	refreshTokenTimeout, err := getDurationWithDefault("JWT_REFRESH_TOKEN_TIMEOUT", 168*time.Hour)
 	if err != nil {
-		return nil, err
+		return JWTConfig{}, err
 	}
 
 	// Load optional secure cookie setting (default: false)
@@ -53,7 +53,7 @@ func loadJWTConfig() (*JWTConfig, error) {
 		realm = "API"
 	}
 
-	return &JWTConfig{
+	return JWTConfig{
 		Secret:              []byte(secret),
 		AccessTokenTimeout:  accessTokenTimeout,
 		RefreshTokenTimeout: refreshTokenTimeout,
