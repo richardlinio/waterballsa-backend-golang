@@ -21,7 +21,7 @@ func JWTAuth(jwtMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 }
 
 // ExtractIdentity parses JWT token and extracts user identity (for middleware)
-func ExtractIdentity(c *gin.Context) interface{} {
+func ExtractIdentity(c *gin.Context) any {
 	claims := jwt.ExtractClaims(c) // gin-jwt helper
 
 	userID, ok := claims["user_id"].(float64)
@@ -47,7 +47,7 @@ func ExtractIdentity(c *gin.Context) interface{} {
 }
 
 // Authorize checks if user is authorized (for middleware)
-func Authorize(_ *gin.Context, data interface{}) bool {
+func Authorize(_ *gin.Context, data any) bool {
 	if _, ok := data.(*model.User); ok {
 		return true
 	}

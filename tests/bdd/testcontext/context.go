@@ -17,7 +17,7 @@ const (
 	ContextKeyResponseBody    ContextKey = "responseBody"
 	ContextKeyCookies         ContextKey = "cookies"         // Cookies to be sent with next request
 	ContextKeyStoredCookies   ContextKey = "storedCookies"   // Extracted cookies from response
-	ContextKeyStoredVariables ContextKey = "storedVariables" // map[string]interface{} for storing values between steps
+	ContextKeyStoredVariables ContextKey = "storedVariables" // map[string]any for storing values between steps
 	ContextKeyAuthHeader      ContextKey = "authHeader"      // string for Authorization header value
 )
 

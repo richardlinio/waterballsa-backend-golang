@@ -83,7 +83,7 @@ func (tg *JWTTokenGenerator) ParseRefreshToken(tokenString string) (jti string, 
 
 // parseToken is a helper function to parse and validate a token with type checking
 func (tg *JWTTokenGenerator) parseToken(tokenString string, expectedType string) (jti string, userID int64, expiresAt time.Time, err error) {
-	token, err := gojwt.Parse(tokenString, func(token *gojwt.Token) (interface{}, error) {
+	token, err := gojwt.Parse(tokenString, func(token *gojwt.Token) (any, error) {
 		if _, ok := token.Method.(*gojwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
