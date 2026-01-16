@@ -1,12 +1,18 @@
 package middleware
 
 import (
+	"context"
+
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
 	"github.com/linporu/waterballsa-backend-golang/internal/model"
-	"github.com/linporu/waterballsa-backend-golang/internal/repository"
 )
+
+// tokenBlacklistChecker is used by BlacklistChecker middleware to check token blacklist
+type tokenBlacklistChecker interface {
+	IsInvalidated(ctx context.Context, jti string) (bool, error)
+}
 
 // JWTAuth returns a middleware that validates JWT tokens
 // and sets user identity in the request context.
@@ -15,7 +21,7 @@ func JWTAuth(jwtMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 }
 
 // ExtractIdentity parses JWT token and extracts user identity (for middleware)
-func ExtractIdentity(c *gin.Context) interface{} {
+func ExtractIdentity(c *gin.Context) any {
 	claims := jwt.ExtractClaims(c) // gin-jwt helper
 
 	userID, ok := claims["user_id"].(float64)
@@ -41,7 +47,7 @@ func ExtractIdentity(c *gin.Context) interface{} {
 }
 
 // Authorize checks if user is authorized (for middleware)
-func Authorize(_ *gin.Context, data interface{}) bool {
+func Authorize(_ *gin.Context, data any) bool {
 	if _, ok := data.(*model.User); ok {
 		return true
 	}
@@ -54,7 +60,7 @@ func HandleUnauthorized(c *gin.Context, _ int, _ string) {
 }
 
 // BlacklistChecker returns a middleware that checks if the token's JTI is blacklisted
-func BlacklistChecker(accessTokenRepository repository.AccessTokenRepository) gin.HandlerFunc {
+func BlacklistChecker(checker tokenBlacklistChecker) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims := jwt.ExtractClaims(c)
 
@@ -65,7 +71,7 @@ func BlacklistChecker(accessTokenRepository repository.AccessTokenRepository) gi
 			return
 		}
 
-		invalidated, err := accessTokenRepository.IsInvalidated(c.Request.Context(), jti)
+		invalidated, err := checker.IsInvalidated(c.Request.Context(), jti)
 		if err != nil {
 			_ = c.Error(apperror.InternalServerError(err))
 			c.Abort()

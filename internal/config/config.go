@@ -45,10 +45,10 @@ func Load() (*Config, error) {
 
 	return &Config{
 		Server:    serverConfig,
-		Database:  *dbConfig,
+		Database:  dbConfig,
 		Logger:    loggerConfig,
 		CORS:      corsConfig,
 		RateLimit: rateLimitConfig,
-		JWT:       *jwtConfig,
+		JWT:       jwtConfig,
 	}, nil
 }

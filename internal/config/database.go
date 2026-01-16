@@ -27,7 +27,7 @@ type DatabaseConfig struct {
 }
 
 // loadDatabaseConfig loads database configuration from environment variables
-func loadDatabaseConfig() (*DatabaseConfig, error) {
+func loadDatabaseConfig() (DatabaseConfig, error) {
 	// Read from environment variables
 	host := os.Getenv("DB_HOST")
 	portStr := os.Getenv("DB_PORT")
@@ -49,7 +49,7 @@ func loadDatabaseConfig() (*DatabaseConfig, error) {
 			"verify-full":  {},
 		}
 		if _, ok := validModes[sslmode]; !ok {
-			return nil, fmt.Errorf("invalid DB_SSLMODE: %s (must be one of: disable, allow, prefer, require, verify-ca, verify-full)", sslmode)
+			return DatabaseConfig{}, fmt.Errorf("invalid DB_SSLMODE: %s (must be one of: disable, allow, prefer, require, verify-ca, verify-full)", sslmode)
 		}
 	}
 
@@ -61,16 +61,16 @@ func loadDatabaseConfig() (*DatabaseConfig, error) {
 
 	// Validate required fields
 	if host == "" {
-		return nil, fmt.Errorf("database host is required (set DB_HOST environment variable)")
+		return DatabaseConfig{}, fmt.Errorf("database host is required (set DB_HOST environment variable)")
 	}
 	if user == "" {
-		return nil, fmt.Errorf("database user is required (set DB_USER environment variable)")
+		return DatabaseConfig{}, fmt.Errorf("database user is required (set DB_USER environment variable)")
 	}
 	if password == "" {
-		return nil, fmt.Errorf("database password is required (set DB_PASSWORD environment variable)")
+		return DatabaseConfig{}, fmt.Errorf("database password is required (set DB_PASSWORD environment variable)")
 	}
 	if name == "" {
-		return nil, fmt.Errorf("database name is required (set DB_NAME environment variable)")
+		return DatabaseConfig{}, fmt.Errorf("database name is required (set DB_NAME environment variable)")
 	}
 
 	// Parse port with validation
@@ -78,10 +78,10 @@ func loadDatabaseConfig() (*DatabaseConfig, error) {
 	if portStr != "" {
 		p, err := strconv.Atoi(portStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DB_PORT: %s (not a number)", portStr)
+			return DatabaseConfig{}, fmt.Errorf("invalid DB_PORT: %s (not a number)", portStr)
 		}
 		if p <= 0 || p > 65535 {
-			return nil, fmt.Errorf("invalid DB_PORT: %d (must be 1-65535)", p)
+			return DatabaseConfig{}, fmt.Errorf("invalid DB_PORT: %d (must be 1-65535)", p)
 		}
 		port = p
 	}
@@ -95,7 +95,7 @@ func loadDatabaseConfig() (*DatabaseConfig, error) {
 	maxConnIdleTime := parseDuration(maxConnIdleTimeStr, 30*time.Minute)
 	connectTimeout := parseDuration(connectTimeoutStr, 10*time.Second)
 
-	config := &DatabaseConfig{
+	return DatabaseConfig{
 		Host:            host,
 		Port:            port,
 		User:            user,
@@ -107,9 +107,7 @@ func loadDatabaseConfig() (*DatabaseConfig, error) {
 		MaxConnLifetime: maxConnLifetime,
 		MaxConnIdleTime: maxConnIdleTime,
 		ConnectTimeout:  connectTimeout,
-	}
-
-	return config, nil
+	}, nil
 }
 
 func parseInt32(s string, defaultVal int32) int32 {

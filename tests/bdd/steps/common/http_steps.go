@@ -130,7 +130,7 @@ func theResponseBodyShouldContainField(ctx context.Context, fieldName string) er
 	}
 
 	// Parse JSON response
-	var jsonBody map[string]interface{}
+	var jsonBody map[string]any
 	if err := json.Unmarshal(body, &jsonBody); err != nil {
 		return fmt.Errorf("failed to parse JSON response: %w. Body: %s", err, string(body))
 	}
@@ -154,7 +154,7 @@ func theResponseBodyFieldShouldEqualString(ctx context.Context, fieldName, expec
 	}
 
 	// Parse JSON response
-	var jsonBody map[string]interface{}
+	var jsonBody map[string]any
 	if err := json.Unmarshal(body, &jsonBody); err != nil {
 		return fmt.Errorf("failed to parse JSON response: %w. Body: %s", err, string(body))
 	}
@@ -187,7 +187,7 @@ func theResponseBodyFieldShouldEqualNumber(ctx context.Context, fieldName string
 	}
 
 	// Parse JSON response
-	var jsonBody map[string]interface{}
+	var jsonBody map[string]any
 	if err := json.Unmarshal(body, &jsonBody); err != nil {
 		return fmt.Errorf("failed to parse JSON response: %w. Body: %s", err, string(body))
 	}
@@ -217,16 +217,16 @@ func theResponseBodyFieldShouldEqualNumber(ctx context.Context, fieldName string
 
 // Helper function to get nested field from JSON object using dot notation
 // Supports accessing nested fields like "user.id" or "data.user.profile.name"
-func getNestedField(data map[string]interface{}, fieldPath string) (interface{}, bool) {
+func getNestedField(data map[string]any, fieldPath string) (any, bool) {
 	// Split the field path by dots
 	parts := strings.Split(fieldPath, ".")
 
-	var current interface{} = data
+	var current any = data
 
 	// Navigate through each part of the path
 	for _, part := range parts {
 		// Check if current is a map
-		currentMap, ok := current.(map[string]interface{})
+		currentMap, ok := current.(map[string]any)
 		if !ok {
 			return nil, false
 		}
@@ -244,7 +244,7 @@ func getNestedField(data map[string]interface{}, fieldPath string) (interface{},
 }
 
 // Helper function to get all keys from a map for error messages
-func getMapKeys(m map[string]interface{}) []string {
+func getMapKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
@@ -253,7 +253,7 @@ func getMapKeys(m map[string]interface{}) []string {
 }
 
 // Helper function to convert various numeric types to float64
-func toFloat64(val interface{}) (float64, bool) {
+func toFloat64(val any) (float64, bool) {
 	switch v := val.(type) {
 	case float64:
 		return v, true
@@ -439,7 +439,7 @@ func iStoreTheResponseFieldAs(ctx context.Context, fieldName, variableName strin
 	}
 
 	// Parse JSON response
-	var jsonBody map[string]interface{}
+	var jsonBody map[string]any
 	if err := json.Unmarshal(body, &jsonBody); err != nil {
 		return ctx, fmt.Errorf("failed to parse JSON response: %w. Body: %s", err, string(body))
 	}
@@ -452,11 +452,11 @@ func iStoreTheResponseFieldAs(ctx context.Context, fieldName, variableName strin
 	}
 
 	// Get or create stored variables map
-	var storedVars map[string]interface{}
-	if existingVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]interface{}); ok {
+	var storedVars map[string]any
+	if existingVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]any); ok {
 		storedVars = existingVars
 	} else {
-		storedVars = make(map[string]interface{})
+		storedVars = make(map[string]any)
 	}
 
 	// Store the value
@@ -475,7 +475,7 @@ func iSetAuthorizationHeaderTo(ctx context.Context, tokenPlaceholder string) (co
 		variableName := strings.TrimSuffix(strings.TrimPrefix(tokenPlaceholder, "{{"), "}}")
 
 		// Get stored variables from context
-		storedVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]interface{})
+		storedVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]any)
 		if !ok || storedVars == nil {
 			return ctx, fmt.Errorf("no stored variables found in context. Did you forget to store the variable '%s'?", variableName)
 		}
@@ -501,7 +501,7 @@ func iSetAuthorizationHeaderTo(ctx context.Context, tokenPlaceholder string) (co
 }
 
 // Helper function to get all stored variable names for error messages
-func getStoredVariableNames(vars map[string]interface{}) []string {
+func getStoredVariableNames(vars map[string]any) []string {
 	names := make([]string, 0, len(vars))
 	for name := range vars {
 		names = append(names, name)

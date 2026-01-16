@@ -13,8 +13,8 @@ import (
 // It accepts middleware functions via dependency injection for token operations
 func NewJWTMiddleware(
 	cfg config.JWTConfig,
-	identityHandler func(*gin.Context) interface{},
-	authorizer func(*gin.Context, interface{}) bool,
+	identityHandler func(*gin.Context) any,
+	authorizer func(*gin.Context, any) bool,
 	unauthorized func(*gin.Context, int, string),
 ) (*jwt.GinJWTMiddleware, error) {
 	return jwt.New(&jwt.GinJWTMiddleware{

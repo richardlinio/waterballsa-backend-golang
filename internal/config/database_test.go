@@ -177,7 +177,7 @@ func TestLoadDatabaseConfig(t *testing.T) {
 		envVars  map[string]string
 		wantErr  bool
 		errMsg   string
-		validate func(*testing.T, *DatabaseConfig)
+		validate func(*testing.T, DatabaseConfig)
 	}{
 		{
 			name: "valid configuration with all fields",
@@ -195,7 +195,7 @@ func TestLoadDatabaseConfig(t *testing.T) {
 				"DB_CONNECT_TIMEOUT":    "30s",
 			},
 			wantErr: false,
-			validate: func(t *testing.T, cfg *DatabaseConfig) {
+			validate: func(t *testing.T, cfg DatabaseConfig) {
 				if cfg.Host != "localhost" {
 					t.Errorf("Host = %v; want localhost", cfg.Host)
 				}
@@ -240,7 +240,7 @@ func TestLoadDatabaseConfig(t *testing.T) {
 				"DB_NAME":     "testdb",
 			},
 			wantErr: false,
-			validate: func(t *testing.T, cfg *DatabaseConfig) {
+			validate: func(t *testing.T, cfg DatabaseConfig) {
 				if cfg.Port != 5432 {
 					t.Errorf("Port = %v; want default 5432", cfg.Port)
 				}
@@ -362,7 +362,7 @@ func TestLoadDatabaseConfig(t *testing.T) {
 				"DB_SSLMODE":  "require",
 			},
 			wantErr: false,
-			validate: func(t *testing.T, cfg *DatabaseConfig) {
+			validate: func(t *testing.T, cfg DatabaseConfig) {
 				if cfg.SSLMode != "require" {
 					t.Errorf("SSLMode = %v; want require", cfg.SSLMode)
 				}
@@ -378,7 +378,7 @@ func TestLoadDatabaseConfig(t *testing.T) {
 				"DB_SSLMODE":  "verify-full",
 			},
 			wantErr: false,
-			validate: func(t *testing.T, cfg *DatabaseConfig) {
+			validate: func(t *testing.T, cfg DatabaseConfig) {
 				if cfg.SSLMode != "verify-full" {
 					t.Errorf("SSLMode = %v; want verify-full", cfg.SSLMode)
 				}

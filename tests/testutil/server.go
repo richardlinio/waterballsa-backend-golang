@@ -94,7 +94,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	refreshTokenRepository := repository.NewRefreshTokenRepository(queries)
 
 	// Initialize token generator
-	tokenGenerator := auth.NewTokenGenerator(cfg.JWT)
+	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
 
 	// Initialize service layer
 	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator)
@@ -115,6 +115,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	authHandler := handler.NewAuthHandler(authService, jwtMiddleware, cfg.JWT, log, cfg.Server.RequestTimeout)
 
 	// Initialize blacklist checker middleware
+	//nolint:contextcheck // False positive: middleware correctly captures context from c.Request.Context() at request time
 	blacklistChecker := middleware.BlacklistChecker(accessTokenRepository)
 
 	// Setup Gin router with test mode

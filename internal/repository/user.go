@@ -12,28 +12,20 @@ import (
 // ErrUserNotFound is returned when a user is not found in the database
 var ErrUserNotFound = errors.New("user not found")
 
-// UserRepository defines the interface for user data access operations
-type UserRepository interface {
-	GetByID(ctx context.Context, id int64) (*model.User, error)
-	GetByUsername(ctx context.Context, username string) (*model.User, error)
-	Create(ctx context.Context, username, passwordHash string) (int64, error)
-	ExistsByUsername(ctx context.Context, username string) (bool, error)
-}
-
-// userRepository implements UserRepository using sqlc generated queries
-type userRepository struct {
+// UserRepository implements user data access operations using sqlc generated queries.
+type UserRepository struct {
 	queries db.Querier
 }
 
 // NewUserRepository creates a new instance of UserRepository
-func NewUserRepository(queries db.Querier) UserRepository {
-	return &userRepository{
+func NewUserRepository(queries db.Querier) *UserRepository {
+	return &UserRepository{
 		queries: queries,
 	}
 }
 
 // GetByID retrieves a user by ID
-func (r *userRepository) GetByID(ctx context.Context, id int64) (*model.User, error) {
+func (r *UserRepository) GetByID(ctx context.Context, id int64) (*model.User, error) {
 	row, err := r.queries.GetUserByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -57,7 +49,7 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*model.User, er
 }
 
 // GetByUsername retrieves a user by username
-func (r *userRepository) GetByUsername(ctx context.Context, username string) (*model.User, error) {
+func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*model.User, error) {
 	row, err := r.queries.GetUserByUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -82,7 +74,7 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 }
 
 // Create creates a new user with the given username and password hash
-func (r *userRepository) Create(ctx context.Context, username, passwordHash string) (int64, error) {
+func (r *UserRepository) Create(ctx context.Context, username, passwordHash string) (int64, error) {
 	userID, err := r.queries.CreateUser(ctx, db.CreateUserParams{
 		Username:     username,
 		PasswordHash: passwordHash,
@@ -95,6 +87,6 @@ func (r *userRepository) Create(ctx context.Context, username, passwordHash stri
 }
 
 // ExistsByUsername checks if a user with the given username exists (excluding soft-deleted users)
-func (r *userRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
+func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
 	return r.queries.ExistsUserByUsername(ctx, username)
 }
