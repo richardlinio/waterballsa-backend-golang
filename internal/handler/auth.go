@@ -22,8 +22,16 @@ const (
 	bearerPrefix           = "Bearer "
 )
 
+// authService defines the authentication service operations needed by the handler
+type authService interface {
+	Register(ctx context.Context, req dto.RegisterRequest) (int64, error)
+	Login(ctx context.Context, req dto.LoginRequest) (*service.LoginResult, error)
+	Logout(ctx context.Context, accessToken, refreshToken string) error
+	Refresh(ctx context.Context, refreshToken string) (*service.LoginResult, error)
+}
+
 type AuthHandler struct {
-	authService    service.AuthService
+	authService    authService
 	jwtMiddleware  *jwt.GinJWTMiddleware
 	jwtConfig      config.JWTConfig
 	logger         *slog.Logger
@@ -31,7 +39,7 @@ type AuthHandler struct {
 }
 
 func NewAuthHandler(
-	authService service.AuthService,
+	authService *service.AuthService,
 	jwtMiddleware *jwt.GinJWTMiddleware,
 	jwtConfig config.JWTConfig,
 	logger *slog.Logger,

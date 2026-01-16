@@ -14,29 +14,20 @@ import (
 // ErrRefreshTokenNotFound is returned when a refresh token is not found or is invalid
 var ErrRefreshTokenNotFound = errors.New("refresh token not found")
 
-// RefreshTokenRepository defines the interface for refresh token operations
-type RefreshTokenRepository interface {
-	Create(ctx context.Context, jti string, userID int64, expiresAt time.Time) error
-	GetByJTI(ctx context.Context, jti string) (*model.RefreshToken, error)
-	Revoke(ctx context.Context, jti string) error
-	RevokeAllForUser(ctx context.Context, userID int64) error
-	DeleteExpired(ctx context.Context) error
-}
-
-// refreshTokenRepository implements RefreshTokenRepository using sqlc generated queries
-type refreshTokenRepository struct {
+// RefreshTokenRepository implements refresh token operations using sqlc generated queries.
+type RefreshTokenRepository struct {
 	queries db.Querier
 }
 
 // NewRefreshTokenRepository creates a new instance of RefreshTokenRepository
-func NewRefreshTokenRepository(queries db.Querier) RefreshTokenRepository {
-	return &refreshTokenRepository{
+func NewRefreshTokenRepository(queries db.Querier) *RefreshTokenRepository {
+	return &RefreshTokenRepository{
 		queries: queries,
 	}
 }
 
 // Create adds a new refresh token to the database
-func (r *refreshTokenRepository) Create(ctx context.Context, jti string, userID int64, expiresAt time.Time) error {
+func (r *RefreshTokenRepository) Create(ctx context.Context, jti string, userID int64, expiresAt time.Time) error {
 	return r.queries.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
 		TokenJti: jti,
 		UserID:   userID,
@@ -48,7 +39,7 @@ func (r *refreshTokenRepository) Create(ctx context.Context, jti string, userID 
 }
 
 // GetByJTI retrieves a valid (non-revoked, non-expired) refresh token by its JTI
-func (r *refreshTokenRepository) GetByJTI(ctx context.Context, jti string) (*model.RefreshToken, error) {
+func (r *RefreshTokenRepository) GetByJTI(ctx context.Context, jti string) (*model.RefreshToken, error) {
 	dbToken, err := r.queries.GetRefreshToken(ctx, jti)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -73,16 +64,18 @@ func (r *refreshTokenRepository) GetByJTI(ctx context.Context, jti string) (*mod
 }
 
 // Revoke marks a refresh token as revoked
-func (r *refreshTokenRepository) Revoke(ctx context.Context, jti string) error {
+func (r *RefreshTokenRepository) Revoke(ctx context.Context, jti string) error {
 	return r.queries.RevokeRefreshToken(ctx, jti)
 }
 
-// RevokeAllForUser revokes all refresh tokens for a specific user
-func (r *refreshTokenRepository) RevokeAllForUser(ctx context.Context, userID int64) error {
+// RevokeAllForUser revokes all refresh tokens for a specific user.
+// This method is reserved for future "logout all devices" feature and is not currently exposed
+// through any consumer-defined interface.
+func (r *RefreshTokenRepository) RevokeAllForUser(ctx context.Context, userID int64) error {
 	return r.queries.RevokeAllUserRefreshTokens(ctx, userID)
 }
 
 // DeleteExpired removes expired refresh tokens from the database
-func (r *refreshTokenRepository) DeleteExpired(ctx context.Context) error {
+func (r *RefreshTokenRepository) DeleteExpired(ctx context.Context) error {
 	return r.queries.DeleteExpiredRefreshTokens(ctx)
 }

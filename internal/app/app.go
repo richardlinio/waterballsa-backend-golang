@@ -74,7 +74,7 @@ func New() (*Application, error) {
 	refreshTokenRepository := repository.NewRefreshTokenRepository(queries)
 
 	// Initialize token generator (JWT token operations)
-	tokenGenerator := auth.NewTokenGenerator(cfg.JWT)
+	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
 
 	// Initialize service layer (business logic)
 	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator)

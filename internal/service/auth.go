@@ -8,22 +8,46 @@ import (
 	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
 	"github.com/linporu/waterballsa-backend-golang/internal/dto"
 	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/auth"
+	"github.com/linporu/waterballsa-backend-golang/internal/model"
 	"github.com/linporu/waterballsa-backend-golang/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthService interface {
-	Register(ctx context.Context, req dto.RegisterRequest) (int64, error)
-	Login(ctx context.Context, req dto.LoginRequest) (*LoginResult, error)
-	Logout(ctx context.Context, accessToken, refreshToken string) error
-	Refresh(ctx context.Context, refreshToken string) (*LoginResult, error)
+// userRepository provides user data access operations for AuthService
+type userRepository interface {
+	Create(ctx context.Context, username, passwordHash string) (int64, error)
+	GetByID(ctx context.Context, id int64) (*model.User, error)
+	GetByUsername(ctx context.Context, username string) (*model.User, error)
+	ExistsByUsername(ctx context.Context, username string) (bool, error)
 }
 
-type authService struct {
-	userRepository         repository.UserRepository
-	accessTokenRepository  repository.AccessTokenRepository
-	refreshTokenRepository repository.RefreshTokenRepository
-	tokenGenerator         auth.TokenGenerator
+// accessTokenRepository provides access token blacklist operations for AuthService
+type accessTokenRepository interface {
+	Invalidate(ctx context.Context, jti string, userID int64, expiresAt time.Time) error
+	IsInvalidated(ctx context.Context, jti string) (bool, error)
+}
+
+// refreshTokenRepository provides refresh token persistence operations for AuthService
+type refreshTokenRepository interface {
+	Create(ctx context.Context, jti string, userID int64, expiresAt time.Time) error
+	GetByJTI(ctx context.Context, jti string) (*model.RefreshToken, error)
+	Revoke(ctx context.Context, jti string) error
+}
+
+// tokenGenerator provides JWT token generation and parsing operations for AuthService
+type tokenGenerator interface {
+	GenerateAccessToken(user *model.User) (token string, jti string, expiresAt time.Time, err error)
+	GenerateRefreshToken(userID int64) (token string, jti string, expiresAt time.Time, err error)
+	ParseAccessToken(tokenString string) (jti string, userID int64, expiresAt time.Time, err error)
+	ParseRefreshToken(tokenString string) (jti string, userID int64, expiresAt time.Time, err error)
+}
+
+// AuthService implements authentication business logic operations.
+type AuthService struct {
+	userRepository         userRepository
+	accessTokenRepository  accessTokenRepository
+	refreshTokenRepository refreshTokenRepository
+	tokenGenerator         tokenGenerator
 }
 
 // LoginResult holds the complete result of a successful login
@@ -35,13 +59,14 @@ type LoginResult struct {
 	UserInfo           dto.UserInfo
 }
 
+// NewAuthService creates a new AuthService instance.
 func NewAuthService(
-	userRepository repository.UserRepository,
-	accessTokenRepository repository.AccessTokenRepository,
-	refreshTokenRepository repository.RefreshTokenRepository,
-	tokenGenerator auth.TokenGenerator,
-) AuthService {
-	return &authService{
+	userRepository *repository.UserRepository,
+	accessTokenRepository *repository.AccessTokenRepository,
+	refreshTokenRepository *repository.RefreshTokenRepository,
+	tokenGenerator *auth.JWTTokenGenerator,
+) *AuthService {
+	return &AuthService{
 		userRepository:         userRepository,
 		accessTokenRepository:  accessTokenRepository,
 		refreshTokenRepository: refreshTokenRepository,
@@ -49,7 +74,7 @@ func NewAuthService(
 	}
 }
 
-func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (int64, error) {
+func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (int64, error) {
 	// bcrypt can only handle up to 72 bytes
 	if len(req.Password) > 72 {
 		return 0, apperror.PasswordTooLong()
@@ -79,7 +104,7 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (in
 	return userID, nil
 }
 
-func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*LoginResult, error) {
+func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (*LoginResult, error) {
 	// Get user by username
 	user, err := s.userRepository.GetByUsername(ctx, req.Username)
 	if err != nil {
@@ -121,7 +146,7 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*LoginRe
 	}, nil
 }
 
-func (s *authService) Logout(ctx context.Context, accessToken, refreshToken string) error {
+func (s *AuthService) Logout(ctx context.Context, accessToken, refreshToken string) error {
 	// Invalidate access token if provided
 	if accessToken != "" {
 		jti, userID, expiresAt, err := s.tokenGenerator.ParseAccessToken(accessToken)
@@ -143,7 +168,7 @@ func (s *authService) Logout(ctx context.Context, accessToken, refreshToken stri
 	return nil
 }
 
-func (s *authService) Refresh(ctx context.Context, refreshToken string) (*LoginResult, error) {
+func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*LoginResult, error) {
 	if refreshToken == "" {
 		return nil, apperror.Unauthorized()
 	}

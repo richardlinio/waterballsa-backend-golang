@@ -16,30 +16,19 @@ const (
 	TokenTypeRefresh = "refresh"
 )
 
-// TokenGenerator defines the interface for JWT token generation and verification
-type TokenGenerator interface {
-	// GenerateAccessToken creates a new access token for the user
-	GenerateAccessToken(user *model.User) (token string, jti string, expiresAt time.Time, err error)
-	// GenerateRefreshToken creates a new refresh token for the user
-	GenerateRefreshToken(userID int64) (token string, jti string, expiresAt time.Time, err error)
-	// ParseAccessToken extracts JTI, user ID, and expiry time from an access token
-	ParseAccessToken(tokenString string) (jti string, userID int64, expiresAt time.Time, err error)
-	// ParseRefreshToken extracts JTI, user ID, and expiry time from a refresh token
-	ParseRefreshToken(tokenString string) (jti string, userID int64, expiresAt time.Time, err error)
-}
-
-// jwtTokenGenerator implements TokenGenerator interface
-type jwtTokenGenerator struct {
+// JWTTokenGenerator implements JWT token generation and verification operations.
+// It is a concrete type that satisfies various consumer-defined interfaces.
+type JWTTokenGenerator struct {
 	config config.JWTConfig
 }
 
-// NewTokenGenerator creates a new TokenGenerator instance
-func NewTokenGenerator(config config.JWTConfig) TokenGenerator {
-	return &jwtTokenGenerator{config: config}
+// NewJWTTokenGenerator creates a new JWTTokenGenerator instance
+func NewJWTTokenGenerator(config config.JWTConfig) *JWTTokenGenerator {
+	return &JWTTokenGenerator{config: config}
 }
 
 // GenerateAccessToken creates a new access token for the user
-func (tg *jwtTokenGenerator) GenerateAccessToken(user *model.User) (string, string, time.Time, error) {
+func (tg *JWTTokenGenerator) GenerateAccessToken(user *model.User) (string, string, time.Time, error) {
 	expireTime := time.Now().Add(tg.config.AccessTokenTimeout)
 	jti := uuid.New().String()
 
@@ -62,7 +51,7 @@ func (tg *jwtTokenGenerator) GenerateAccessToken(user *model.User) (string, stri
 }
 
 // GenerateRefreshToken creates a new refresh token for the user
-func (tg *jwtTokenGenerator) GenerateRefreshToken(userID int64) (string, string, time.Time, error) {
+func (tg *JWTTokenGenerator) GenerateRefreshToken(userID int64) (string, string, time.Time, error) {
 	expireTime := time.Now().Add(tg.config.RefreshTokenTimeout)
 	jti := uuid.New().String()
 
@@ -83,17 +72,17 @@ func (tg *jwtTokenGenerator) GenerateRefreshToken(userID int64) (string, string,
 }
 
 // ParseAccessToken extracts JTI, user ID, and expiry time from an access token
-func (tg *jwtTokenGenerator) ParseAccessToken(tokenString string) (jti string, userID int64, expiresAt time.Time, err error) {
+func (tg *JWTTokenGenerator) ParseAccessToken(tokenString string) (jti string, userID int64, expiresAt time.Time, err error) {
 	return tg.parseToken(tokenString, TokenTypeAccess)
 }
 
 // ParseRefreshToken extracts JTI, user ID, and expiry time from a refresh token
-func (tg *jwtTokenGenerator) ParseRefreshToken(tokenString string) (jti string, userID int64, expiresAt time.Time, err error) {
+func (tg *JWTTokenGenerator) ParseRefreshToken(tokenString string) (jti string, userID int64, expiresAt time.Time, err error) {
 	return tg.parseToken(tokenString, TokenTypeRefresh)
 }
 
 // parseToken is a helper function to parse and validate a token with type checking
-func (tg *jwtTokenGenerator) parseToken(tokenString string, expectedType string) (jti string, userID int64, expiresAt time.Time, err error) {
+func (tg *JWTTokenGenerator) parseToken(tokenString string, expectedType string) (jti string, userID int64, expiresAt time.Time, err error) {
 	token, err := gojwt.Parse(tokenString, func(token *gojwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*gojwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
