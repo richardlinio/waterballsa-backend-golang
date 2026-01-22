@@ -215,8 +215,47 @@ func theResponseBodyFieldShouldEqualNumber(ctx context.Context, fieldName string
 	return nil
 }
 
+// theResponseBodyFieldShouldHaveSize asserts that a response field (array) has a specific size
+// Supports nested field access using dot notation (e.g., "data.users")
+func theResponseBodyFieldShouldHaveSize(ctx context.Context, fieldName string, expectedSize int) error {
+	body, ok := ctx.Value(testcontext.ContextKeyResponseBody).([]byte)
+	if !ok {
+		return fmt.Errorf("response body not found in context")
+	}
+
+	// Parse JSON response
+	var jsonBody map[string]any
+	if err := json.Unmarshal(body, &jsonBody); err != nil {
+		return fmt.Errorf("failed to parse JSON response: %w. Body: %s", err, string(body))
+	}
+
+	// Get field value (supports nested fields with dot notation)
+	actualValue, exists := getNestedField(jsonBody, fieldName)
+	if !exists {
+		return fmt.Errorf("field '%s' not found in response body. Available fields: %v",
+			fieldName, getMapKeys(jsonBody))
+	}
+
+	// Check if the field is an array/slice
+	actualSlice, ok := actualValue.([]any)
+	if !ok {
+		return fmt.Errorf("field '%s' is not an array, got type %v with value '%v'",
+			fieldName, reflect.TypeOf(actualValue), actualValue)
+	}
+
+	// Compare sizes
+	actualSize := len(actualSlice)
+	if actualSize != expectedSize {
+		return fmt.Errorf("field '%s' expected to have size %d, but got %d",
+			fieldName, expectedSize, actualSize)
+	}
+
+	return nil
+}
+
 // Helper function to get nested field from JSON object using dot notation
 // Supports accessing nested fields like "user.id" or "data.user.profile.name"
+// Also supports array indexing like "journeys[0].title" or "data.users[2].name"
 func getNestedField(data map[string]any, fieldPath string) (any, bool) {
 	// Split the field path by dots
 	parts := strings.Split(fieldPath, ".")
@@ -225,19 +264,61 @@ func getNestedField(data map[string]any, fieldPath string) (any, bool) {
 
 	// Navigate through each part of the path
 	for _, part := range parts {
-		// Check if current is a map
-		currentMap, ok := current.(map[string]any)
-		if !ok {
-			return nil, false
-		}
+		// Check if part contains array index (e.g., "journeys[0]")
+		if strings.Contains(part, "[") && strings.HasSuffix(part, "]") {
+			// Split into field name and index
+			openBracket := strings.Index(part, "[")
+			if openBracket == -1 {
+				return nil, false
+			}
+			fieldName := part[:openBracket]
+			indexStr := part[openBracket+1 : len(part)-1]
 
-		// Get the next level
-		next, exists := currentMap[part]
-		if !exists {
-			return nil, false
-		}
+			// Parse index
+			var index int
+			if _, err := fmt.Sscanf(indexStr, "%d", &index); err != nil {
+				return nil, false
+			}
 
-		current = next
+			// Get the array field first
+			currentMap, ok := current.(map[string]any)
+			if !ok {
+				return nil, false
+			}
+
+			arrayField, exists := currentMap[fieldName]
+			if !exists {
+				return nil, false
+			}
+
+			// Check if it's an array
+			arrayValue, ok := arrayField.([]any)
+			if !ok {
+				return nil, false
+			}
+
+			// Check index bounds
+			if index < 0 || index >= len(arrayValue) {
+				return nil, false
+			}
+
+			// Get the element at index
+			current = arrayValue[index]
+		} else {
+			// Regular field access (no array indexing)
+			currentMap, ok := current.(map[string]any)
+			if !ok {
+				return nil, false
+			}
+
+			// Get the next level
+			next, exists := currentMap[part]
+			if !exists {
+				return nil, false
+			}
+
+			current = next
+		}
 	}
 
 	return current, true
@@ -517,6 +598,8 @@ func RegisterHTTPSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the response body should contain field "([^"]*)"$`, theResponseBodyShouldContainField)
 	sc.Step(`^the response body field "([^"]*)" should equal string "([^"]*)"$`, theResponseBodyFieldShouldEqualString)
 	sc.Step(`^the response body field "([^"]*)" should equal number (.+)$`, theResponseBodyFieldShouldEqualNumber)
+	sc.Step(`^the response body field "([^"]*)" should equal decimal "([^"]*)"$`, theResponseBodyFieldShouldEqualNumber)
+	sc.Step(`^the response body field "([^"]*)" should have size (\d+)$`, theResponseBodyFieldShouldHaveSize)
 	sc.Step(`^I set cookie "([^"]*)" to "([^"]*)"$`, iSetCookie)
 	sc.Step(`^I use stored cookie "([^"]*)"$`, iUseStoredCookie)
 	sc.Step(`^I extract cookie "([^"]*)" from response$`, iExtractCookieFromResponse)
