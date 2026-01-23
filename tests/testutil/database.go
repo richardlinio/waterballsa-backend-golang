@@ -14,7 +14,7 @@ func CleanDatabase(ctx context.Context, pool *pgxpool.Pool) error {
 	// Truncate all tables and reset identity sequences
 	// CASCADE ensures that dependent records in other tables are also deleted
 	query := `
-		TRUNCATE TABLE users RESTART IDENTITY CASCADE;
+		TRUNCATE TABLE users, journeys RESTART IDENTITY CASCADE;
 	`
 
 	_, err := pool.Exec(ctx, query)
@@ -50,4 +50,31 @@ func CreateTestUser(ctx context.Context, pool *pgxpool.Pool, username, password 
 	}
 
 	return userID, nil
+}
+
+// CreateTestJourney creates a journey in the database with the given parameters
+// Returns the created journey ID
+func CreateTestJourney(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	title string,
+	slug string,
+	description string,
+	teacherName string,
+	price float64,
+	coverImageURL string,
+) (int64, error) {
+	query := `
+		INSERT INTO journeys (title, slug, description, teacher_name, price, cover_image_url)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
+	`
+
+	var journeyID int64
+	err := pool.QueryRow(ctx, query, title, slug, description, teacherName, price, coverImageURL).Scan(&journeyID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create test journey: %w", err)
+	}
+
+	return journeyID, nil
 }

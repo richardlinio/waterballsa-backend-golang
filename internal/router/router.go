@@ -20,6 +20,7 @@ type Router struct {
 	logger           *slog.Logger
 	healthHandler    *handler.HealthHandler
 	authHandler      *handler.AuthHandler
+	journeyHandler   *handler.JourneyHandler
 	jwtMiddleware    *jwt.GinJWTMiddleware
 	blacklistChecker gin.HandlerFunc
 }
@@ -32,6 +33,7 @@ func NewRouter(
 	logger *slog.Logger,
 	healthHandler *handler.HealthHandler,
 	authHandler *handler.AuthHandler,
+	journeyHandler *handler.JourneyHandler,
 	jwtMiddleware *jwt.GinJWTMiddleware,
 	blacklistChecker gin.HandlerFunc,
 ) *Router {
@@ -43,6 +45,7 @@ func NewRouter(
 		logger:           logger,
 		healthHandler:    healthHandler,
 		authHandler:      authHandler,
+		journeyHandler:   journeyHandler,
 		jwtMiddleware:    jwtMiddleware,
 		blacklistChecker: blacklistChecker,
 	}
@@ -61,6 +64,7 @@ func (r *Router) Setup() {
 	// 2. Setup routes
 	r.setupHealthRoutes()
 	r.setupAuthRoutes()
+	r.setupJourneyRoutes()
 }
 
 func (r *Router) setupRequestIDMiddleware() {
@@ -105,4 +109,8 @@ func (r *Router) setupAuthRoutes() {
 	{
 		authProtected.POST("/logout", r.authHandler.Logout)
 	}
+}
+
+func (r *Router) setupJourneyRoutes() {
+	r.engine.GET("/journeys", r.journeyHandler.GetJourneys)
 }
