@@ -113,4 +113,5 @@ func (r *Router) setupAuthRoutes() {
 
 func (r *Router) setupJourneyRoutes() {
 	r.engine.GET("/journeys", r.journeyHandler.GetJourneys)
+	r.engine.GET("/journeys/:journeyId", r.journeyHandler.GetJourneyDetail)
 }
