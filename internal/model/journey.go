@@ -15,3 +15,11 @@ type Journey struct {
 	UpdatedAt     time.Time
 	DeletedAt     *time.Time
 }
+
+// JourneyDetail represents the complete view of a journey with its related data
+// This is an aggregate that combines journey, chapters, and missions for read operations
+type JourneyDetail struct {
+	Journey           *Journey
+	Chapters          []*Chapter
+	MissionsByChapter map[int64][]*Mission
+}

@@ -31,14 +31,14 @@ func NewMissionService(missionRepository *repository.MissionRepository) *Mission
 
 // GetDetail retrieves mission details including reward and resources
 // Returns apperror.MissionNotFound if mission doesn't exist
-func (s *MissionService) GetDetail(ctx context.Context, missionID int64) (*model.Mission, int64, *model.Reward, []*model.MissionResource, error) {
+func (s *MissionService) GetDetail(ctx context.Context, missionID int64) (*model.MissionDetail, error) {
 	// Get mission by ID (also returns journey ID from JOIN)
 	mission, journeyID, err := s.missionRepository.GetByID(ctx, missionID)
 	if err != nil {
 		if errors.Is(err, repository.ErrMissionNotFound) {
-			return nil, 0, nil, nil, apperror.MissionNotFound()
+			return nil, apperror.MissionNotFound()
 		}
-		return nil, 0, nil, nil, apperror.DatabaseError(err)
+		return nil, apperror.DatabaseError(err)
 	}
 
 	// Get reward for this mission (no reward means pgx.ErrNoRows, which we handle gracefully)
@@ -48,15 +48,20 @@ func (s *MissionService) GetDetail(ctx context.Context, missionID int64) (*model
 		if errors.Is(err, pgx.ErrNoRows) {
 			reward = nil
 		} else {
-			return nil, 0, nil, nil, apperror.DatabaseError(err)
+			return nil, apperror.DatabaseError(err)
 		}
 	}
 
 	// Get resources for this mission
 	resources, err := s.missionRepository.ListResourcesByMissionID(ctx, missionID)
 	if err != nil {
-		return nil, 0, nil, nil, apperror.DatabaseError(err)
+		return nil, apperror.DatabaseError(err)
 	}
 
-	return mission, journeyID, reward, resources, nil
+	return &model.MissionDetail{
+		Mission:   mission,
+		JourneyID: journeyID,
+		Reward:    reward,
+		Resources: resources,
+	}, nil
 }

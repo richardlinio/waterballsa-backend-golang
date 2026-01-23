@@ -15,3 +15,12 @@ type Mission struct {
 	UpdatedAt   time.Time
 	DeletedAt   *time.Time
 }
+
+// MissionDetail represents the complete view of a mission with its related data
+// This is an aggregate that combines mission, reward, and resources for read operations
+type MissionDetail struct {
+	Mission   *Mission
+	JourneyID int64
+	Reward    *Reward
+	Resources []*MissionResource
+}

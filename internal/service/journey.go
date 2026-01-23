@@ -41,25 +41,29 @@ func (s *JourneyService) List(ctx context.Context) ([]*model.Journey, error) {
 
 // GetDetail retrieves journey details including chapters and missions
 // Returns apperror.JourneyNotFound if journey doesn't exist
-func (s *JourneyService) GetDetail(ctx context.Context, journeyID int64) (*model.Journey, []*model.Chapter, map[int64][]*model.Mission, error) {
+func (s *JourneyService) GetDetail(ctx context.Context, journeyID int64) (*model.JourneyDetail, error) {
 	// Get journey by ID
 	journey, err := s.journeyRepository.GetByID(ctx, journeyID)
 	if err != nil {
 		if errors.Is(err, repository.ErrJourneyNotFound) {
-			return nil, nil, nil, apperror.JourneyNotFound()
+			return nil, apperror.JourneyNotFound()
 		}
-		return nil, nil, nil, apperror.DatabaseError(err)
+		return nil, apperror.DatabaseError(err)
 	}
 
 	// Get chapters for this journey
 	chapters, err := s.journeyRepository.ListChaptersByJourneyID(ctx, journeyID)
 	if err != nil {
-		return nil, nil, nil, apperror.DatabaseError(err)
+		return nil, apperror.DatabaseError(err)
 	}
 
 	// If no chapters, return empty result
 	if len(chapters) == 0 {
-		return journey, chapters, make(map[int64][]*model.Mission), nil
+		return &model.JourneyDetail{
+			Journey:           journey,
+			Chapters:          chapters,
+			MissionsByChapter: make(map[int64][]*model.Mission),
+		}, nil
 	}
 
 	// Collect all chapter IDs
@@ -71,7 +75,7 @@ func (s *JourneyService) GetDetail(ctx context.Context, journeyID int64) (*model
 	// Get all missions for these chapters
 	missions, err := s.journeyRepository.ListMissionsByChapterIDs(ctx, chapterIDs)
 	if err != nil {
-		return nil, nil, nil, apperror.DatabaseError(err)
+		return nil, apperror.DatabaseError(err)
 	}
 
 	// Group missions by chapter_id
@@ -80,5 +84,9 @@ func (s *JourneyService) GetDetail(ctx context.Context, journeyID int64) (*model
 		missionsByChapter[mission.ChapterID] = append(missionsByChapter[mission.ChapterID], mission)
 	}
 
-	return journey, chapters, missionsByChapter, nil
+	return &model.JourneyDetail{
+		Journey:           journey,
+		Chapters:          chapters,
+		MissionsByChapter: missionsByChapter,
+	}, nil
 }

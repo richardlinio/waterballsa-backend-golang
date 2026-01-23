@@ -36,29 +36,24 @@ type MissionResourceDTO struct {
 	DurationSeconds *int   `json:"durationSeconds,omitempty"`
 }
 
-// ToMissionDetailResponse converts domain models to MissionDetailResponse DTO
-func ToMissionDetailResponse(
-	mission *model.Mission,
-	journeyID int64,
-	reward *model.Reward,
-	resources []*model.MissionResource,
-) MissionDetailResponse {
+// ToMissionDetailResponse converts MissionDetail domain model to MissionDetailResponse DTO
+func ToMissionDetailResponse(detail *model.MissionDetail) MissionDetailResponse {
 	response := MissionDetailResponse{
-		ID:          mission.ID,
-		ChapterID:   mission.ChapterID,
-		JourneyID:   journeyID,
-		Type:        mission.Type,
-		Title:       mission.Title,
-		Description: mission.Description,
-		AccessLevel: mission.AccessLevel,
-		CreatedAt:   mission.CreatedAt.UnixMilli(),
-		Reward:      ToMissionRewardDTO(reward),
-		Resource:    ToMissionResourceDTOs(resources),
+		ID:          detail.Mission.ID,
+		ChapterID:   detail.Mission.ChapterID,
+		JourneyID:   detail.JourneyID,
+		Type:        detail.Mission.Type,
+		Title:       detail.Mission.Title,
+		Description: detail.Mission.Description,
+		AccessLevel: detail.Mission.AccessLevel,
+		CreatedAt:   detail.Mission.CreatedAt.UnixMilli(),
+		Reward:      ToMissionRewardDTO(detail.Reward),
+		Resource:    ToMissionResourceDTOs(detail.Resources),
 	}
 
 	// Calculate video length if mission type is VIDEO
-	if mission.Type == "VIDEO" {
-		response.VideoLength = calculateVideoLength(resources)
+	if detail.Mission.Type == "VIDEO" {
+		response.VideoLength = calculateVideoLength(detail.Resources)
 	}
 
 	return response

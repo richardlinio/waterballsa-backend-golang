@@ -16,7 +16,7 @@ import (
 
 // missionService defines the mission service operations needed by the handler
 type missionService interface {
-	GetDetail(ctx context.Context, missionID int64) (*model.Mission, int64, *model.Reward, []*model.MissionResource, error)
+	GetDetail(ctx context.Context, missionID int64) (*model.MissionDetail, error)
 }
 
 type MissionHandler struct {
@@ -50,14 +50,14 @@ func (h *MissionHandler) GetMissionDetail(c *gin.Context) {
 	}
 
 	// Get mission detail from service
-	mission, journeyID, reward, resources, err := h.missionService.GetDetail(ctx, missionID)
+	detail, err := h.missionService.GetDetail(ctx, missionID)
 	if err != nil {
 		_ = c.Error(err)
 		return
 	}
 
 	// Check access level and authentication
-	if mission.AccessLevel == "AUTHENTICATED" || mission.AccessLevel == "PURCHASED" {
+	if detail.Mission.AccessLevel == "AUTHENTICATED" || detail.Mission.AccessLevel == "PURCHASED" {
 		user := h.getAuthenticatedUser(c)
 		if user == nil {
 			_ = c.Error(apperror.Unauthorized())
@@ -65,7 +65,7 @@ func (h *MissionHandler) GetMissionDetail(c *gin.Context) {
 		}
 	}
 
-	response := dto.ToMissionDetailResponse(mission, journeyID, reward, resources)
+	response := dto.ToMissionDetailResponse(detail)
 	c.JSON(http.StatusOK, response)
 }
 
