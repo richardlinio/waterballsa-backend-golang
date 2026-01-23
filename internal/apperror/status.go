@@ -14,6 +14,9 @@ var httpStatusMap = map[string]int{
 	// Conflict errors (409)
 	CodeUsernameExists: http.StatusConflict,
 
+	// Not found errors (404)
+	CodeJourneyNotFound: http.StatusNotFound,
+
 	// Rate limiting errors (429)
 	CodeRateLimitExceeded: http.StatusTooManyRequests,
 

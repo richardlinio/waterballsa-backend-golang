@@ -82,3 +82,7 @@ func ServiceUnavailable() *AppError {
 func RateLimitExceeded() *AppError {
 	return New(CodeRateLimitExceeded)
 }
+
+func JourneyNotFound() *AppError {
+	return New(CodeJourneyNotFound)
+}

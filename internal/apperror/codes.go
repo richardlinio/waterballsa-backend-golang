@@ -14,6 +14,9 @@ const (
 	// Conflict errors (409 - Conflict)
 	CodeUsernameExists = "ERR_USERNAME_EXISTS"
 
+	// Not found errors (404 - Not Found)
+	CodeJourneyNotFound = "ERR_JOURNEY_NOT_FOUND"
+
 	// Rate limiting errors (429 - Too Many Requests)
 	CodeRateLimitExceeded = "ERR_RATE_LIMIT_EXCEEDED"
 
