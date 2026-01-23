@@ -91,7 +91,7 @@ Feature: Mission Detail API Implementation
 
     # Verification: Error response
     And the response body should contain field "error"
-    And the response body field "error" should equal string "登入資料已過期"
+    And the response body field "error" should equal string "未授權或權杖無效"
 
   Scenario: Guest attempts to view purchased mission returns 401
     # Setup: Create purchased mission
@@ -121,7 +121,7 @@ Feature: Mission Detail API Implementation
 
     # Verification: Error response
     And the response body should contain field "error"
-    And the response body field "error" should equal string "登入資料已過期"
+    And the response body field "error" should equal string "未授權或權杖無效"
 
   Scenario: Get non-existent mission returns 404
     # Setup: Create journey but no mission with ID 999
