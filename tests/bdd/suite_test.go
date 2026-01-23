@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
-	"github.com/linporu/waterballsa-backend-golang/tests/bdd/steps/common"
+	"github.com/linporu/waterballsa-backend-golang/tests/bdd/steps"
 	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
 	"github.com/linporu/waterballsa-backend-golang/tests/testutil"
 )
@@ -84,8 +84,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	})
 
 	// Register all step definitions
-	common.RegisterHTTPSteps(sc)
-	common.RegisterDatabaseSteps(sc)
+	steps.RegisterSteps(sc)
 }
 
 // TestMain handles suite-level setup and teardown
