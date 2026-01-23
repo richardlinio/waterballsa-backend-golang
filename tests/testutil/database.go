@@ -14,7 +14,7 @@ func CleanDatabase(ctx context.Context, pool *pgxpool.Pool) error {
 	// Truncate all tables and reset identity sequences
 	// CASCADE ensures that dependent records in other tables are also deleted
 	query := `
-		TRUNCATE TABLE users, journeys, chapters, missions RESTART IDENTITY CASCADE;
+		TRUNCATE TABLE users, journeys, chapters, missions, rewards, mission_resources RESTART IDENTITY CASCADE;
 	`
 
 	_, err := pool.Exec(ctx, query)
@@ -112,21 +112,75 @@ func CreateTestMission(
 	pool *pgxpool.Pool,
 	chapterID int64,
 	title string,
+	description string,
 	missionType string,
 	accessLevel string,
 	orderIndex int,
 ) (int64, error) {
 	query := `
-		INSERT INTO missions (chapter_id, title, type, access_level, order_index)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO missions (chapter_id, title, description, type, access_level, order_index)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
 	`
 
 	var missionID int64
-	err := pool.QueryRow(ctx, query, chapterID, title, missionType, accessLevel, orderIndex).Scan(&missionID)
+	err := pool.QueryRow(ctx, query, chapterID, title, description, missionType, accessLevel, orderIndex).Scan(&missionID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create test mission: %w", err)
 	}
 
 	return missionID, nil
+}
+
+// CreateTestReward creates a reward in the database with the given parameters
+// Returns the created reward ID
+// rewardType should be one of: EXPERIENCE (currently only supported enum value)
+func CreateTestReward(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	missionID int64,
+	rewardType string,
+	rewardValue int,
+) (int64, error) {
+	query := `
+		INSERT INTO rewards (mission_id, reward_type, reward_value)
+		VALUES ($1, $2, $3)
+		RETURNING id
+	`
+
+	var rewardID int64
+	err := pool.QueryRow(ctx, query, missionID, rewardType, rewardValue).Scan(&rewardID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create test reward: %w", err)
+	}
+
+	return rewardID, nil
+}
+
+// CreateTestMissionResource creates a mission resource in the database with the given parameters
+// Returns the created resource ID
+// resourceType should be one of: VIDEO, ARTICLE, FORM
+// durationSeconds is nullable (use nil for non-video resources)
+func CreateTestMissionResource(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	missionID int64,
+	resourceType string,
+	resourceURL string,
+	contentOrder int,
+	durationSeconds *int,
+) (int64, error) {
+	query := `
+		INSERT INTO mission_resources (mission_id, resource_type, resource_url, content_order, duration_seconds)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+
+	var resourceID int64
+	err := pool.QueryRow(ctx, query, missionID, resourceType, resourceURL, contentOrder, durationSeconds).Scan(&resourceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create test mission resource: %w", err)
+	}
+
+	return resourceID, nil
 }
