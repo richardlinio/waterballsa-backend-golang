@@ -63,6 +63,21 @@ func (h *MissionHandler) GetMissionDetail(c *gin.Context) {
 			_ = c.Error(apperror.Unauthorized())
 			return
 		}
+
+		// TODO: For PURCHASED missions, implement purchase verification logic
+		// Need to check if user.ID has purchased the journey (detail.JourneyID)
+		// Example implementation:
+		//   if detail.Mission.AccessLevel == "PURCHASED" {
+		//       hasPurchased, err := h.purchaseService.HasUserPurchasedJourney(ctx, user.ID, detail.JourneyID)
+		//       if err != nil {
+		//           _ = c.Error(apperror.DatabaseError(err))
+		//           return
+		//       }
+		//       if !hasPurchased {
+		//           _ = c.Error(apperror.Forbidden())
+		//           return
+		//       }
+		//   }
 	}
 
 	response := dto.ToMissionDetailResponse(detail)
