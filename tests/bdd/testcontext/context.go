@@ -19,6 +19,9 @@ const (
 	ContextKeyStoredCookies   ContextKey = "storedCookies"   // Extracted cookies from response
 	ContextKeyStoredVariables ContextKey = "storedVariables" // map[string]any for storing values between steps
 	ContextKeyAuthHeader      ContextKey = "authHeader"      // string for Authorization header value
+	ContextKeyLastJourneyID   ContextKey = "lastJourneyId"   // int64 for last created journey ID
+	ContextKeyLastChapterID   ContextKey = "lastChapterId"   // int64 for last created chapter ID
+	ContextKeyLastMissionID   ContextKey = "lastMissionId"   // int64 for last created mission ID
 )
 
 // TestServerWrapper wraps the test server for sharing across scenarios

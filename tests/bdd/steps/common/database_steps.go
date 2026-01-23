@@ -3,6 +3,8 @@ package common
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/cucumber/godog"
 	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
@@ -153,14 +155,212 @@ func theDatabaseHasAJourney(ctx context.Context, table *godog.Table) (context.Co
 		return ctx, fmt.Errorf("failed to create test journey: %w", err)
 	}
 
-	// Optionally store journey ID in context if needed by other steps
-	_ = journeyID
+	// Store journey ID in context for use by other steps (e.g., creating chapters)
+	ctx = context.WithValue(ctx, testcontext.ContextKeyLastJourneyID, journeyID)
 
 	return ctx, nil
+}
+
+// theDatabaseHasAMission creates a test mission in the database from a Gherkin data table
+// Expected table format:
+//
+//	| chapter_id   | {{lastChapterId}}              |
+//	| title        | 這門課手把手帶你成為架構設計的高手  |
+//	| type         | VIDEO                          |
+//	| access_level | PUBLIC                         |
+//	| order_index  | 1                              |
+func theDatabaseHasAMission(ctx context.Context, table *godog.Table) (context.Context, error) {
+	// Get test server from suite context
+	testServer, ok := ctx.Value(testcontext.ContextKeyTestServer).(*testcontext.TestServerWrapper)
+	if !ok {
+		return ctx, fmt.Errorf("test server not found in context")
+	}
+
+	// Parse table into a map
+	missionData, err := parseTableToMap(table)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to parse mission data table: %w", err)
+	}
+
+	// Extract chapter_id (with variable substitution support)
+	chapterIDStr, ok := missionData["chapter_id"]
+	if !ok {
+		return ctx, fmt.Errorf("chapter_id not found in table")
+	}
+	chapterIDStr, err = replaceVariables(ctx, chapterIDStr)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to replace variables in chapter_id: %w", err)
+	}
+
+	var chapterID int64
+	if _, err := fmt.Sscanf(chapterIDStr, "%d", &chapterID); err != nil {
+		return ctx, fmt.Errorf("failed to parse chapter_id '%s': %w", chapterIDStr, err)
+	}
+
+	// Extract title
+	title, ok := missionData["title"]
+	if !ok {
+		return ctx, fmt.Errorf("title not found in table")
+	}
+
+	// Extract type (VIDEO, ARTICLE, QUESTIONNAIRE)
+	missionType, ok := missionData["type"]
+	if !ok {
+		return ctx, fmt.Errorf("type not found in table")
+	}
+
+	// Extract access_level (PUBLIC, AUTHENTICATED, PURCHASED)
+	accessLevel, ok := missionData["access_level"]
+	if !ok {
+		return ctx, fmt.Errorf("access_level not found in table")
+	}
+
+	// Extract order_index
+	orderIndexStr, ok := missionData["order_index"]
+	if !ok {
+		return ctx, fmt.Errorf("order_index not found in table")
+	}
+
+	var orderIndex int
+	if _, err := fmt.Sscanf(orderIndexStr, "%d", &orderIndex); err != nil {
+		return ctx, fmt.Errorf("failed to parse order_index '%s': %w", orderIndexStr, err)
+	}
+
+	// Create test mission in database
+	missionID, err := testutil.CreateTestMission(
+		ctx,
+		testServer.Server.Pool,
+		chapterID,
+		title,
+		missionType,
+		accessLevel,
+		orderIndex,
+	)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to create test mission: %w", err)
+	}
+
+	// Store mission ID in context for use by other steps
+	ctx = context.WithValue(ctx, testcontext.ContextKeyLastMissionID, missionID)
+
+	return ctx, nil
+}
+
+// theDatabaseHasAChapter creates a test chapter in the database from a Gherkin data table
+// Expected table format:
+//
+//	| journey_id   | {{lastJourneyId}} |
+//	| title        | 課程介紹           |
+//	| order_index  | 1                 |
+func theDatabaseHasAChapter(ctx context.Context, table *godog.Table) (context.Context, error) {
+	// Get test server from suite context
+	testServer, ok := ctx.Value(testcontext.ContextKeyTestServer).(*testcontext.TestServerWrapper)
+	if !ok {
+		return ctx, fmt.Errorf("test server not found in context")
+	}
+
+	// Parse table into a map
+	chapterData, err := parseTableToMap(table)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to parse chapter data table: %w", err)
+	}
+
+	// Extract journey_id (with variable substitution support)
+	journeyIDStr, ok := chapterData["journey_id"]
+	if !ok {
+		return ctx, fmt.Errorf("journey_id not found in table")
+	}
+	journeyIDStr, err = replaceVariables(ctx, journeyIDStr)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to replace variables in journey_id: %w", err)
+	}
+
+	var journeyID int64
+	if _, err := fmt.Sscanf(journeyIDStr, "%d", &journeyID); err != nil {
+		return ctx, fmt.Errorf("failed to parse journey_id '%s': %w", journeyIDStr, err)
+	}
+
+	// Extract title
+	title, ok := chapterData["title"]
+	if !ok {
+		return ctx, fmt.Errorf("title not found in table")
+	}
+
+	// Extract order_index
+	orderIndexStr, ok := chapterData["order_index"]
+	if !ok {
+		return ctx, fmt.Errorf("order_index not found in table")
+	}
+
+	var orderIndex int
+	if _, err := fmt.Sscanf(orderIndexStr, "%d", &orderIndex); err != nil {
+		return ctx, fmt.Errorf("failed to parse order_index '%s': %w", orderIndexStr, err)
+	}
+
+	// Create test chapter in database
+	chapterID, err := testutil.CreateTestChapter(
+		ctx,
+		testServer.Server.Pool,
+		journeyID,
+		title,
+		orderIndex,
+	)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to create test chapter: %w", err)
+	}
+
+	// Store chapter ID in context for use by other steps (e.g., creating missions)
+	ctx = context.WithValue(ctx, testcontext.ContextKeyLastChapterID, chapterID)
+
+	return ctx, nil
+}
+
+// replaceVariables replaces {{variableName}} placeholders with values from context
+// Supports: lastJourneyId, lastChapterId, lastMissionId
+func replaceVariables(ctx context.Context, value string) (string, error) {
+	// Regular expression to find {{variableName}} patterns
+	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
+
+	// Track if any variable was not found
+	var missingVars []string
+
+	result := re.ReplaceAllStringFunc(value, func(match string) string {
+		// Extract variable name (remove {{ and }})
+		varName := strings.Trim(match, "{}")
+
+		// Get variable value from context based on name
+		switch varName {
+		case "lastJourneyId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastJourneyID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case "lastChapterId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastChapterID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case "lastMissionId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastMissionID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		}
+
+		// Variable not found, track it
+		missingVars = append(missingVars, varName)
+		return match // Keep original if not found
+	})
+
+	// If any variables were not found, return error
+	if len(missingVars) > 0 {
+		return "", fmt.Errorf("variables not found in context: %v", missingVars)
+	}
+
+	return result, nil
 }
 
 // RegisterDatabaseSteps registers all database-related step definitions
 func RegisterDatabaseSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the database has a user:$`, theDatabaseHasAUser)
 	sc.Step(`^the database has a journey:$`, theDatabaseHasAJourney)
+	sc.Step(`^the database has a chapter:$`, theDatabaseHasAChapter)
+	sc.Step(`^the database has a mission:$`, theDatabaseHasAMission)
 }
