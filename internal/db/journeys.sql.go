@@ -11,11 +11,123 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getJourneyByID = `-- name: GetJourneyByID :one
+SELECT
+    id,
+    title,
+    slug,
+    description,
+    cover_image_url,
+    teacher_name,
+    price,
+    created_at,
+    updated_at
+FROM
+    journeys
+WHERE
+    id = $1
+    AND deleted_at IS NULL
+`
+
+type GetJourneyByIDRow struct {
+	ID            int64            `json:"id"`
+	Title         string           `json:"title"`
+	Slug          string           `json:"slug"`
+	Description   pgtype.Text      `json:"description"`
+	CoverImageUrl pgtype.Text      `json:"cover_image_url"`
+	TeacherName   string           `json:"teacher_name"`
+	Price         pgtype.Numeric   `json:"price"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) GetJourneyByID(ctx context.Context, id int64) (GetJourneyByIDRow, error) {
+	row := q.db.QueryRow(ctx, getJourneyByID, id)
+	var i GetJourneyByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Slug,
+		&i.Description,
+		&i.CoverImageUrl,
+		&i.TeacherName,
+		&i.Price,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listChaptersByJourneyID = `-- name: ListChaptersByJourneyID :many
+SELECT
+    id,
+    journey_id,
+    title,
+    order_index,
+    created_at,
+    updated_at
+FROM
+    chapters
+WHERE
+    journey_id = $1
+    AND deleted_at IS NULL
+ORDER BY
+    order_index ASC
+`
+
+type ListChaptersByJourneyIDRow struct {
+	ID         int64            `json:"id"`
+	JourneyID  int64            `json:"journey_id"`
+	Title      string           `json:"title"`
+	OrderIndex int32            `json:"order_index"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
+	UpdatedAt  pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) ListChaptersByJourneyID(ctx context.Context, journeyID int64) ([]ListChaptersByJourneyIDRow, error) {
+	rows, err := q.db.Query(ctx, listChaptersByJourneyID, journeyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListChaptersByJourneyIDRow{}
+	for rows.Next() {
+		var i ListChaptersByJourneyIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.JourneyID,
+			&i.Title,
+			&i.OrderIndex,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listJourneys = `-- name: ListJourneys :many
-SELECT id, title, slug, description, cover_image_url, teacher_name, price, created_at, updated_at
-FROM journeys
-WHERE deleted_at IS NULL
-ORDER BY created_at ASC
+SELECT
+    id,
+    title,
+    slug,
+    description,
+    cover_image_url,
+    teacher_name,
+    price,
+    created_at,
+    updated_at
+FROM
+    journeys
+WHERE
+    deleted_at IS NULL
+ORDER BY
+    created_at ASC
 `
 
 type ListJourneysRow struct {
@@ -47,6 +159,66 @@ func (q *Queries) ListJourneys(ctx context.Context) ([]ListJourneysRow, error) {
 			&i.CoverImageUrl,
 			&i.TeacherName,
 			&i.Price,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMissionsByChapterIDs = `-- name: ListMissionsByChapterIDs :many
+SELECT
+    id,
+    chapter_id,
+    title,
+TYPE,
+access_level,
+order_index,
+created_at,
+updated_at
+FROM
+    missions
+WHERE
+    chapter_id = ANY ($1::BIGINT[])
+    AND deleted_at IS NULL
+ORDER BY
+    chapter_id ASC,
+    order_index ASC
+`
+
+type ListMissionsByChapterIDsRow struct {
+	ID          int64              `json:"id"`
+	ChapterID   int64              `json:"chapter_id"`
+	Title       string             `json:"title"`
+	Type        MissionType        `json:"type"`
+	AccessLevel MissionAccessLevel `json:"access_level"`
+	OrderIndex  int32              `json:"order_index"`
+	CreatedAt   pgtype.Timestamp   `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp   `json:"updated_at"`
+}
+
+func (q *Queries) ListMissionsByChapterIDs(ctx context.Context, dollar_1 []int64) ([]ListMissionsByChapterIDsRow, error) {
+	rows, err := q.db.Query(ctx, listMissionsByChapterIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListMissionsByChapterIDsRow{}
+	for rows.Next() {
+		var i ListMissionsByChapterIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ChapterID,
+			&i.Title,
+			&i.Type,
+			&i.AccessLevel,
+			&i.OrderIndex,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
