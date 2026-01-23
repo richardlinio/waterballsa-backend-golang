@@ -12,6 +12,9 @@ var errorMessages = map[string]string{
 	// Conflict errors (409)
 	CodeUsernameExists: "使用者名稱已存在",
 
+	// Not found errors (404)
+	CodeJourneyNotFound: "查無此旅程",
+
 	// Rate limiting errors (429)
 	CodeRateLimitExceeded: "請求次數過多,請稍後再試",
 

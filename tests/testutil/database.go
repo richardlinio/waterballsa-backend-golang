@@ -14,7 +14,7 @@ func CleanDatabase(ctx context.Context, pool *pgxpool.Pool) error {
 	// Truncate all tables and reset identity sequences
 	// CASCADE ensures that dependent records in other tables are also deleted
 	query := `
-		TRUNCATE TABLE users, journeys RESTART IDENTITY CASCADE;
+		TRUNCATE TABLE users, journeys, chapters, missions RESTART IDENTITY CASCADE;
 	`
 
 	_, err := pool.Exec(ctx, query)
@@ -77,4 +77,56 @@ func CreateTestJourney(
 	}
 
 	return journeyID, nil
+}
+
+// CreateTestChapter creates a chapter in the database with the given parameters
+// Returns the created chapter ID
+func CreateTestChapter(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	journeyID int64,
+	title string,
+	orderIndex int,
+) (int64, error) {
+	query := `
+		INSERT INTO chapters (journey_id, title, order_index)
+		VALUES ($1, $2, $3)
+		RETURNING id
+	`
+
+	var chapterID int64
+	err := pool.QueryRow(ctx, query, journeyID, title, orderIndex).Scan(&chapterID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create test chapter: %w", err)
+	}
+
+	return chapterID, nil
+}
+
+// CreateTestMission creates a mission in the database with the given parameters
+// Returns the created mission ID
+// missionType should be one of: VIDEO, ARTICLE, QUESTIONNAIRE
+// accessLevel should be one of: PUBLIC, AUTHENTICATED, PURCHASED
+func CreateTestMission(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	chapterID int64,
+	title string,
+	missionType string,
+	accessLevel string,
+	orderIndex int,
+) (int64, error) {
+	query := `
+		INSERT INTO missions (chapter_id, title, type, access_level, order_index)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+
+	var missionID int64
+	err := pool.QueryRow(ctx, query, chapterID, title, missionType, accessLevel, orderIndex).Scan(&missionID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create test mission: %w", err)
+	}
+
+	return missionID, nil
 }

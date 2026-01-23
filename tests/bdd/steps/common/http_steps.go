@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -41,6 +42,12 @@ func iSendRequestTo(ctx context.Context, method, path string) (context.Context, 
 	testServer, ok := ctx.Value(testcontext.ContextKeyTestServer).(*testcontext.TestServerWrapper)
 	if !ok {
 		return ctx, fmt.Errorf("test server not found in context")
+	}
+
+	// Replace variables in path (e.g., {{lastJourneyId}})
+	path, err := replaceVariablesInPath(ctx, path)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to replace variables in path: %w", err)
 	}
 
 	// Get request body if it was set
@@ -588,6 +595,39 @@ func getStoredVariableNames(vars map[string]any) []string {
 		names = append(names, name)
 	}
 	return names
+}
+
+// replaceVariablesInPath replaces {{variableName}} placeholders in URL paths with values from context
+// Supports: lastJourneyId, lastChapterId, lastMissionId
+func replaceVariablesInPath(ctx context.Context, path string) (string, error) {
+	// Regular expression to find {{variableName}} patterns
+	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
+
+	result := re.ReplaceAllStringFunc(path, func(match string) string {
+		// Extract variable name (remove {{ and }})
+		varName := strings.Trim(match, "{}")
+
+		// Get variable value from context based on name
+		switch varName {
+		case "lastJourneyId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastJourneyID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case "lastChapterId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastChapterID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case "lastMissionId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastMissionID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		}
+
+		// If variable not found, keep original placeholder
+		return match
+	})
+
+	return result, nil
 }
 
 // RegisterHTTPSteps registers all HTTP-related step definitions
