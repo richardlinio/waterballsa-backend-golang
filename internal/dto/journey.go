@@ -1,5 +1,7 @@
 package dto
 
+import "github.com/linporu/waterballsa-backend-golang/internal/model"
+
 // JourneyListResponse is the response for GET /journeys endpoint
 type JourneyListResponse struct {
 	Journeys []JourneyListItem `json:"journeys"`
@@ -43,4 +45,96 @@ type MissionSummaryDTO struct {
 	Title       string `json:"title"`
 	AccessLevel string `json:"accessLevel"`
 	OrderIndex  int    `json:"orderIndex"`
+}
+
+// ToJourneyListResponse converts journey domain models to JourneyListResponse DTO
+func ToJourneyListResponse(journeys []*model.Journey) JourneyListResponse {
+	if journeys == nil {
+		return JourneyListResponse{
+			Journeys: []JourneyListItem{},
+		}
+	}
+	items := make([]JourneyListItem, 0, len(journeys))
+	for _, journey := range journeys {
+		items = append(items, ToJourneyListItem(journey))
+	}
+	return JourneyListResponse{
+		Journeys: items,
+	}
+}
+
+// ToJourneyListItem converts a single journey domain model to JourneyListItem DTO
+func ToJourneyListItem(journey *model.Journey) JourneyListItem {
+	return JourneyListItem{
+		ID:            journey.ID,
+		Slug:          journey.Slug,
+		Title:         journey.Title,
+		Description:   journey.Description,
+		CoverImageURL: journey.CoverImageURL,
+		TeacherName:   journey.TeacherName,
+		Price:         journey.Price,
+	}
+}
+
+// ToJourneyDetailResponse converts domain models to JourneyDetailResponse DTO
+func ToJourneyDetailResponse(
+	journey *model.Journey,
+	chapters []*model.Chapter,
+	missionsByChapter map[int64][]*model.Mission,
+) JourneyDetailResponse {
+	return JourneyDetailResponse{
+		ID:            journey.ID,
+		Slug:          journey.Slug,
+		Title:         journey.Title,
+		Description:   journey.Description,
+		CoverImageURL: journey.CoverImageURL,
+		TeacherName:   journey.TeacherName,
+		Price:         journey.Price,
+		Chapters:      ToChapterDTOs(chapters, missionsByChapter),
+	}
+}
+
+// ToChapterDTOs converts chapters and missions to ChapterDTO slice
+func ToChapterDTOs(chapters []*model.Chapter, missionsByChapter map[int64][]*model.Mission) []ChapterDTO {
+	if chapters == nil {
+		return []ChapterDTO{}
+	}
+	chapterDTOs := make([]ChapterDTO, len(chapters))
+	for i, chapter := range chapters {
+		chapterDTOs[i] = ToChapterDTO(chapter, missionsByChapter[chapter.ID])
+	}
+	return chapterDTOs
+}
+
+// ToChapterDTO converts a single chapter with missions to ChapterDTO
+func ToChapterDTO(chapter *model.Chapter, missions []*model.Mission) ChapterDTO {
+	return ChapterDTO{
+		ID:         chapter.ID,
+		Title:      chapter.Title,
+		OrderIndex: chapter.OrderIndex,
+		Missions:   ToMissionSummaryDTOs(missions),
+	}
+}
+
+// ToMissionSummaryDTOs converts missions to MissionSummaryDTO slice
+func ToMissionSummaryDTOs(missions []*model.Mission) []MissionSummaryDTO {
+	if missions == nil {
+		return []MissionSummaryDTO{}
+	}
+	missionDTOs := make([]MissionSummaryDTO, len(missions))
+	for i, mission := range missions {
+		missionDTOs[i] = ToMissionSummaryDTO(mission)
+	}
+	return missionDTOs
+}
+
+// ToMissionSummaryDTO converts a single mission to MissionSummaryDTO
+func ToMissionSummaryDTO(mission *model.Mission) MissionSummaryDTO {
+	return MissionSummaryDTO{
+		ID:          mission.ID,
+		Type:        mission.Type,
+		Title:       mission.Title,
+		AccessLevel: mission.AccessLevel,
+		OrderIndex:  mission.OrderIndex,
+	}
 }
