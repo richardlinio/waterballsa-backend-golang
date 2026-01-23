@@ -38,7 +38,7 @@ func NewJourneyHandler(
 	}
 }
 
-func (h *JourneyHandler) GetJourneys(c *gin.Context) {
+func (h *JourneyHandler) ListJourneys(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), h.requestTimeout)
 	defer cancel()
 
