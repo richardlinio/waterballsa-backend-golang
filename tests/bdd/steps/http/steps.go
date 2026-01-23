@@ -1,4 +1,4 @@
-package common
+package http
 
 import (
 	"context"
@@ -630,8 +630,8 @@ func replaceVariablesInPath(ctx context.Context, path string) (string, error) {
 	return result, nil
 }
 
-// RegisterHTTPSteps registers all HTTP-related step definitions
-func RegisterHTTPSteps(sc *godog.ScenarioContext) {
+// RegisterSteps registers all HTTP-related step definitions
+func RegisterSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I set request body to:$`, iSetRequestBodyTo)
 	sc.Step(`^I send "([^"]*)" request to "([^"]*)"$`, iSendRequestTo)
 	sc.Step(`^the response status code should be (\d+)$`, theResponseStatusCodeShouldBe)
