@@ -73,6 +73,7 @@ func New() (*Application, error) {
 	accessTokenRepository := repository.NewAccessTokenRepository(queries)
 	refreshTokenRepository := repository.NewRefreshTokenRepository(queries)
 	journeyRepository := repository.NewJourneyRepository(queries)
+	missionRepository := repository.NewMissionRepository(queries)
 
 	// Initialize token generator (JWT token operations)
 	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
@@ -80,6 +81,7 @@ func New() (*Application, error) {
 	// Initialize service layer (business logic)
 	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator)
 	journeyService := service.NewJourneyService(journeyRepository)
+	missionService := service.NewMissionService(missionRepository)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
@@ -96,13 +98,14 @@ func New() (*Application, error) {
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
 	authHandler := handler.NewAuthHandler(authService, jwtMiddleware, cfg.JWT, log, cfg.Server.RequestTimeout)
 	journeyHandler := handler.NewJourneyHandler(journeyService, log, cfg.Server.RequestTimeout)
+	missionHandler := handler.NewMissionHandler(missionService, log, cfg.Server.RequestTimeout)
 
 	// Initialize blacklist checker middleware
 	blacklistChecker := middleware.BlacklistChecker(accessTokenRepository)
 
 	// Setup Gin router
 	ginRouter := gin.New()
-	r := router.NewRouter(ginRouter, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, jwtMiddleware, blacklistChecker)
+	r := router.NewRouter(ginRouter, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, missionHandler, jwtMiddleware, blacklistChecker)
 	r.Setup()
 
 	// Create HTTP server

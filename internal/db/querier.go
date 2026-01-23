@@ -15,7 +15,9 @@ type Querier interface {
 	DeleteExpiredTokens(ctx context.Context) error
 	ExistsUserByUsername(ctx context.Context, username string) (bool, error)
 	GetJourneyByID(ctx context.Context, id int64) (GetJourneyByIDRow, error)
+	GetMissionByID(ctx context.Context, id int64) (GetMissionByIDRow, error)
 	GetRefreshToken(ctx context.Context, tokenJti string) (RefreshToken, error)
+	GetRewardByMissionID(ctx context.Context, missionID int64) (GetRewardByMissionIDRow, error)
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
 	InvalidateToken(ctx context.Context, arg InvalidateTokenParams) error
@@ -23,6 +25,7 @@ type Querier interface {
 	ListChaptersByJourneyID(ctx context.Context, journeyID int64) ([]ListChaptersByJourneyIDRow, error)
 	ListJourneys(ctx context.Context) ([]ListJourneysRow, error)
 	ListMissionsByChapterIDs(ctx context.Context, dollar_1 []int64) ([]ListMissionsByChapterIDsRow, error)
+	ListResourcesByMissionID(ctx context.Context, missionID int64) ([]ListResourcesByMissionIDRow, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
 	RevokeRefreshToken(ctx context.Context, tokenJti string) error
 }

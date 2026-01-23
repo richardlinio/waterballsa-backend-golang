@@ -16,6 +16,7 @@ var httpStatusMap = map[string]int{
 
 	// Not found errors (404)
 	CodeJourneyNotFound: http.StatusNotFound,
+	CodeMissionNotFound: http.StatusNotFound,
 
 	// Rate limiting errors (429)
 	CodeRateLimitExceeded: http.StatusTooManyRequests,

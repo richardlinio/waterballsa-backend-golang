@@ -14,6 +14,7 @@ var errorMessages = map[string]string{
 
 	// Not found errors (404)
 	CodeJourneyNotFound: "查無此旅程",
+	CodeMissionNotFound: "查無此任務",
 
 	// Rate limiting errors (429)
 	CodeRateLimitExceeded: "請求次數過多,請稍後再試",

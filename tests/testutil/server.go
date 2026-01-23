@@ -93,6 +93,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	accessTokenRepository := repository.NewAccessTokenRepository(queries)
 	refreshTokenRepository := repository.NewRefreshTokenRepository(queries)
 	journeyRepository := repository.NewJourneyRepository(queries)
+	missionRepository := repository.NewMissionRepository(queries)
 
 	// Initialize token generator
 	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
@@ -100,6 +101,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	// Initialize service layer
 	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator)
 	journeyService := service.NewJourneyService(journeyRepository)
+	missionService := service.NewMissionService(missionRepository)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
@@ -116,6 +118,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	healthHandler := handler.NewHealthHandler(pool, log, cfg.Server.RequestTimeout)
 	authHandler := handler.NewAuthHandler(authService, jwtMiddleware, cfg.JWT, log, cfg.Server.RequestTimeout)
 	journeyHandler := handler.NewJourneyHandler(journeyService, log, cfg.Server.RequestTimeout)
+	missionHandler := handler.NewMissionHandler(missionService, log, cfg.Server.RequestTimeout)
 
 	// Initialize blacklist checker middleware
 	//nolint:contextcheck // False positive: middleware correctly captures context from c.Request.Context() at request time
@@ -124,7 +127,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	// Setup Gin router with test mode
 	gin.SetMode(gin.TestMode)
 	ginEngine := gin.New()
-	r := router.NewRouter(ginEngine, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, jwtMiddleware, blacklistChecker)
+	r := router.NewRouter(ginEngine, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, missionHandler, jwtMiddleware, blacklistChecker)
 	r.Setup()
 
 	return &TestServer{

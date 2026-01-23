@@ -86,3 +86,7 @@ func RateLimitExceeded() *AppError {
 func JourneyNotFound() *AppError {
 	return New(CodeJourneyNotFound)
 }
+
+func MissionNotFound() *AppError {
+	return New(CodeMissionNotFound)
+}
