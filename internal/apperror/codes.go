@@ -16,6 +16,7 @@ const (
 
 	// Not found errors (404 - Not Found)
 	CodeJourneyNotFound = "ERR_JOURNEY_NOT_FOUND"
+	CodeMissionNotFound = "ERR_MISSION_NOT_FOUND"
 
 	// Rate limiting errors (429 - Too Many Requests)
 	CodeRateLimitExceeded = "ERR_RATE_LIMIT_EXCEEDED"

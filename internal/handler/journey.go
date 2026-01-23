@@ -17,7 +17,7 @@ import (
 // journeyService defines the journey service operations needed by the handler
 type journeyService interface {
 	List(ctx context.Context) ([]*model.Journey, error)
-	GetDetail(ctx context.Context, journeyID int64) (*model.Journey, []*model.Chapter, map[int64][]*model.Mission, error)
+	GetDetail(ctx context.Context, journeyID int64) (*model.JourneyDetail, error)
 }
 
 type JourneyHandler struct {
@@ -65,12 +65,12 @@ func (h *JourneyHandler) GetJourneyDetail(c *gin.Context) {
 	}
 
 	// Get journey detail from service
-	journey, chapters, missionsByChapter, err := h.journeyService.GetDetail(ctx, journeyID)
+	detail, err := h.journeyService.GetDetail(ctx, journeyID)
 	if err != nil {
 		_ = c.Error(err)
 		return
 	}
 
-	response := dto.ToJourneyDetailResponse(journey, chapters, missionsByChapter)
+	response := dto.ToJourneyDetailResponse(detail)
 	c.JSON(http.StatusOK, response)
 }

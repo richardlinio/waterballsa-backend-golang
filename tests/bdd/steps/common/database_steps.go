@@ -203,6 +203,12 @@ func theDatabaseHasAMission(ctx context.Context, table *godog.Table) (context.Co
 		return ctx, fmt.Errorf("title not found in table")
 	}
 
+	// Extract description (optional field)
+	description, ok := missionData["description"]
+	if !ok {
+		description = "" // Optional field
+	}
+
 	// Extract type (VIDEO, ARTICLE, QUESTIONNAIRE)
 	missionType, ok := missionData["type"]
 	if !ok {
@@ -232,6 +238,7 @@ func theDatabaseHasAMission(ctx context.Context, table *godog.Table) (context.Co
 		testServer.Server.Pool,
 		chapterID,
 		title,
+		description,
 		missionType,
 		accessLevel,
 		orderIndex,
@@ -242,6 +249,162 @@ func theDatabaseHasAMission(ctx context.Context, table *godog.Table) (context.Co
 
 	// Store mission ID in context for use by other steps
 	ctx = context.WithValue(ctx, testcontext.ContextKeyLastMissionID, missionID)
+
+	return ctx, nil
+}
+
+// theDatabaseHasAReward creates a test reward in the database from a Gherkin data table
+// Expected table format:
+//
+//	| mission_id   | {{lastMissionId}} |
+//	| reward_type  | EXPERIENCE        |
+//	| reward_value | 100               |
+func theDatabaseHasAReward(ctx context.Context, table *godog.Table) (context.Context, error) {
+	// Get test server from suite context
+	testServer, ok := ctx.Value(testcontext.ContextKeyTestServer).(*testcontext.TestServerWrapper)
+	if !ok {
+		return ctx, fmt.Errorf("test server not found in context")
+	}
+
+	// Parse table into a map
+	rewardData, err := parseTableToMap(table)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to parse reward data table: %w", err)
+	}
+
+	// Extract mission_id (with variable substitution support)
+	missionIDStr, ok := rewardData["mission_id"]
+	if !ok {
+		return ctx, fmt.Errorf("mission_id not found in table")
+	}
+	missionIDStr, err = replaceVariables(ctx, missionIDStr)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to replace variables in mission_id: %w", err)
+	}
+
+	var missionID int64
+	if _, err := fmt.Sscanf(missionIDStr, "%d", &missionID); err != nil {
+		return ctx, fmt.Errorf("failed to parse mission_id '%s': %w", missionIDStr, err)
+	}
+
+	// Extract reward_type
+	rewardType, ok := rewardData["reward_type"]
+	if !ok {
+		return ctx, fmt.Errorf("reward_type not found in table")
+	}
+
+	// Extract reward_value
+	rewardValueStr, ok := rewardData["reward_value"]
+	if !ok {
+		return ctx, fmt.Errorf("reward_value not found in table")
+	}
+
+	var rewardValue int
+	if _, err := fmt.Sscanf(rewardValueStr, "%d", &rewardValue); err != nil {
+		return ctx, fmt.Errorf("failed to parse reward_value '%s': %w", rewardValueStr, err)
+	}
+
+	// Create test reward in database
+	_, err = testutil.CreateTestReward(
+		ctx,
+		testServer.Server.Pool,
+		missionID,
+		rewardType,
+		rewardValue,
+	)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to create test reward: %w", err)
+	}
+
+	// No need to store reward ID in context (not referenced in tests)
+
+	return ctx, nil
+}
+
+// theDatabaseHasAMissionResource creates a test mission resource in the database from a Gherkin data table
+// Expected table format:
+//
+//	| mission_id       | {{lastMissionId}}              |
+//	| type             | VIDEO                          |
+//	| resource_url     | https://example.com/video.m3u8 |
+//	| content_order    | 0                              |
+//	| duration_seconds | 256                            |
+func theDatabaseHasAMissionResource(ctx context.Context, table *godog.Table) (context.Context, error) {
+	// Get test server from suite context
+	testServer, ok := ctx.Value(testcontext.ContextKeyTestServer).(*testcontext.TestServerWrapper)
+	if !ok {
+		return ctx, fmt.Errorf("test server not found in context")
+	}
+
+	// Parse table into a map
+	resourceData, err := parseTableToMap(table)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to parse mission resource data table: %w", err)
+	}
+
+	// Extract mission_id (with variable substitution support)
+	missionIDStr, ok := resourceData["mission_id"]
+	if !ok {
+		return ctx, fmt.Errorf("mission_id not found in table")
+	}
+	missionIDStr, err = replaceVariables(ctx, missionIDStr)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to replace variables in mission_id: %w", err)
+	}
+
+	var missionID int64
+	if _, err := fmt.Sscanf(missionIDStr, "%d", &missionID); err != nil {
+		return ctx, fmt.Errorf("failed to parse mission_id '%s': %w", missionIDStr, err)
+	}
+
+	// Extract type (maps to resource_type in database)
+	resourceType, ok := resourceData["type"]
+	if !ok {
+		return ctx, fmt.Errorf("type not found in table")
+	}
+
+	// Extract resource_url
+	resourceURL, ok := resourceData["resource_url"]
+	if !ok {
+		return ctx, fmt.Errorf("resource_url not found in table")
+	}
+
+	// Extract content_order
+	contentOrderStr, ok := resourceData["content_order"]
+	if !ok {
+		return ctx, fmt.Errorf("content_order not found in table")
+	}
+
+	var contentOrder int
+	if _, err := fmt.Sscanf(contentOrderStr, "%d", &contentOrder); err != nil {
+		return ctx, fmt.Errorf("failed to parse content_order '%s': %w", contentOrderStr, err)
+	}
+
+	// Extract duration_seconds (optional, nullable field)
+	var durationSeconds *int
+	if durationSecondsStr, ok := resourceData["duration_seconds"]; ok {
+		var duration int
+		if _, err := fmt.Sscanf(durationSecondsStr, "%d", &duration); err != nil {
+			return ctx, fmt.Errorf("failed to parse duration_seconds '%s': %w", durationSecondsStr, err)
+		}
+		durationSeconds = &duration
+	}
+
+	// Create test mission resource in database
+	_, err = testutil.CreateTestMissionResource(
+		ctx,
+		testServer.Server.Pool,
+		missionID,
+		resourceType,
+		resourceURL,
+		contentOrder,
+		durationSeconds,
+	)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to create test mission resource: %w", err)
+	}
+
+	// No need to store resource ID in context (not referenced in tests)
 
 	return ctx, nil
 }
@@ -363,4 +526,6 @@ func RegisterDatabaseSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the database has a journey:$`, theDatabaseHasAJourney)
 	sc.Step(`^the database has a chapter:$`, theDatabaseHasAChapter)
 	sc.Step(`^the database has a mission:$`, theDatabaseHasAMission)
+	sc.Step(`^the database has a reward:$`, theDatabaseHasAReward)
+	sc.Step(`^the database has a mission resource:$`, theDatabaseHasAMissionResource)
 }

@@ -76,21 +76,17 @@ func ToJourneyListItem(journey *model.Journey) JourneyListItem {
 	}
 }
 
-// ToJourneyDetailResponse converts domain models to JourneyDetailResponse DTO
-func ToJourneyDetailResponse(
-	journey *model.Journey,
-	chapters []*model.Chapter,
-	missionsByChapter map[int64][]*model.Mission,
-) JourneyDetailResponse {
+// ToJourneyDetailResponse converts JourneyDetail domain model to JourneyDetailResponse DTO
+func ToJourneyDetailResponse(detail *model.JourneyDetail) JourneyDetailResponse {
 	return JourneyDetailResponse{
-		ID:            journey.ID,
-		Slug:          journey.Slug,
-		Title:         journey.Title,
-		Description:   journey.Description,
-		CoverImageURL: journey.CoverImageURL,
-		TeacherName:   journey.TeacherName,
-		Price:         journey.Price,
-		Chapters:      ToChapterDTOs(chapters, missionsByChapter),
+		ID:            detail.Journey.ID,
+		Slug:          detail.Journey.Slug,
+		Title:         detail.Journey.Title,
+		Description:   detail.Journey.Description,
+		CoverImageURL: detail.Journey.CoverImageURL,
+		TeacherName:   detail.Journey.TeacherName,
+		Price:         detail.Journey.Price,
+		Chapters:      ToChapterDTOs(detail.Chapters, detail.MissionsByChapter),
 	}
 }
 

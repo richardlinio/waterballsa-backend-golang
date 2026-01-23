@@ -21,6 +21,7 @@ type Router struct {
 	healthHandler    *handler.HealthHandler
 	authHandler      *handler.AuthHandler
 	journeyHandler   *handler.JourneyHandler
+	missionHandler   *handler.MissionHandler
 	jwtMiddleware    *jwt.GinJWTMiddleware
 	blacklistChecker gin.HandlerFunc
 }
@@ -34,6 +35,7 @@ func NewRouter(
 	healthHandler *handler.HealthHandler,
 	authHandler *handler.AuthHandler,
 	journeyHandler *handler.JourneyHandler,
+	missionHandler *handler.MissionHandler,
 	jwtMiddleware *jwt.GinJWTMiddleware,
 	blacklistChecker gin.HandlerFunc,
 ) *Router {
@@ -46,6 +48,7 @@ func NewRouter(
 		healthHandler:    healthHandler,
 		authHandler:      authHandler,
 		journeyHandler:   journeyHandler,
+		missionHandler:   missionHandler,
 		jwtMiddleware:    jwtMiddleware,
 		blacklistChecker: blacklistChecker,
 	}
@@ -65,6 +68,7 @@ func (r *Router) Setup() {
 	r.setupHealthRoutes()
 	r.setupAuthRoutes()
 	r.setupJourneyRoutes()
+	r.setupMissionRoutes()
 }
 
 func (r *Router) setupRequestIDMiddleware() {
@@ -114,4 +118,8 @@ func (r *Router) setupAuthRoutes() {
 func (r *Router) setupJourneyRoutes() {
 	r.engine.GET("/journeys", r.journeyHandler.ListJourneys)
 	r.engine.GET("/journeys/:journeyId", r.journeyHandler.GetJourneyDetail)
+}
+
+func (r *Router) setupMissionRoutes() {
+	r.engine.GET("/journeys/:journeyId/missions/:missionId", r.missionHandler.GetMissionDetail)
 }
