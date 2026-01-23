@@ -1,10 +1,14 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
+
+	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
 )
 
 // defaultHTTPClient is a shared HTTP client for all test requests
@@ -123,4 +127,37 @@ func toFloat64(val any) (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+// replaceVariablesInPath replaces {{variableName}} placeholders in URL paths with values from context
+// Supports: lastJourneyId, lastChapterId, lastMissionId
+func replaceVariablesInPath(ctx context.Context, path string) (string, error) {
+	// Regular expression to find {{variableName}} patterns
+	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
+
+	result := re.ReplaceAllStringFunc(path, func(match string) string {
+		// Extract variable name (remove {{ and }})
+		varName := strings.Trim(match, "{}")
+
+		// Get variable value from context based on name
+		switch varName {
+		case "lastJourneyId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastJourneyID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case "lastChapterId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastChapterID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case "lastMissionId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastMissionID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		}
+
+		// If variable not found, keep original placeholder
+		return match
+	})
+
+	return result, nil
 }

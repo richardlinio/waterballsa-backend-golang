@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/cucumber/godog"
@@ -133,43 +132,9 @@ func iSetAuthorizationHeaderTo(ctx context.Context, tokenPlaceholder string) (co
 	return context.WithValue(ctx, testcontext.ContextKeyAuthHeader, authHeader), nil
 }
 
-// replaceVariablesInPath replaces {{variableName}} placeholders in URL paths with values from context
-// Supports: lastJourneyId, lastChapterId, lastMissionId
-func replaceVariablesInPath(ctx context.Context, path string) (string, error) {
-	// Regular expression to find {{variableName}} patterns
-	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
-
-	result := re.ReplaceAllStringFunc(path, func(match string) string {
-		// Extract variable name (remove {{ and }})
-		varName := strings.Trim(match, "{}")
-
-		// Get variable value from context based on name
-		switch varName {
-		case "lastJourneyId":
-			if val, ok := ctx.Value(testcontext.ContextKeyLastJourneyID).(int64); ok {
-				return fmt.Sprintf("%d", val)
-			}
-		case "lastChapterId":
-			if val, ok := ctx.Value(testcontext.ContextKeyLastChapterID).(int64); ok {
-				return fmt.Sprintf("%d", val)
-			}
-		case "lastMissionId":
-			if val, ok := ctx.Value(testcontext.ContextKeyLastMissionID).(int64); ok {
-				return fmt.Sprintf("%d", val)
-			}
-		}
-
-		// If variable not found, keep original placeholder
-		return match
-	})
-
-	return result, nil
-}
-
 // RegisterRequestSteps registers request-related step definitions
 func RegisterRequestSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I set request body to:$`, iSetRequestBodyTo)
 	sc.Step(`^I send "([^"]*)" request to "([^"]*)"$`, iSendRequestTo)
-	sc.Step(`^I set cookie "([^"]*)" to "([^"]*)"$`, iSetCookie)
 	sc.Step(`^I set Authorization header to "([^"]*)"$`, iSetAuthorizationHeaderTo)
 }
