@@ -14,6 +14,7 @@ type Querier interface {
 	DeleteExpiredRefreshTokens(ctx context.Context) error
 	DeleteExpiredTokens(ctx context.Context) error
 	ExistsUserByUsername(ctx context.Context, username string) (bool, error)
+	GetAllJourneys(ctx context.Context) ([]GetAllJourneysRow, error)
 	GetRefreshToken(ctx context.Context, tokenJti string) (RefreshToken, error)
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
