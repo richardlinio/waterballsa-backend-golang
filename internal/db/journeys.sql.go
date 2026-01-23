@@ -11,14 +11,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getAllJourneys = `-- name: GetAllJourneys :many
+const listJourneys = `-- name: ListJourneys :many
 SELECT id, title, slug, description, cover_image_url, teacher_name, price, created_at, updated_at
 FROM journeys
 WHERE deleted_at IS NULL
 ORDER BY created_at ASC
 `
 
-type GetAllJourneysRow struct {
+type ListJourneysRow struct {
 	ID            int64            `json:"id"`
 	Title         string           `json:"title"`
 	Slug          string           `json:"slug"`
@@ -30,15 +30,15 @@ type GetAllJourneysRow struct {
 	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
 }
 
-func (q *Queries) GetAllJourneys(ctx context.Context) ([]GetAllJourneysRow, error) {
-	rows, err := q.db.Query(ctx, getAllJourneys)
+func (q *Queries) ListJourneys(ctx context.Context) ([]ListJourneysRow, error) {
+	rows, err := q.db.Query(ctx, listJourneys)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetAllJourneysRow{}
+	items := []ListJourneysRow{}
 	for rows.Next() {
-		var i GetAllJourneysRow
+		var i ListJourneysRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
