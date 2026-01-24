@@ -5,6 +5,7 @@ var errorMessages = map[string]string{
 	CodeValidationFailed:     "使用者名稱或密碼格式無效",
 	CodePasswordTooLong:      "使用者名稱或密碼格式無效",
 	CodeInvalidWatchPosition: "觀看位置無效：必須介於 0 和影片長度之間",
+	CodeMissionNotCompleted:  "任務尚未完成",
 
 	// Auth errors (401 - Unauthorized) - use generic message to avoid leaking information
 	CodeAuthFailed:   "使用者名稱或密碼無效", // Same message for all auth failures (user not found, wrong password, rate limited)
@@ -19,7 +20,8 @@ var errorMessages = map[string]string{
 	CodeProgressNotFound: "找不到進度記錄",
 
 	// Conflict errors (409 - Conflict)
-	CodeUsernameExists: "使用者名稱已存在",
+	CodeUsernameExists:          "使用者名稱已存在",
+	CodeMissionAlreadyDelivered: "任務已經交付過了",
 
 	// Rate limiting errors (429)
 	CodeRateLimitExceeded: "請求次數過多,請稍後再試",
