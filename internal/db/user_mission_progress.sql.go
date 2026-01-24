@@ -13,24 +13,26 @@ import (
 
 const getUserMissionProgress = `-- name: GetUserMissionProgress :one
 SELECT
-    id,
-    user_id,
-    mission_id,
-    status,
-    watch_position_seconds,
-    created_at,
-    updated_at
+    COALESCE(p.id, 0) as id,
+    $1::bigint as user_id,
+    m.id as mission_id,
+    COALESCE(p.status, 'UNCOMPLETED'::progress_status) as status,
+    COALESCE(p.watch_position_seconds, 0) as watch_position_seconds,
+    COALESCE(p.created_at, NOW()) as created_at,
+    COALESCE(p.updated_at, NOW()) as updated_at
 FROM
-    user_mission_progress
+    missions m
+LEFT JOIN
+    user_mission_progress p
+    ON m.id = p.mission_id AND p.user_id = $1 AND p.deleted_at IS NULL
 WHERE
-    user_id = $1
-    AND mission_id = $2
-    AND deleted_at IS NULL
+    m.id = $2
+    AND m.deleted_at IS NULL
 `
 
 type GetUserMissionProgressParams struct {
-	UserID    int64 `json:"user_id"`
-	MissionID int64 `json:"mission_id"`
+	Column1 int64 `json:"column_1"`
+	ID      int64 `json:"id"`
 }
 
 type GetUserMissionProgressRow struct {
@@ -44,7 +46,7 @@ type GetUserMissionProgressRow struct {
 }
 
 func (q *Queries) GetUserMissionProgress(ctx context.Context, arg GetUserMissionProgressParams) (GetUserMissionProgressRow, error) {
-	row := q.db.QueryRow(ctx, getUserMissionProgress, arg.UserID, arg.MissionID)
+	row := q.db.QueryRow(ctx, getUserMissionProgress, arg.Column1, arg.ID)
 	var i GetUserMissionProgressRow
 	err := row.Scan(
 		&i.ID,
@@ -59,19 +61,13 @@ func (q *Queries) GetUserMissionProgress(ctx context.Context, arg GetUserMission
 }
 
 const upsertUserMissionProgress = `-- name: UpsertUserMissionProgress :one
-INSERT INTO user_mission_progress (
-    user_id,
-    mission_id,
-    status,
-    watch_position_seconds,
-    created_at,
-    updated_at
-)
-VALUES (
-    $1, $2, $3, $4, NOW(), NOW()
-)
-ON CONFLICT (user_id, mission_id)
-DO UPDATE SET
+INSERT INTO
+    user_mission_progress (user_id, mission_id, status, watch_position_seconds, created_at, updated_at)
+VALUES
+    ($1, $2, $3, $4, NOW(), NOW()) ON CONFLICT (user_id, mission_id)
+DO
+UPDATE
+SET
     status = EXCLUDED.status,
     watch_position_seconds = EXCLUDED.watch_position_seconds,
     updated_at = NOW()
