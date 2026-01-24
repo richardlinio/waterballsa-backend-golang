@@ -2,7 +2,10 @@ package testutil
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
@@ -14,7 +17,9 @@ func CleanDatabase(ctx context.Context, pool *pgxpool.Pool) error {
 	// Truncate all tables and reset identity sequences
 	// CASCADE ensures that dependent records in other tables are also deleted
 	query := `
-		TRUNCATE TABLE users, journeys, chapters, missions, rewards, mission_resources, user_mission_progress RESTART IDENTITY CASCADE;
+		TRUNCATE TABLE users, journeys, chapters, missions, rewards, mission_resources,
+		             user_mission_progress, orders, order_items, user_journeys
+		RESTART IDENTITY CASCADE;
 	`
 
 	_, err := pool.Exec(ctx, query)
@@ -209,4 +214,80 @@ func CreateTestUserMissionProgress(
 	}
 
 	return progressID, nil
+}
+
+// CreateTestOrder creates an order in the database with the given parameters
+// Returns the created order ID
+// status should be one of: UNPAID, PAID, EXPIRED
+func CreateTestOrder(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	userID int64,
+	journeyID int64,
+	status string,
+) (int64, error) {
+	// Generate order number using pattern: {timestamp}{userId}{randomCode}
+	orderNumber := generateOrderNumber(userID)
+
+	// Get journey price for calculating order amounts
+	var price float64
+	priceQuery := `SELECT price FROM journeys WHERE id = $1`
+	err := pool.QueryRow(ctx, priceQuery, journeyID).Scan(&price)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get journey price: %w", err)
+	}
+
+	// Insert order
+	query := `
+		INSERT INTO orders (order_number, user_id, status, original_price, discount, price)
+		VALUES ($1, $2, $3, $4, 0, $4)
+		RETURNING id
+	`
+
+	var orderID int64
+	err = pool.QueryRow(ctx, query, orderNumber, userID, status, price).Scan(&orderID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create test order: %w", err)
+	}
+
+	// Insert order item
+	itemQuery := `
+		INSERT INTO order_items (order_id, journey_id, quantity, original_price, discount, price)
+		VALUES ($1, $2, 1, $3, 0, $3)
+	`
+	_, err = pool.Exec(ctx, itemQuery, orderID, journeyID, price)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create order item: %w", err)
+	}
+
+	// Insert user_journeys if status is PAID
+	if status == "PAID" {
+		journeyQuery := `
+			INSERT INTO user_journeys (user_id, journey_id, order_id)
+			VALUES ($1, $2, $3)
+		`
+		_, err = pool.Exec(ctx, journeyQuery, userID, journeyID, orderID)
+		if err != nil {
+			return 0, fmt.Errorf("failed to create user journey: %w", err)
+		}
+	}
+
+	return orderID, nil
+}
+
+// generateOrderNumber generates an order number using pattern: {timestamp}{userId}{randomCode}
+func generateOrderNumber(userID int64) string {
+	timestamp := time.Now().Unix()
+
+	// Generate cryptographically secure random number between 0-9999
+	var randomBytes [2]byte
+	_, err := rand.Read(randomBytes[:])
+	if err != nil {
+		// Fallback to timestamp-based value if crypto/rand fails
+		randomCode := timestamp % 10000
+		return fmt.Sprintf("%d%d%04d", timestamp, userID, randomCode)
+	}
+	randomCode := binary.BigEndian.Uint16(randomBytes[:]) % 10000
+
+	return fmt.Sprintf("%d%d%04d", timestamp, userID, randomCode)
 }

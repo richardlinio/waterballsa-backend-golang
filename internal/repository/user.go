@@ -90,3 +90,31 @@ func (r *UserRepository) Create(ctx context.Context, username, passwordHash stri
 func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
 	return r.queries.ExistsUserByUsername(ctx, username)
 }
+
+// UpdateExperience updates user's experience points and level
+func (r *UserRepository) UpdateExperience(ctx context.Context, userID int64, experiencePoints, level int32) (*model.User, error) {
+	row, err := r.queries.UpdateUserExperience(ctx, db.UpdateUserExperienceParams{
+		ID:               userID,
+		ExperiencePoints: experiencePoints,
+		Level:            level,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	user := &model.User{
+		ID:               row.ID,
+		Username:         row.Username,
+		PasswordHash:     row.PasswordHash,
+		Role:             string(row.Role),
+		ExperiencePoints: row.ExperiencePoints,
+		Level:            row.Level,
+		CreatedAt:        row.CreatedAt.Time,
+		UpdatedAt:        row.UpdatedAt.Time,
+	}
+
+	return user, nil
+}

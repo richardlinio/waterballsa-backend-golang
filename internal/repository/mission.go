@@ -12,6 +12,9 @@ import (
 // ErrMissionNotFound is returned when a mission is not found in the database
 var ErrMissionNotFound = errors.New("mission not found")
 
+// ErrRewardNotFound is returned when a reward is not found in the database
+var ErrRewardNotFound = errors.New("reward not found")
+
 // MissionRepository implements mission data access operations using sqlc generated queries.
 type MissionRepository struct {
 	queries db.Querier
@@ -51,10 +54,13 @@ func (r *MissionRepository) GetByID(ctx context.Context, id int64) (*model.Missi
 }
 
 // GetRewardByMissionID retrieves the reward for a mission
-// Returns database error if the query fails
+// Returns ErrRewardNotFound if no reward is configured for the mission
 func (r *MissionRepository) GetRewardByMissionID(ctx context.Context, missionID int64) (*model.Reward, error) {
 	row, err := r.queries.GetRewardByMissionID(ctx, missionID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrRewardNotFound
+		}
 		return nil, err
 	}
 

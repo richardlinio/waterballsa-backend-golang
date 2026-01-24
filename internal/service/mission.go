@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
 	"github.com/linporu/waterballsa-backend-golang/internal/model"
 	"github.com/linporu/waterballsa-backend-golang/internal/repository"
@@ -41,11 +40,11 @@ func (s *MissionService) GetDetail(ctx context.Context, missionID int64) (*model
 		return nil, apperror.DatabaseError(err)
 	}
 
-	// Get reward for this mission (no reward means pgx.ErrNoRows, which we handle gracefully)
+	// Get reward for this mission (no reward means repository.ErrRewardNotFound, which we handle gracefully)
 	reward, err := s.missionRepository.GetRewardByMissionID(ctx, missionID)
 	if err != nil {
 		// If no reward found, continue with nil reward (not an error)
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, repository.ErrRewardNotFound) {
 			reward = nil
 		} else {
 			return nil, apperror.DatabaseError(err)

@@ -5,6 +5,7 @@ const (
 	CodeValidationFailed     = "ERR_VALIDATION_FAILED"
 	CodePasswordTooLong      = "ERR_PASSWORD_TOO_LONG"
 	CodeInvalidWatchPosition = "ERR_INVALID_WATCH_POSITION"
+	CodeMissionNotCompleted  = "ERR_MISSION_NOT_COMPLETED"
 
 	// Auth errors (401 - Unauthorized)
 	// Note: Use CodeAuthFailed for all authentication failures (login failed, wrong credentials, rate limited)
@@ -21,7 +22,8 @@ const (
 	CodeProgressNotFound = "ERR_PROGRESS_NOT_FOUND"
 
 	// Conflict errors (409 - Conflict)
-	CodeUsernameExists = "ERR_USERNAME_EXISTS"
+	CodeUsernameExists          = "ERR_USERNAME_EXISTS"
+	CodeMissionAlreadyDelivered = "ERR_MISSION_ALREADY_DELIVERED"
 
 	// Rate limiting errors (429 - Too Many Requests)
 	CodeRateLimitExceeded = "ERR_RATE_LIMIT_EXCEEDED"

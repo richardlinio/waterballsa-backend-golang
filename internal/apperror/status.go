@@ -7,6 +7,7 @@ var httpStatusMap = map[string]int{
 	CodeValidationFailed:     http.StatusBadRequest,
 	CodePasswordTooLong:      http.StatusBadRequest,
 	CodeInvalidWatchPosition: http.StatusBadRequest,
+	CodeMissionNotCompleted:  http.StatusBadRequest,
 
 	// Auth errors (401 - Unauthorized)
 	CodeAuthFailed:   http.StatusUnauthorized, // Login failures, wrong credentials, rate limited
@@ -21,7 +22,8 @@ var httpStatusMap = map[string]int{
 	CodeProgressNotFound: http.StatusNotFound,
 
 	// Conflict errors (409 - Conflict)
-	CodeUsernameExists: http.StatusConflict,
+	CodeUsernameExists:          http.StatusConflict,
+	CodeMissionAlreadyDelivered: http.StatusConflict,
 
 	// Rate limiting errors (429)
 	CodeRateLimitExceeded: http.StatusTooManyRequests,

@@ -102,3 +102,11 @@ func InvalidWatchPosition() *AppError {
 func ProgressForbidden() *AppError {
 	return New(CodeProgressForbidden)
 }
+
+func MissionNotCompleted() *AppError {
+	return New(CodeMissionNotCompleted)
+}
+
+func MissionAlreadyDelivered() *AppError {
+	return New(CodeMissionAlreadyDelivered)
+}

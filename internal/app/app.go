@@ -83,7 +83,7 @@ func New() (*Application, error) {
 	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator)
 	journeyService := service.NewJourneyService(journeyRepository)
 	missionService := service.NewMissionService(missionRepository)
-	progressService := service.NewProgressService(progressRepository, missionRepository)
+	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
