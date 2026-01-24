@@ -1,232 +1,60 @@
-# Reference Guide: ISA Feature Analysis & Implementation
+# Reference Guide: ISA Feature Analysis
 
-This document provides quick-reference information for the analyze-isa-feature skill.
+本參考指南補充 SKILL.md 的執行步驟，提供額外的模式範例與注意事項。
 
-## Project Structure
+## 專案結構
 
 ```
 waterballsa-backend-golang/
-├── cmd/server/              # Application entry point
+├── cmd/server/              # 程式入口
 ├── internal/
-│   ├── app/                 # App lifecycle (init, shutdown)
-│   ├── config/              # Environment config loading
 │   ├── handler/             # HTTP handlers (presentation)
 │   ├── service/             # Business logic
-│   ├── repository/          # Data access layer
+│   ├── repository/          # Data access
 │   ├── dto/                 # Request/Response DTOs
 │   ├── model/               # Domain models
+│   ├── db/queries/          # SQLc 查詢定義
+│   ├── apperror/            # 錯誤定義
 │   ├── middleware/          # HTTP middleware
-│   ├── router/              # Route registration
-│   ├── validator/           # Custom validators
-│   ├── util/                # Helper functions
-│   ├── infrastructure/      # Infrastructure setup
-│   │   ├── database/        # pgxpool connection
-│   │   ├── logger/          # slog logger
-│   │   └── server/          # HTTP server config
-│   └── db/                  # SQLc generated code
-│       ├── queries/         # SQL query definitions
-│       └── *.sql.go         # Generated Go code
-├── migrations/              # Goose database migrations
-├── tests/
-│   ├── bdd/                 # BDD test infrastructure
-│   │   ├── features/        # Gherkin .feature files
-│   │   │   └── isa/         # ISA layer tests
-│   │   └── steps/           # Step definitions
-│   │       ├── database/    # DB setup steps
-│   │       └── http/        # HTTP request/response steps
-│   └── testutil/            # Test utilities
+│   ├── router/              # 路由註冊
+│   └── app/                 # 依賴注入
+├── migrations/              # Goose migrations
+├── tests/bdd/
+│   ├── features/isa/        # ISA feature 檔案
+│   └── steps/               # Step definitions
 └── docs/
-    ├── api-docs/            # OpenAPI specifications
-    │   ├── swagger.yaml     # Main API doc
-    │   └── openapi/
-    │       ├── paths/       # Endpoint definitions
-    │       └── schemas/     # Request/Response schemas
-    └── db-schema.dbml       # Database schema documentation
+    ├── api-docs/swagger.yaml
+    └── db-schema.dbml
 ```
 
-## Layer Architecture Pattern
+## 分層架構職責
 
-### 1. Handler Layer (Presentation)
+### Handler (Presentation)
+- 提取路徑/查詢參數
+- 綁定 JSON 請求
+- 驗證使用者授權
+- 呼叫 service
+- 轉換為 DTO
+- 回傳 HTTP 回應
 
-**Location:** `internal/handler/*_handler.go`
+### Service (Business Logic)
+- 驗證業務規則
+- 協調多個 repository 呼叫
+- 計算衍生值
+- 狀態轉換邏輯
+- 用 AppError 包裝錯誤
 
-**Responsibilities:**
+### Repository (Data Access)
+- 執行 SQLc queries
+- 轉換 sqlc models 為 domain models
+- 處理資料庫錯誤
+- 管理 transactions
 
-- Extract path/query parameters
-- Bind JSON request bodies
-- Validate user authorization
-- Call service layer
-- Convert domain models to DTOs
-- Return HTTP responses
-- Pass errors to middleware
+## 常見模式
 
-**Pattern:**
+### 授權檢查
 
 ```go
-type FooHandler struct {
-    service *service.FooService
-    logger  *slog.Logger
-    timeout time.Duration
-}
-
-func NewFooHandler(service *service.FooService, logger *slog.Logger, timeout time.Duration) *FooHandler {
-    return &FooHandler{
-        service: service,
-        logger:  logger,
-        timeout: timeout,
-    }
-}
-
-func (h *FooHandler) GetFoo(c *gin.Context) {
-    // 1. Extract params
-    id := c.Param("id")
-
-    // 2. Authorization
-    user := c.MustGet("JWT_PAYLOAD").(*model.User)
-    if user.ID != requestedUserID {
-        _ = c.Error(apperror.UnauthorizedAccess())
-        return
-    }
-
-    // 3. Create context with timeout
-    ctx, cancel := context.WithTimeout(c.Request.Context(), h.timeout)
-    defer cancel()
-
-    // 4. Call service
-    result, err := h.service.GetFoo(ctx, id)
-    if err != nil {
-        _ = c.Error(err)
-        return
-    }
-
-    // 5. Convert to DTO and return
-    response := dto.ToFooResponse(result)
-    c.JSON(http.StatusOK, response)
-}
-```
-
-### 2. Service Layer (Business Logic)
-
-**Location:** `internal/service/*_service.go`
-
-**Responsibilities:**
-
-- Validate business rules
-- Coordinate multiple repository calls
-- Calculate derived values
-- Enforce state transitions
-- Wrap repository errors with AppError
-
-**Pattern:**
-
-```go
-type FooService struct {
-    repository *repository.FooRepository
-    logger     *slog.Logger
-    timeout    time.Duration
-}
-
-func NewFooService(repository *repository.FooRepository, logger *slog.Logger, timeout time.Duration) *FooService {
-    return &FooService{
-        repository: repository,
-        logger:     logger,
-        timeout:    timeout,
-    }
-}
-
-func (s *FooService) GetFoo(ctx context.Context, id int64) (*model.Foo, error) {
-    // 1. Validate input
-    if id <= 0 {
-        return nil, apperror.InvalidInput()
-    }
-
-    // 2. Call repository
-    foo, err := s.repository.GetByID(ctx, id)
-    if err != nil {
-        return nil, apperror.DatabaseError(err)
-    }
-
-    // 3. Business logic / calculations
-    foo.CalculatedField = computeSomething(foo)
-
-    return foo, nil
-}
-```
-
-### 3. Repository Layer (Data Access)
-
-**Location:** `internal/repository/*_repository.go`
-
-**Responsibilities:**
-
-- Execute SQLc queries
-- Convert sqlc models to domain models
-- Handle database errors
-- Manage transactions
-
-**Pattern:**
-
-```go
-type FooRepository struct {
-    pool *pgxpool.Pool
-}
-
-func NewFooRepository(pool *pgxpool.Pool) *FooRepository {
-    return &FooRepository{pool: pool}
-}
-
-func (r *FooRepository) GetByID(ctx context.Context, id int64) (*model.Foo, error) {
-    queries := db.New(r.pool)
-
-    dbFoo, err := queries.GetFooByID(ctx, id)
-    if err != nil {
-        if errors.Is(err, pgx.ErrNoRows) {
-            return nil, nil // No error, just no record
-        }
-        return nil, err
-    }
-
-    // Convert to domain model
-    return &model.Foo{
-        ID:   dbFoo.ID,
-        Name: dbFoo.Name,
-        // ... other fields
-    }, nil
-}
-```
-
-### 4. Data Layer (SQLc Queries)
-
-**Location:** `internal/db/queries/*.sql`
-
-**Pattern:**
-
-```sql
--- name: GetFooByID :one
-SELECT id, name, created_at, updated_at
-FROM foos
-WHERE id = $1 AND deleted_at IS NULL;
-
--- name: CreateFoo :one
-INSERT INTO foos (name, created_at, updated_at)
-VALUES ($1, NOW(), NOW())
-RETURNING id, name, created_at, updated_at;
-
--- name: UpdateFoo :one
-UPDATE foos
-SET name = $1, updated_at = NOW()
-WHERE id = $2 AND deleted_at IS NULL
-RETURNING id, name, created_at, updated_at;
-```
-
-**After changes:** Run `make sqlc` to generate Go code.
-
-## Common Patterns
-
-### Authorization Check
-
-```go
-// In handler
 user := c.MustGet("JWT_PAYLOAD").(*model.User)
 requestedUserID, _ := strconv.ParseInt(c.Param("userId"), 10, 64)
 
@@ -236,265 +64,141 @@ if user.ID != requestedUserID {
 }
 ```
 
-### Request Binding with Validation
+### 處理 Not Found
 
 ```go
-var req dto.FooRequest
-if err := c.ShouldBindJSON(&req); err != nil {
-    _ = c.Error(apperror.NewWithError(apperror.CodeValidationFailed, err))
-    return
-}
-```
-
-### Error Wrapping
-
-```go
-// In service layer
-result, err := s.repository.GetSomething(ctx, id)
-if err != nil {
-    return nil, apperror.DatabaseError(err) // Wrap with AppError
-}
-```
-
-### Handling Not Found
-
-```go
-// In repository - return nil, nil (not an error)
+// Repository: 回傳 nil, nil (不是錯誤)
 if errors.Is(err, pgx.ErrNoRows) {
     return nil, nil
 }
 
-// In service - decide how to handle
-result, err := s.repository.GetByID(ctx, id)
-if err != nil {
-    return nil, apperror.DatabaseError(err)
-}
+// Service: 決定如何處理
 if result == nil {
-    return nil, apperror.FooNotFound() // Or return default
+    return nil, apperror.ResourceNotFound()
 }
 ```
 
-### UPSERT Pattern
+### UPSERT 模式
 
 ```sql
--- name: UpsertFoo :one
-INSERT INTO foos (user_id, status, value)
-VALUES ($1, $2, $3)
-ON CONFLICT (user_id)
+-- name: UpsertProgress :one
+INSERT INTO user_mission_progress (user_id, mission_id, status, watch_position_seconds)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_id, mission_id)
 DO UPDATE SET
   status = EXCLUDED.status,
-  value = EXCLUDED.value,
+  watch_position_seconds = EXCLUDED.watch_position_seconds,
   updated_at = NOW()
-RETURNING id, user_id, status, value, created_at, updated_at;
+RETURNING *;
 ```
 
-## Error Handling System
+## 錯誤處理流程
 
-### Adding New Error Codes
+1. **定義錯誤碼** (`internal/apperror/codes.go`):
+   ```go
+   const CodeResourceNotFound = "ERR_RESOURCE_NOT_FOUND"
+   ```
 
-**1. Define code constant** (`internal/apperror/codes.go`):
+2. **定義訊息** (`internal/apperror/messages.go`):
+   ```go
+   var errorMessages = map[string]string{
+       CodeResourceNotFound: "找不到指定的資源",
+   }
+   ```
 
-```go
-const (
-    CodeFooNotFound = "ERR_FOO_NOT_FOUND"
-    CodeInvalidFoo  = "ERR_INVALID_FOO"
-)
-```
+3. **對應 HTTP 狀態** (`internal/apperror/status.go`):
+   ```go
+   var httpStatusMap = map[string]int{
+       CodeResourceNotFound: http.StatusNotFound,
+   }
+   ```
 
-**2. Add message** (`internal/apperror/messages.go`):
+4. **建立建構子** (`internal/apperror/error.go`):
+   ```go
+   func ResourceNotFound() *AppError {
+       return New(CodeResourceNotFound)
+   }
+   ```
 
-```go
-var errorMessages = map[string]string{
-    CodeFooNotFound: "找不到指定的資源",
-    CodeInvalidFoo:  "無效的輸入資料",
-}
-```
+## SQLc 命名慣例
 
-**3. Map HTTP status** (`internal/apperror/status.go`):
+- `GetXxxByYyy` - 單筆查詢
+- `ListXxxByYyy` - 多筆查詢
+- `CreateXxx` - 新增
+- `UpdateXxx` - 更新
+- `UpsertXxx` - 新增或更新
+- `DeleteXxx` - 刪除
 
-```go
-var httpStatusMap = map[string]int{
-    CodeFooNotFound: http.StatusNotFound,      // 404
-    CodeInvalidFoo:  http.StatusBadRequest,    // 400
-}
-```
+查詢後執行: `make sqlc`
 
-**4. Create constructor** (`internal/apperror/error.go`):
+## 路由註冊
 
-```go
-func FooNotFound() *AppError {
-    return New(CodeFooNotFound)
-}
-
-func InvalidFoo() *AppError {
-    return New(CodeInvalidFoo)
-}
-```
-
-**5. Use in code**:
-
-```go
-if foo == nil {
-    return apperror.FooNotFound()
-}
-
-if input < 0 {
-    return apperror.InvalidFoo()
-}
-```
-
-## DTO Patterns
-
-### Request DTO
-
-```go
-type CreateFooRequest struct {
-    Name  string `json:"name" binding:"required,min=3,max=100"`
-    Value int    `json:"value" binding:"required,min=0"`
-}
-```
-
-### Response DTO
-
-```go
-type FooResponse struct {
-    ID        int64  `json:"id"`
-    Name      string `json:"name"`
-    Value     int    `json:"value"`
-    CreatedAt int64  `json:"createdAt"` // Unix timestamp in milliseconds
-}
-```
-
-### Conversion Function
-
-```go
-func ToFooResponse(foo *model.Foo) *FooResponse {
-    return &FooResponse{
-        ID:        foo.ID,
-        Name:      foo.Name,
-        Value:     foo.Value,
-        CreatedAt: foo.CreatedAt.UnixMilli(),
-    }
-}
-```
-
-## Route Registration
-
-**Location:** `internal/router/router.go`
+在 `internal/router/router.go` 新增:
 
 ```go
 func Setup(
     engine *gin.Engine,
     cfg config.Config,
-    authHandler *handler.AuthHandler,
-    fooHandler *handler.FooHandler, // Add handler parameter
+    fooHandler *handler.FooHandler, // 新增參數
     pool *pgxpool.Pool,
     logger *slog.Logger,
 ) *gin.Engine {
-    // ... middleware setup ...
-
-    // Public routes
-    public := engine.Group("/")
-    {
-        public.GET("/healthz", healthCheck(pool, logger))
-        public.POST("/auth/login", authHandler.Login)
-    }
-
     // Protected routes
     protected := engine.Group("/")
-    protected.Use(
-        middleware.JWTAuth(cfg.JWT),
-        middleware.BlacklistChecker(pool),
-        middleware.Authorize(pool),
-    )
+    protected.Use(middleware.JWTAuth(cfg.JWT))
     {
-        protected.GET("/foos/:id", fooHandler.GetFoo)
-        protected.POST("/foos", fooHandler.CreateFoo)
+        protected.GET("/foo/:id", fooHandler.GetFoo)
     }
-
     return engine
 }
 ```
 
-## Dependency Wiring
+## 依賴注入
 
-**Location:** `internal/app/app.go`
+在 `internal/app/app.go` 配置:
 
 ```go
-func (a *App) Run(ctx context.Context) error {
-    // ... config and pool setup ...
+// Repositories
+fooRepository := repository.NewFooRepository(pool)
 
-    // Repositories
-    fooRepository := repository.NewFooRepository(pool)
+// Services
+fooService := service.NewFooService(fooRepository, logger, cfg.Server.RequestTimeout)
 
-    // Services
-    fooService := service.NewFooService(
-        fooRepository,
-        logger,
-        cfg.Server.RequestTimeout,
-    )
+// Handlers
+fooHandler := handler.NewFooHandler(fooService, logger, cfg.Server.RequestTimeout)
 
-    // Handlers
-    fooHandler := handler.NewFooHandler(
-        fooService,
-        logger,
-        cfg.Server.RequestTimeout,
-    )
-
-    // Router
-    engine := router.Setup(
-        gin.New(),
-        cfg,
-        authHandler,
-        fooHandler, // Pass handler
-        pool,
-        logger,
-    )
-
-    // ... server start ...
-}
+// Router
+engine := router.Setup(engine, cfg, fooHandler, pool, logger)
 ```
 
-## ISA Feature File Structure
+## ISA Feature 範例結構
 
 ```gherkin
 @isa
-Feature: Feature Name
+Feature: 功能名稱
 
-  Scenario: Scenario description
-    # Setup: Database records
-    Given the database has a journey:
-      | title   | Java 基礎課程 |
-      | slug    | java-basics  |
-
-    And the database has a user:
-      | username | Alice     |
+  Scenario: 場景描述
+    # 資料準備
+    Given the database has a user:
+      | username | Alice |
       | password | Test1234! |
 
-    # Authentication
-    And I set request body to:
-      """
-      {
-        "username": "Alice",
-        "password": "Test1234!"
-      }
-      """
+    # 認證
     When I send "POST" request to "/auth/login"
     And I store the response field "accessToken" as "accessToken"
     Given I set Authorization header to "{{accessToken}}"
 
-    # Action: API call
-    When I send "GET" request to "/users/1/foo"
+    # 執行動作
+    When I send "GET" request to "/users/1/progress"
 
-    # Verification: Response
+    # 驗證回應
     Then the response status code should be 200
-    And the response body should contain field "id"
-    And the response body field "name" should equal string "Expected Value"
+    And the response body field "status" should equal string "UNCOMPLETED"
 ```
 
-## Naming Conventions
+## 命名慣例
 
-### ✅ Correct (Full Names)
+### ✅ 正確 (完整名稱)
 
 ```go
 progressRepository := repository.NewProgressRepository(pool)
@@ -502,7 +206,7 @@ authenticationService := service.NewAuthenticationService(repo)
 userMissionProgress := &model.UserMissionProgress{}
 ```
 
-### ❌ Incorrect (Abbreviations)
+### ❌ 錯誤 (縮寫)
 
 ```go
 progressRepo := repository.NewProgressRepository(pool)
@@ -510,33 +214,25 @@ authSvc := service.NewAuthenticationService(repo)
 ump := &model.UserMissionProgress{}
 ```
 
-## Configuration Pattern
+## 設定模式
 
-### ✅ Correct (Pass-by-Value)
+### ✅ 正確 (Pass-by-Value)
 
 ```go
 func NewHandler(cfg config.ServerConfig) *Handler {
     return &Handler{config: cfg}
 }
 
-func loadServerConfig() (ServerConfig, error) {
-    return ServerConfig{Port: 8080}, nil
-}
-
 type Config struct {
-    Server ServerConfig // Value, not pointer
+    Server ServerConfig // Value
 }
 ```
 
-### ❌ Incorrect (Pass-by-Pointer)
+### ❌ 錯誤 (Pass-by-Pointer)
 
 ```go
 func NewHandler(cfg *config.ServerConfig) *Handler {
     return &Handler{config: cfg}
-}
-
-func loadServerConfig() (*ServerConfig, error) {
-    return &ServerConfig{Port: 8080}, nil
 }
 
 type Config struct {
@@ -544,53 +240,43 @@ type Config struct {
 }
 ```
 
-## Common Make Commands
+## 常見指令
 
 ```bash
-# Format code
-make fmt
-
-# Run linter
-make lint
-
-# Build application
-make build
-
-# Run tests
-make test
-
-# Generate SQLc code
-make sqlc
-
-# Database migrations
-make migrate-status
-make migrate-up
-make migrate-down
-make migrate-reset
+make fmt           # 格式化程式碼
+make lint          # 執行 linter
+make build         # 編譯
+make test          # 執行測試
+make sqlc          # 生成 SQLc 程式碼
+make migrate-up    # 執行 migration
+make migrate-status # 檢查 migration 狀態
 ```
 
-## Documentation References
+## 常見陷阱
 
-- **API Spec**: `/docs/api-docs/swagger.yaml` and `/docs/api-docs/openapi/paths/*.yaml`
-- **DB Schema**: `/docs/db-schema.dbml`
-- **Project Guide**: `/CLAUDE.md`
-- **ISA Features**: `/tests/bdd/features/isa/**/*.isa.feature`
+❌ **避免:**
+- 跳過授權檢查
+- 忘記註冊路由
+- 遺漏依賴注入
+- 使用縮寫命名
+- 建立 pointer configs
+- 忘記執行 `make sqlc`
+- 忽略檢查現有 migrations
+- 忽略檢查現有 step definitions
 
-## Quick Checklist for Implementation
+✅ **務必:**
+- 驗證使用者權限
+- 透過建構子注入依賴
+- 優雅處理 `pgx.ErrNoRows`
+- 使用完整變數名稱
+- Config 使用 pass-by-value
+- 新增 queries 後執行 `make sqlc`
+- 確認資料表結構一致
+- 重用現有測試步驟
 
-- [ ] Read ISA feature file
-- [ ] Read swagger.yaml for endpoint spec
-- [ ] Read db-schema.dbml for tables
-- [ ] Launch Explore agent to find existing code
-- [ ] Create domain model (internal/model/)
-- [ ] Create DTOs (internal/dto/)
-- [ ] Write SQLc queries (internal/db/queries/)
-- [ ] Run `make sqlc`
-- [ ] Create repository (internal/repository/)
-- [ ] Create service with business logic (internal/service/)
-- [ ] Create handler (internal/handler/)
-- [ ] Add error codes (internal/apperror/)
-- [ ] Register routes (internal/router/router.go)
-- [ ] Wire dependencies (internal/app/app.go)
-- [ ] Run `make fmt && make lint && make build`
-- [ ] Run BDD tests: `cd tests/bdd && go test -v -tags=isa ./...`
+## 文件參考
+
+- **API 規格**: `/docs/api-docs/swagger.yaml`
+- **資料庫結構**: `/docs/db-schema.dbml`
+- **專案指南**: `/CLAUDE.md`
+- **ISA Features**: `/tests/bdd/features/isa/`
