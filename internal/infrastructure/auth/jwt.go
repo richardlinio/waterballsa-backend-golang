@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -26,7 +27,7 @@ func NewJWTMiddleware(
 
 		// Token lookup configuration
 		// Supports both Authorization header and cookie for flexibility
-		TokenLookup:   "header: Authorization, cookie: jwt",
+		TokenLookup:   fmt.Sprintf("header: Authorization, cookie: %s", cfg.AccessTokenCookieName),
 		TokenHeadName: "Bearer",
 
 		// Cookie configuration for access token
@@ -36,10 +37,10 @@ func NewJWTMiddleware(
 		SecureCookie:   cfg.SecureCookie, // HTTPS only in production
 		CookieSameSite: http.SameSiteLaxMode,
 		CookieDomain:   cfg.CookieDomain,
-		CookieName:     "jwt",
+		CookieName:     cfg.AccessTokenCookieName,
 
 		// Refresh token cookie configuration
-		RefreshTokenCookieName: "refresh_token",
+		RefreshTokenCookieName: cfg.RefreshTokenCookieName,
 
 		// Use injected middleware functions for token operations
 		IdentityHandler: identityHandler,

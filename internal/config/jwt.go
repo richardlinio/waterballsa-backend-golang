@@ -8,12 +8,15 @@ import (
 
 // JWTConfig holds JWT-related configuration
 type JWTConfig struct {
-	Secret              []byte        // JWT signing secret key
-	AccessTokenTimeout  time.Duration // Access token validity duration
-	RefreshTokenTimeout time.Duration // Refresh token validity duration
-	SecureCookie        bool          // Enable secure cookie (HTTPS only)
-	CookieDomain        string        // Cookie domain (optional)
-	Realm               string        // Bearer realm for authentication
+	Secret                 []byte        // JWT signing secret key
+	AccessTokenTimeout     time.Duration // Access token validity duration
+	RefreshTokenTimeout    time.Duration // Refresh token validity duration
+	SecureCookie           bool          // Enable secure cookie (HTTPS only)
+	CookieDomain           string        // Cookie domain (optional)
+	Realm                  string        // Bearer realm for authentication
+	AccessTokenCookieName  string        // Cookie name for access token
+	RefreshTokenCookieName string        // Cookie name for refresh token
+	RefreshCookiePath      string        // Cookie path for refresh token
 }
 
 // loadJWTConfig loads JWT configuration from environment variables
@@ -47,19 +50,39 @@ func loadJWTConfig() (JWTConfig, error) {
 	// Load optional cookie domain
 	cookieDomain := os.Getenv("JWT_COOKIE_DOMAIN")
 
-	// Load optional realm (default: "waterballsa")
+	// Load optional realm (default: "API")
 	realm := os.Getenv("JWT_REALM")
 	if realm == "" {
 		realm = "API"
 	}
 
+	// Load optional cookie names (defaults)
+	accessTokenCookieName := os.Getenv("JWT_ACCESS_TOKEN_COOKIE_NAME")
+	if accessTokenCookieName == "" {
+		accessTokenCookieName = "access_token"
+	}
+
+	refreshTokenCookieName := os.Getenv("JWT_REFRESH_TOKEN_COOKIE_NAME")
+	if refreshTokenCookieName == "" {
+		refreshTokenCookieName = "refresh_token"
+	}
+
+	// Load optional refresh cookie path (default: /auth/refresh)
+	refreshCookiePath := os.Getenv("JWT_REFRESH_COOKIE_PATH")
+	if refreshCookiePath == "" {
+		refreshCookiePath = "/auth/refresh"
+	}
+
 	return JWTConfig{
-		Secret:              []byte(secret),
-		AccessTokenTimeout:  accessTokenTimeout,
-		RefreshTokenTimeout: refreshTokenTimeout,
-		SecureCookie:        secureCookie,
-		CookieDomain:        cookieDomain,
-		Realm:               realm,
+		Secret:                 []byte(secret),
+		AccessTokenTimeout:     accessTokenTimeout,
+		RefreshTokenTimeout:    refreshTokenTimeout,
+		SecureCookie:           secureCookie,
+		CookieDomain:           cookieDomain,
+		Realm:                  realm,
+		AccessTokenCookieName:  accessTokenCookieName,
+		RefreshTokenCookieName: refreshTokenCookieName,
+		RefreshCookiePath:      refreshCookiePath,
 	}, nil
 }
 
