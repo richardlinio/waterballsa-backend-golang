@@ -90,3 +90,15 @@ func JourneyNotFound() *AppError {
 func MissionNotFound() *AppError {
 	return New(CodeMissionNotFound)
 }
+
+func ProgressNotFound() *AppError {
+	return New(CodeProgressNotFound)
+}
+
+func InvalidWatchPosition() *AppError {
+	return New(CodeInvalidWatchPosition)
+}
+
+func ProgressForbidden() *AppError {
+	return New(CodeProgressForbidden)
+}

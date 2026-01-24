@@ -52,6 +52,8 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 		"LOG_FORMAT":           "text",
 		"CORS_ALLOWED_ORIGINS": "http://localhost:3000",
 		"RATE_LIMIT_ENABLED":   "false",
+		// JWT configuration
+		"JWT_SECRET": "test-jwt-secret-key-at-least-32-characters-long-for-testing",
 	}
 	if err := setEnvVars(envVars); err != nil {
 		return nil, err
@@ -94,6 +96,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	refreshTokenRepository := repository.NewRefreshTokenRepository(queries)
 	journeyRepository := repository.NewJourneyRepository(queries)
 	missionRepository := repository.NewMissionRepository(queries)
+	progressRepository := repository.NewProgressRepository(queries)
 
 	// Initialize token generator
 	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
@@ -102,6 +105,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator)
 	journeyService := service.NewJourneyService(journeyRepository)
 	missionService := service.NewMissionService(missionRepository)
+	progressService := service.NewProgressService(progressRepository, missionRepository)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
@@ -119,6 +123,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	authHandler := handler.NewAuthHandler(authService, jwtMiddleware, cfg.JWT, log, cfg.Server.RequestTimeout)
 	journeyHandler := handler.NewJourneyHandler(journeyService, log, cfg.Server.RequestTimeout)
 	missionHandler := handler.NewMissionHandler(missionService, log, cfg.Server.RequestTimeout)
+	progressHandler := handler.NewProgressHandler(progressService, log, cfg.Server.RequestTimeout)
 
 	// Initialize blacklist checker middleware
 	//nolint:contextcheck // False positive: middleware correctly captures context from c.Request.Context() at request time
@@ -127,7 +132,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	// Setup Gin router with test mode
 	gin.SetMode(gin.TestMode)
 	ginEngine := gin.New()
-	r := router.NewRouter(ginEngine, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, missionHandler, jwtMiddleware, blacklistChecker)
+	r := router.NewRouter(ginEngine, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, missionHandler, progressHandler, jwtMiddleware, blacklistChecker)
 	r.Setup()
 
 	return &TestServer{

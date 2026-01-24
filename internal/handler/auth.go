@@ -16,10 +16,7 @@ import (
 )
 
 const (
-	accessTokenCookieName  = "access_token"
-	refreshTokenCookieName = "refresh_token"
-	refreshCookiePath      = "/auth/refresh"
-	bearerPrefix           = "Bearer "
+	bearerPrefix = "Bearer "
 )
 
 // authService defines the authentication service operations needed by the handler
@@ -155,7 +152,7 @@ func (h *AuthHandler) setAccessTokenCookie(c *gin.Context, token string, expire 
 
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
-		accessTokenCookieName,
+		h.jwtConfig.AccessTokenCookieName,
 		token,
 		maxAge,
 		"/",
@@ -171,10 +168,10 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string, expire
 
 	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(
-		refreshTokenCookieName,
+		h.jwtConfig.RefreshTokenCookieName,
 		token,
 		maxAge,
-		refreshCookiePath, // Restricted to /auth/refresh path only
+		h.jwtConfig.RefreshCookiePath, // Restricted to /auth/refresh path only
 		h.jwtConfig.CookieDomain,
 		h.jwtConfig.SecureCookie,
 		true, // httpOnly
@@ -185,7 +182,7 @@ func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string, expire
 func (h *AuthHandler) clearAccessTokenCookie(c *gin.Context) {
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
-		accessTokenCookieName,
+		h.jwtConfig.AccessTokenCookieName,
 		"",
 		-1,
 		"/",
@@ -199,10 +196,10 @@ func (h *AuthHandler) clearAccessTokenCookie(c *gin.Context) {
 func (h *AuthHandler) clearRefreshTokenCookie(c *gin.Context) {
 	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(
-		refreshTokenCookieName,
+		h.jwtConfig.RefreshTokenCookieName,
 		"",
 		-1,
-		refreshCookiePath,
+		h.jwtConfig.RefreshCookiePath,
 		h.jwtConfig.CookieDomain,
 		h.jwtConfig.SecureCookie,
 		true,
@@ -218,10 +215,10 @@ func (h *AuthHandler) extractAccessToken(c *gin.Context) (string, error) {
 	}
 
 	// Try cookie
-	return c.Cookie(accessTokenCookieName)
+	return c.Cookie(h.jwtConfig.AccessTokenCookieName)
 }
 
 // extractRefreshToken gets refresh token from cookie only
 func (h *AuthHandler) extractRefreshToken(c *gin.Context) (string, error) {
-	return c.Cookie(refreshTokenCookieName)
+	return c.Cookie(h.jwtConfig.RefreshTokenCookieName)
 }

@@ -20,6 +20,7 @@ type Querier interface {
 	GetRewardByMissionID(ctx context.Context, missionID int64) (GetRewardByMissionIDRow, error)
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
+	GetUserMissionProgress(ctx context.Context, arg GetUserMissionProgressParams) (GetUserMissionProgressRow, error)
 	InvalidateToken(ctx context.Context, arg InvalidateTokenParams) error
 	IsTokenInvalidated(ctx context.Context, tokenJti string) (bool, error)
 	ListChaptersByJourneyID(ctx context.Context, journeyID int64) ([]ListChaptersByJourneyIDRow, error)
@@ -28,6 +29,7 @@ type Querier interface {
 	ListResourcesByMissionID(ctx context.Context, missionID int64) ([]ListResourcesByMissionIDRow, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
 	RevokeRefreshToken(ctx context.Context, tokenJti string) error
+	UpsertUserMissionProgress(ctx context.Context, arg UpsertUserMissionProgressParams) (UpsertUserMissionProgressRow, error)
 }
 
 var _ Querier = (*Queries)(nil)
