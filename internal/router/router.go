@@ -22,6 +22,7 @@ type Router struct {
 	authHandler      *handler.AuthHandler
 	journeyHandler   *handler.JourneyHandler
 	missionHandler   *handler.MissionHandler
+	progressHandler  *handler.ProgressHandler
 	jwtMiddleware    *jwt.GinJWTMiddleware
 	blacklistChecker gin.HandlerFunc
 }
@@ -36,6 +37,7 @@ func NewRouter(
 	authHandler *handler.AuthHandler,
 	journeyHandler *handler.JourneyHandler,
 	missionHandler *handler.MissionHandler,
+	progressHandler *handler.ProgressHandler,
 	jwtMiddleware *jwt.GinJWTMiddleware,
 	blacklistChecker gin.HandlerFunc,
 ) *Router {
@@ -49,6 +51,7 @@ func NewRouter(
 		authHandler:      authHandler,
 		journeyHandler:   journeyHandler,
 		missionHandler:   missionHandler,
+		progressHandler:  progressHandler,
 		jwtMiddleware:    jwtMiddleware,
 		blacklistChecker: blacklistChecker,
 	}
@@ -69,6 +72,7 @@ func (r *Router) Setup() {
 	r.setupAuthRoutes()
 	r.setupJourneyRoutes()
 	r.setupMissionRoutes()
+	r.setupProgressRoutes()
 }
 
 func (r *Router) setupRequestIDMiddleware() {
@@ -122,4 +126,15 @@ func (r *Router) setupJourneyRoutes() {
 
 func (r *Router) setupMissionRoutes() {
 	r.engine.GET("/journeys/:journeyId/missions/:missionId", r.missionHandler.GetMissionDetail)
+}
+
+func (r *Router) setupProgressRoutes() {
+	// Progress routes require JWT authentication
+	progress := r.engine.Group("/users/:userId/missions/:missionId/progress")
+	progress.Use(middleware.JWTAuth(r.jwtMiddleware))
+	progress.Use(r.blacklistChecker)
+	{
+		progress.GET("", r.progressHandler.GetProgress)
+		progress.PUT("", r.progressHandler.UpdateProgress)
+	}
 }

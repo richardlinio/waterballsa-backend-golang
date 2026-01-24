@@ -2,8 +2,9 @@ package apperror
 
 const (
 	// Validation errors (400 - Bad Request)
-	CodeValidationFailed = "ERR_VALIDATION_FAILED"
-	CodePasswordTooLong  = "ERR_PASSWORD_TOO_LONG"
+	CodeValidationFailed     = "ERR_VALIDATION_FAILED"
+	CodePasswordTooLong      = "ERR_PASSWORD_TOO_LONG"
+	CodeInvalidWatchPosition = "ERR_INVALID_WATCH_POSITION"
 
 	// Auth errors (401 - Unauthorized)
 	// Note: Use CodeAuthFailed for all authentication failures (login failed, wrong credentials, rate limited)
@@ -11,12 +12,16 @@ const (
 	CodeAuthFailed   = "ERR_AUTH_FAILED"  // Generic auth failure (login, wrong username/password, rate limit)
 	CodeUnauthorized = "ERR_UNAUTHORIZED" // Token invalid/missing (for protected endpoints)
 
-	// Conflict errors (409 - Conflict)
-	CodeUsernameExists = "ERR_USERNAME_EXISTS"
+	// Forbidden errors (403 - Forbidden)
+	CodeProgressForbidden = "ERR_PROGRESS_FORBIDDEN"
 
 	// Not found errors (404 - Not Found)
-	CodeJourneyNotFound = "ERR_JOURNEY_NOT_FOUND"
-	CodeMissionNotFound = "ERR_MISSION_NOT_FOUND"
+	CodeJourneyNotFound  = "ERR_JOURNEY_NOT_FOUND"
+	CodeMissionNotFound  = "ERR_MISSION_NOT_FOUND"
+	CodeProgressNotFound = "ERR_PROGRESS_NOT_FOUND"
+
+	// Conflict errors (409 - Conflict)
+	CodeUsernameExists = "ERR_USERNAME_EXISTS"
 
 	// Rate limiting errors (429 - Too Many Requests)
 	CodeRateLimitExceeded = "ERR_RATE_LIMIT_EXCEEDED"
