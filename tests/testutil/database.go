@@ -14,7 +14,7 @@ func CleanDatabase(ctx context.Context, pool *pgxpool.Pool) error {
 	// Truncate all tables and reset identity sequences
 	// CASCADE ensures that dependent records in other tables are also deleted
 	query := `
-		TRUNCATE TABLE users, journeys, chapters, missions, rewards, mission_resources RESTART IDENTITY CASCADE;
+		TRUNCATE TABLE users, journeys, chapters, missions, rewards, mission_resources, user_mission_progress RESTART IDENTITY CASCADE;
 	`
 
 	_, err := pool.Exec(ctx, query)
@@ -183,4 +183,30 @@ func CreateTestMissionResource(
 	}
 
 	return resourceID, nil
+}
+
+// CreateTestUserMissionProgress creates a user mission progress record in the database
+// Returns the created progress ID
+// status should be one of: UNCOMPLETED, COMPLETED, DELIVERED
+func CreateTestUserMissionProgress(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	userID int64,
+	missionID int64,
+	status string,
+	watchPositionSeconds int,
+) (int64, error) {
+	query := `
+		INSERT INTO user_mission_progress (user_id, mission_id, status, watch_position_seconds)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id
+	`
+
+	var progressID int64
+	err := pool.QueryRow(ctx, query, userID, missionID, status, watchPositionSeconds).Scan(&progressID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create test user mission progress: %w", err)
+	}
+
+	return progressID, nil
 }
