@@ -7,6 +7,7 @@ import (
 	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
 	"github.com/linporu/waterballsa-backend-golang/internal/model"
 	"github.com/linporu/waterballsa-backend-golang/internal/repository"
+	"github.com/linporu/waterballsa-backend-golang/internal/util"
 )
 
 const (
@@ -20,18 +21,32 @@ type progressRepository interface {
 	Upsert(ctx context.Context, userID, missionID int64, status string, watchPositionSeconds int) (*model.UserMissionProgress, error)
 }
 
+type progressMissionRepository interface {
+	ListResourcesByMissionID(ctx context.Context, missionID int64) ([]*model.MissionResource, error)
+	GetRewardByMissionID(ctx context.Context, missionID int64) (*model.Reward, error)
+	GetByID(ctx context.Context, missionID int64) (*model.Mission, int64, error)
+}
+
+type progressUserRepository interface {
+	GetByID(ctx context.Context, id int64) (*model.User, error)
+	UpdateExperience(ctx context.Context, userID int64, experiencePoints, level int32) (*model.User, error)
+}
+
 type ProgressService struct {
 	progressRepository progressRepository
-	missionRepository  missionRepository
+	missionRepository  progressMissionRepository
+	userRepository     progressUserRepository
 }
 
 func NewProgressService(
 	progressRepository *repository.ProgressRepository,
 	missionRepository *repository.MissionRepository,
+	userRepository *repository.UserRepository,
 ) *ProgressService {
 	return &ProgressService{
 		progressRepository: progressRepository,
 		missionRepository:  missionRepository,
+		userRepository:     userRepository,
 	}
 }
 
@@ -106,4 +121,91 @@ func (s *ProgressService) UpdateProgress(ctx context.Context, userID, missionID 
 	}
 
 	return progress, nil
+}
+
+// DeliverMission delivers a completed mission and grants experience points
+// Business logic:
+// 1. Verify mission exists and get mission type
+// 2. Get user progress (must exist)
+// 3. Check progress status:
+//   - VIDEO missions: must be COMPLETED
+//   - Other missions: can be UNCOMPLETED or COMPLETED
+//   - Any mission: cannot be DELIVERED (409 Conflict)
+//
+// 4. Get mission reward (EXPERIENCE type)
+// 5. Update user experience and level
+// 6. Update progress status to DELIVERED
+func (s *ProgressService) DeliverMission(ctx context.Context, userID, missionID int64) (*model.MissionDeliveryResult, error) {
+	// Get mission details to check mission type
+	mission, _, err := s.missionRepository.GetByID(ctx, missionID)
+	if err != nil {
+		if errors.Is(err, repository.ErrMissionNotFound) {
+			return nil, apperror.MissionNotFound()
+		}
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// Get progress record
+	progress, err := s.progressRepository.GetByUserAndMission(ctx, userID, missionID)
+	if err != nil {
+		if errors.Is(err, repository.ErrProgressNotFound) {
+			return nil, apperror.MissionNotFound()
+		}
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// Check if already delivered
+	if progress.Status == StatusDelivered {
+		return nil, apperror.MissionAlreadyDelivered()
+	}
+
+	// Validate status based on mission type
+	if mission.Type == "VIDEO" && progress.Status != StatusCompleted {
+		return nil, apperror.MissionNotCompleted()
+	}
+	// Non-video missions can be delivered in UNCOMPLETED or COMPLETED status
+
+	// Get mission reward
+	reward, err := s.missionRepository.GetRewardByMissionID(ctx, missionID)
+	if err != nil {
+		if errors.Is(err, repository.ErrRewardNotFound) {
+			// No reward configured, set to 0
+			reward = &model.Reward{RewardValue: 0}
+		} else {
+			return nil, apperror.DatabaseError(err)
+		}
+	}
+
+	// Get current user data
+	user, err := s.userRepository.GetByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return nil, apperror.Unauthorized()
+		}
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// Calculate new experience and level
+	//nolint:gosec // reward.RewardValue is validated to be within reasonable bounds by database schema
+	newExp := user.ExperiencePoints + int32(reward.RewardValue)
+	newLevel := util.CalculateLevelFromExperience(newExp)
+
+	// Update user experience and level
+	_, err = s.userRepository.UpdateExperience(ctx, userID, newExp, newLevel)
+	if err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// Update progress status to DELIVERED
+	_, err = s.progressRepository.Upsert(ctx, userID, missionID, StatusDelivered, progress.WatchPositionSeconds)
+	if err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	return &model.MissionDeliveryResult{
+		Message:          "任務交付成功",
+		ExperienceGained: reward.RewardValue,
+		TotalExperience:  newExp,
+		CurrentLevel:     newLevel,
+	}, nil
 }

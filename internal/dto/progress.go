@@ -30,3 +30,13 @@ type DeliverResponse struct {
 	TotalExperience  int32  `json:"totalExperience"`
 	CurrentLevel     int32  `json:"currentLevel"`
 }
+
+// ToDeliverResponse converts domain model to DTO
+func ToDeliverResponse(result *model.MissionDeliveryResult) DeliverResponse {
+	return DeliverResponse{
+		Message:          result.Message,
+		ExperienceGained: result.ExperienceGained,
+		TotalExperience:  result.TotalExperience,
+		CurrentLevel:     result.CurrentLevel,
+	}
+}

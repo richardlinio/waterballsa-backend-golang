@@ -17,6 +17,7 @@ import (
 type progressService interface {
 	GetProgress(ctx context.Context, userID, missionID int64) (*model.UserMissionProgress, error)
 	UpdateProgress(ctx context.Context, userID, missionID int64, watchPositionSeconds int) (*model.UserMissionProgress, error)
+	DeliverMission(ctx context.Context, userID, missionID int64) (*model.MissionDeliveryResult, error)
 }
 
 type ProgressHandler struct {
@@ -109,6 +110,40 @@ func (h *ProgressHandler) UpdateProgress(c *gin.Context) {
 	}
 
 	response := dto.ToUserMissionProgressResponse(progress)
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *ProgressHandler) DeliverMission(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), h.requestTimeout)
+	defer cancel()
+
+	// Parse path parameters
+	userID, missionID, err := h.parsePathParams(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	// Check authorization: user can only deliver their own missions
+	authenticatedUser := h.getAuthenticatedUser(c)
+	if authenticatedUser == nil {
+		_ = c.Error(apperror.Unauthorized())
+		return
+	}
+
+	if authenticatedUser.ID != userID {
+		_ = c.Error(apperror.ProgressForbidden())
+		return
+	}
+
+	// Deliver mission
+	result, err := h.progressService.DeliverMission(ctx, userID, missionID)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	response := dto.ToDeliverResponse(result)
 	c.JSON(http.StatusOK, response)
 }
 
