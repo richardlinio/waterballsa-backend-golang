@@ -6,23 +6,23 @@
 
 ### Entity 關鍵字 → Database 檔案
 
-| 步驟包含關鍵字 | 檔案路徑 |
-|---------------|---------|
-| user | tests/bdd/steps/database/user.go |
-| journey | tests/bdd/steps/database/journey.go |
-| chapter | tests/bdd/steps/database/chapter.go |
-| mission | tests/bdd/steps/database/mission.go |
-| reward | tests/bdd/steps/database/reward.go |
+| 步驟包含關鍵字                     | 檔案路徑                                     |
+| ---------------------------------- | -------------------------------------------- |
+| user                               | tests/bdd/steps/database/user.go             |
+| journey                            | tests/bdd/steps/database/journey.go          |
+| chapter                            | tests/bdd/steps/database/chapter.go          |
+| mission                            | tests/bdd/steps/database/mission.go          |
+| reward                             | tests/bdd/steps/database/reward.go           |
 | mission_resource, mission resource | tests/bdd/steps/database/mission_resource.go |
 
 ### HTTP 動作關鍵字 → HTTP 檔案
 
-| 步驟包含關鍵字 | 檔案路徑 |
-|---------------|---------|
-| I send, I set request, I set Authorization | tests/bdd/steps/http/request.go |
-| response status, response body, response should | tests/bdd/steps/http/response.go |
-| cookie | tests/bdd/steps/http/cookies.go |
-| I store, I extract, {{variable}} | tests/bdd/steps/http/variables.go |
+| 步驟包含關鍵字                                  | 檔案路徑                          |
+| ----------------------------------------------- | --------------------------------- |
+| I send, I set request, I set Authorization      | tests/bdd/steps/http/request.go   |
+| response status, response body, response should | tests/bdd/steps/http/response.go  |
+| cookie                                          | tests/bdd/steps/http/cookies.go   |
+| I store, I extract, {{variable}}                | tests/bdd/steps/http/variables.go |
 
 ### 多候選檔案優先順序
 
@@ -34,23 +34,23 @@
 
 ### 函式命名
 
-| 步驟類型 | 命名模式 | 範例 |
-|---------|---------|------|
-| Database setup | `theDatabaseHas{Entity}` | `theDatabaseHasJourneys` |
-| Database setup (複數) | `theDatabaseHas{Entities}` | `theDatabaseHasJourneys` |
-| HTTP request | `iSend{Action}`, `iSet{What}` | `iSendRequest`, `iSetRequestBody` |
-| HTTP response | `theResponse{Check}` | `theResponseStatusCodeShouldBe` |
-| Variable | `iStore{What}As{Name}` | `iStoreResponseFieldAs` |
+| 步驟類型              | 命名模式                      | 範例                              |
+| --------------------- | ----------------------------- | --------------------------------- |
+| Database setup        | `theDatabaseHas{Entity}`      | `theDatabaseHasJourneys`          |
+| Database setup (複數) | `theDatabaseHas{Entities}`    | `theDatabaseHasJourneys`          |
+| HTTP request          | `iSend{Action}`, `iSet{What}` | `iSendRequest`, `iSetRequestBody` |
+| HTTP response         | `theResponse{Check}`          | `theResponseStatusCodeShouldBe`   |
+| Variable              | `iStore{What}As{Name}`        | `iStoreResponseFieldAs`           |
 
 **規則**: camelCase，開頭小寫
 
 ### 正則表達式模式
 
-| 參數類型 | 正則模式 | 範例步驟 | 匹配範例 |
-|---------|---------|---------|---------|
-| 字串 | `"([^"]*)"` | `I send "GET" request` | `"GET"` |
-| 數字 | `(\d+)` | `database has (\d+) journeys` | `5` |
-| 開頭/結尾 | `^...$` | `^I send "([^"]*)" request to "([^"]*)"$` | 完整匹配 |
+| 參數類型  | 正則模式    | 範例步驟                                  | 匹配範例 |
+| --------- | ----------- | ----------------------------------------- | -------- |
+| 字串      | `"([^"]*)"` | `I send "GET" request`                    | `"GET"`  |
+| 數字      | `(\d+)`     | `database has (\d+) journeys`             | `5`      |
+| 開頭/結尾 | `^...$`     | `^I send "([^"]*)" request to "([^"]*)"$` | 完整匹配 |
 
 ### 步驟註冊範例
 

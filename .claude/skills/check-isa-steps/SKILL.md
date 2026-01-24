@@ -1,6 +1,6 @@
 ---
 name: check-isa-steps
-description: Analyze .isa.feature, find missing steps, create TodoWrite plan. Plan mode - waits for "lgtm" before implementing.
+description: Analyzes BDD feature files to find missing step definitions and creates an implementation plan. Use when working with .isa.feature files, implementing BDD scenarios, or when the user asks to "check missing steps" or "implement feature steps".
 allowed-tools: Read, Glob, Grep, TodoWrite, Edit, Write
 ---
 
