@@ -22,3 +22,11 @@ func ToUserMissionProgressResponse(progress *model.UserMissionProgress) UserMiss
 		WatchPositionSeconds: progress.WatchPositionSeconds,
 	}
 }
+
+// DeliverResponse for POST /users/{userId}/missions/{missionId}/progress/deliver
+type DeliverResponse struct {
+	Message          string `json:"message"`
+	ExperienceGained int    `json:"experienceGained"`
+	TotalExperience  int32  `json:"totalExperience"`
+	CurrentLevel     int32  `json:"currentLevel"`
+}

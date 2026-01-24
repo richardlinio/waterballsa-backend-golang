@@ -136,5 +136,6 @@ func (r *Router) setupProgressRoutes() {
 	{
 		progress.GET("", r.progressHandler.GetProgress)
 		progress.PUT("", r.progressHandler.UpdateProgress)
+		progress.POST("/deliver", r.progressHandler.DeliverMission)
 	}
 }
