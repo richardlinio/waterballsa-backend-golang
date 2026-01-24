@@ -120,15 +120,22 @@ allowed-tools: Read, Glob, Grep, Bash, Write
 
 ### 步驟排序原則
 
-1. Domain Models (無依賴)
+1. Domain Models (無依賴) - **若 Service 需回傳多個資料欄位，建立 result struct**
 2. DTOs (依賴 models)
 3. SQLc Queries (無依賴)
 4. Repository (依賴 SQLc 生成的程式碼)
-5. Service (依賴 repository)
+5. Service (依賴 repository) - **回傳 (result, error) 而非多個值**
 6. Handler (依賴 service)
 7. 錯誤碼 (可提前)
 8. 路由註冊 (依賴 handler)
 9. 依賴注入 (依賴所有元件)
+
+**設計原則**:
+
+- Service 方法若需回傳 2 個以上資料欄位 → 建立 domain model struct
+- Domain model 放 `internal/model/` (業務結果)
+- DTO converter 負責 model → DTO 轉換 (HTTP 格式)
+- 遵循 Go idiomatic: `func Method() (*Result, error)` 優於 `func Method() (val1, val2, val3, error)`
 
 ## 階段 4: 審查
 

@@ -43,6 +43,54 @@ tree -L 3 -I 'vendor|node_modules|.git|tmp' --dirsfirst
 
 ## 常見實作模式
 
+### 回傳值設計 (Go Idiomatic)
+
+❌ **避免多個回傳值**:
+
+```go
+// 不佳: 太多回傳值，難以維護
+func DeliverMission(ctx context.Context, userID, missionID int64) (message string, expGained int, totalExp, currentLevel int32, err error)
+```
+
+✅ **使用 struct 封裝**:
+
+```go
+// Domain Model (internal/model/)
+type MissionDeliveryResult struct {
+    Message          string
+    ExperienceGained int
+    TotalExperience  int32
+    CurrentLevel     int32
+}
+
+// Service 方法
+func (s *Service) DeliverMission(ctx context.Context, userID, missionID int64) (*model.MissionDeliveryResult, error) {
+    // ...
+    return &model.MissionDeliveryResult{
+        Message:          "成功",
+        ExperienceGained: reward.Value,
+        TotalExperience:  newExp,
+        CurrentLevel:     newLevel,
+    }, nil
+}
+
+// DTO Converter (internal/dto/)
+func ToDeliverResponse(result *model.MissionDeliveryResult) DeliverResponse {
+    return DeliverResponse{
+        Message:          result.Message,
+        ExperienceGained: result.ExperienceGained,
+        TotalExperience:  result.TotalExperience,
+        CurrentLevel:     result.CurrentLevel,
+    }
+}
+```
+
+**原則**:
+
+- Service 回傳 domain model (業務結果)
+- DTO converter 負責轉換為 API 回應格式
+- 超過 2 個資料欄位時，優先考慮 struct
+
 ### 授權檢查
 
 ```go
@@ -223,6 +271,7 @@ Feature: 功能名稱
 
 ❌ **避免:**
 
+- Service 方法回傳太多值 (超過 2 個資料欄位應使用 struct)
 - 跳過授權檢查
 - 忘記註冊路由
 - 遺漏依賴注入
@@ -234,6 +283,7 @@ Feature: 功能名稱
 
 ✅ **務必:**
 
+- Service 回傳多個資料時使用 domain model struct
 - 驗證使用者權限
 - 透過建構子注入依賴
 - **同步更新生產與測試環境的 DI 配置**
