@@ -9,6 +9,12 @@ import (
 	"github.com/linporu/waterballsa-backend-golang/internal/repository"
 )
 
+const (
+	StatusUncompleted = "UNCOMPLETED"
+	StatusCompleted   = "COMPLETED"
+	StatusDelivered   = "DELIVERED"
+)
+
 type progressRepository interface {
 	GetByUserAndMission(ctx context.Context, userID, missionID int64) (*model.UserMissionProgress, error)
 	Upsert(ctx context.Context, userID, missionID int64, status string, watchPositionSeconds int) (*model.UserMissionProgress, error)
@@ -77,20 +83,20 @@ func (s *ProgressService) UpdateProgress(ctx context.Context, userID, missionID 
 	}
 
 	// Determine status based on watch position
-	status := "UNCOMPLETED"
+	status := StatusUncompleted
 	if watchPositionSeconds >= totalDuration && totalDuration > 0 {
-		status = "COMPLETED"
+		status = StatusCompleted
 	}
 
 	// Preserve COMPLETED status when rewatching (e.g., user watches from middle)
 	// Once marked as COMPLETED, it should remain COMPLETED unless explicitly reset
-	if existingProgress.Status == "COMPLETED" {
-		status = "COMPLETED"
+	if existingProgress.Status == StatusCompleted {
+		status = StatusCompleted
 	}
 
 	// Preserve DELIVERED status even when rewatching
-	if existingProgress.Status == "DELIVERED" {
-		status = "DELIVERED"
+	if existingProgress.Status == StatusDelivered {
+		status = StatusDelivered
 	}
 
 	// Upsert progress
