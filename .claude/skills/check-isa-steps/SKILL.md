@@ -1,12 +1,12 @@
 ---
 name: check-isa-steps
-description: Analyze a .isa.feature file to identify which step definitions are NOT YET IMPLEMENTED and generate a step implementation plan. Use ONLY when user explicitly asks to "check missing steps", "find unimplemented steps", or "analyze step coverage" - NOT when implementing application code to pass tests.
-allowed-tools: Read, Glob, Grep
+description: Analyze a .isa.feature file to identify which step definitions are NOT YET IMPLEMENTED and create an implementation plan with TodoWrite. This skill runs in plan mode - after analysis, it creates todos for missing steps and waits for user approval (lgtm) before implementing.
+allowed-tools: Read, Glob, Grep, TodoWrite, Edit, Write
 ---
 
-# Check ISA Steps - Step Definition Analyzer
+# Check ISA Steps - Step Definition Analyzer & Implementer
 
-分析 `.isa.feature` 檔案,找出缺少的 step definitions 並建議實作位置。
+分析 `.isa.feature` 檔案,找出缺少的 step definitions 並建立實作計畫（使用 TodoWrite）。
 
 ## 執行步驟
 
@@ -76,14 +76,30 @@ http.RegisterRequestSteps     → tests/bdd/steps/http/request.go
    - 註冊方式 (在哪個 `Register*Steps` 函式中)
    - 是否需要在 `register.go` 中新增註冊呼叫
 
-### 6. 輸出分析報告
+### 6. 建立實作計畫（使用 TodoWrite）
 
-讀取 `examples.md` 查看報告格式,然後生成包含以下內容的報告:
+**不要輸出完整分析報告**，而是使用 TodoWrite 建立實作 todo list：
 
-- ✅ 已實作的步驟 (檔案位置、函式名稱)
-- ❌ 缺少的步驟 (建議實作位置、程式碼範例)
-- 📊 統計資訊
-- 💡 下一步行動
+1. **為每個缺少的步驟建立一個 todo**:
+   - content: "實作步驟: {步驟文字}" (例如: "實作步驟: Given the database has 5 journeys")
+   - activeForm: "實作步驟: {步驟文字}"
+   - status: "pending"
+
+2. **Todo 描述中包含關鍵資訊**:
+   - 建議實作位置 (檔案路徑)
+   - 函式名稱建議
+   - 是否需要新增註冊
+
+3. **簡短摘要輸出**:
+   - 找到 X 個缺少的步驟
+   - 已建立實作計畫，等待用戶確認（說 "lgtm" 開始實作）
+
+**範例 Todo**:
+```
+content: "實作步驟 'Given the database has 5 journeys' 於 tests/bdd/steps/database/journey.go (函式: theDatabaseHasJourneys)"
+activeForm: "實作步驟 'Given the database has 5 journeys'"
+status: "pending"
+```
 
 ## Token 最佳化原則
 
@@ -93,8 +109,18 @@ http.RegisterRequestSteps     → tests/bdd/steps/http/request.go
 4. ✅ **Progressive disclosure** - 只在需要時讀取 reference.md 和 examples.md
 5. ✅ **動態適應** - 不寫死分類規則,從程式碼結構推斷
 
+## 工作流程
+
+這個 skill 在 **plan mode** 中運作:
+
+1. **分析階段**: 找出缺少的步驟並判斷實作位置
+2. **計畫階段**: 使用 TodoWrite 建立實作 todo list
+3. **等待確認**: 等待用戶說 "lgtm" 才開始實作
+4. **實作階段**: 逐一實作每個缺少的步驟
+
 ## 重要提醒
 
-- **只分析並報告**,不要自動實作步驟
-- 提供清楚的檔案路徑連結,方便使用者查看
-- 建議實作時,提供完整的程式碼範例和註冊方式
+- **先建立計畫，再實作**: 使用 TodoWrite 建立 todo list，等待用戶確認
+- **不要輸出冗長報告**: 只需簡短摘要 + todo list
+- **提供清楚的檔案路徑**: 使用 markdown link 格式 `[file.go](path/to/file.go)`
+- **建議實作時**: 在 todo 描述中包含函式名稱、正則表達式、註冊方式
