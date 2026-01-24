@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go mod tidy:*)",
+      "Bash(go build:*)",
+      "Bash(go test:*)",
+      "Bash(go version:*)",
+      "Bash(gofmt:*)",
+      "Bash(go clean:*)",
+      "Bash(make lint:*)",
+      "Bash(docker exec:*)",
+      "Bash(make migrate-status:*)",
+      "Bash(sqlc generate:*)",
+      "Bash(make build:*)",
+      "Bash(make test:*)",
+      "Bash(make fmt:*)",
+      "Bash(make sqlc:*)",
+      "Bash(make test-bdd-isa:*)",
+      "Bash(go doc:*)",
+      "Bash(tree:*)",
+      "Read(**/*.feature)",
+      "Read(**/*.md)",
+      "Read(**/*.go)",
+      "Read(**/Dockerfile*)",
+      "Read(**/*.yml)",
+      "Read(**/*.yaml)"
+    ]
+  }
+}
