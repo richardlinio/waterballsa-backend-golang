@@ -16,6 +16,7 @@ func RegisterSteps(sc *godog.ScenarioContext) {
 	database.RegisterRewardSteps(sc)
 	database.RegisterMissionResourceSteps(sc)
 	database.RegisterUserMissionProgressSteps(sc)
+	database.RegisterOrderSteps(sc)
 
 	// HTTP steps
 	http.RegisterRequestSteps(sc)
