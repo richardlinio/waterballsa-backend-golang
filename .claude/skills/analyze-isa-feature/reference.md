@@ -4,28 +4,28 @@
 
 ## 專案結構
 
+**重要:** 專案結構會動態變化,使用以下指令獲取最新結構:
+
+```bash
+tree -L 3 -I 'vendor|node_modules|.git|tmp' --dirsfirst
 ```
-waterballsa-backend-golang/
-├── cmd/server/              # 程式入口
-├── internal/
-│   ├── handler/             # HTTP handlers (presentation)
-│   ├── service/             # Business logic
-│   ├── repository/          # Data access
-│   ├── dto/                 # Request/Response DTOs
-│   ├── model/               # Domain models
-│   ├── db/queries/          # SQLc 查詢定義
-│   ├── apperror/            # 錯誤定義
-│   ├── middleware/          # HTTP middleware
-│   ├── router/              # 路由註冊
-│   └── app/                 # 依賴注入
-├── migrations/              # Goose migrations
-├── tests/bdd/
-│   ├── features/isa/        # ISA feature 檔案
-│   └── steps/               # Step definitions
-└── docs/
-    ├── api-docs/swagger.yaml
-    └── db-schema.dbml
-```
+
+主要目錄說明:
+- `cmd/server/` - 程式入口 (main.go)
+- `internal/handler/` - HTTP handlers (presentation layer)
+- `internal/service/` - Business logic layer
+- `internal/repository/` - Data access layer
+- `internal/dto/` - Request/Response DTOs
+- `internal/model/` - Domain models
+- `internal/db/` - SQLc 生成的程式碼與 queries
+- `internal/apperror/` - 統一錯誤處理
+- `internal/middleware/` - HTTP middleware
+- `internal/router/` - 路由註冊
+- `internal/app/` - 依賴注入與應用程式初始化
+- `internal/infrastructure/` - 基礎設施 (database, logger, auth, scheduler, server)
+- `migrations/` - Goose 資料庫遷移檔案
+- `tests/bdd/` - BDD 測試 (features/isa/, features/dsl/, steps/)
+- `tests/testutil/` - 測試工具 (testcontainer, database, server)
 
 ## 分層架構職責
 
