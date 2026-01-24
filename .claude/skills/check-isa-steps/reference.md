@@ -71,3 +71,7 @@ func RegisterSteps(sc *godog.ScenarioContext) {
     // ... 其他註冊
 }
 ```
+
+## Database Schema 參考
+
+實作步驟時可參考：`/Users/linporu/Documents/world-of-code/waterballsa-project/docs/db-schema.dbml`
