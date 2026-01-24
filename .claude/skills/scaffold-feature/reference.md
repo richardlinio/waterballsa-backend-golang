@@ -106,16 +106,18 @@ if user.ID != requestedUserID {
 ### 處理 Not Found
 
 ```go
-// Repository: 直接回傳資料庫層錯誤
+// Repository: 轉換為 domain error (隱藏 pgx 實作細節)
 if errors.Is(err, pgx.ErrNoRows) {
-    return nil, err
+    return nil, repository.ErrResourceNotFound
 }
 
-// Service: 轉換為業務層錯誤
-if errors.Is(err, pgx.ErrNoRows) {
+// Service: 檢查 repository 的自訂錯誤 (不依賴 pgx)
+if errors.Is(err, repository.ErrResourceNotFound) {
     return nil, apperror.ResourceNotFound()
 }
 ```
+
+**重要**: Service 層絕對不應該檢查 `pgx.ErrNoRows`，必須檢查 repository 定義的錯誤，維持分層架構原則。
 
 ### UPSERT 模式
 
@@ -272,6 +274,7 @@ Feature: 功能名稱
 ❌ **避免:**
 
 - Service 方法回傳太多值 (超過 2 個資料欄位應使用 struct)
+- **Service 層檢查 `pgx.ErrNoRows`** (違反分層架構)
 - 跳過授權檢查
 - 忘記註冊路由
 - 遺漏依賴注入
@@ -284,10 +287,11 @@ Feature: 功能名稱
 ✅ **務必:**
 
 - Service 回傳多個資料時使用 domain model struct
+- **Service 檢查 repository 自訂錯誤，而非 pgx 錯誤**
 - 驗證使用者權限
 - 透過建構子注入依賴
 - **同步更新生產與測試環境的 DI 配置**
-- 優雅處理 `pgx.ErrNoRows`
+- Repository 將 `pgx.ErrNoRows` 轉為 domain error
 - 使用完整變數名稱 (repository, service, config)
 - 新增 queries 後執行 `make sqlc`
 - 確認資料表結構一致
