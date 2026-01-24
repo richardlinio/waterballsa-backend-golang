@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
-	"github.com/linporu/waterballsa-backend-golang/internal/dto"
-	"github.com/linporu/waterballsa-backend-golang/internal/model"
-	"github.com/linporu/waterballsa-backend-golang/internal/service"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/apperror"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/service"
 )
 
 // missionService defines the mission service operations needed by the handler

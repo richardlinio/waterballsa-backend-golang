@@ -7,9 +7,9 @@ import (
 	"github.com/gin-contrib/requestid"
 	ginslog "github.com/gin-contrib/slog"
 	"github.com/gin-gonic/gin"
-	"github.com/linporu/waterballsa-backend-golang/internal/config"
-	"github.com/linporu/waterballsa-backend-golang/internal/handler"
-	"github.com/linporu/waterballsa-backend-golang/internal/middleware"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/config"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/handler"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/middleware"
 )
 
 type Router struct {

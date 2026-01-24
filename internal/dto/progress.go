@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/linporu/waterballsa-backend-golang/internal/model"
+import "github.com/richardlinio/waterballsa-backend-golang/internal/model"
 
 // UpdateProgressRequest for PUT /users/{userId}/missions/{missionId}/progress
 type UpdateProgressRequest struct {

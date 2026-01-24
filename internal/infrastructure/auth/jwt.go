@@ -7,7 +7,7 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
-	"github.com/linporu/waterballsa-backend-golang/internal/config"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/config"
 )
 
 // NewJWTMiddleware creates and configures a new JWT middleware instance

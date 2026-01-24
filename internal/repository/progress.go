@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/linporu/waterballsa-backend-golang/internal/db"
-	"github.com/linporu/waterballsa-backend-golang/internal/model"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/db"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 )
 
 var ErrProgressNotFound = errors.New("progress not found")

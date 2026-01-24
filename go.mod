@@ -1,4 +1,4 @@
-module github.com/linporu/waterballsa-backend-golang
+module github.com/richardlinio/waterballsa-backend-golang
 
 go 1.25.5
 

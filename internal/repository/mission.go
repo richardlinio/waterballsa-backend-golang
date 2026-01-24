@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/linporu/waterballsa-backend-golang/internal/db"
-	"github.com/linporu/waterballsa-backend-golang/internal/model"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/db"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 )
 
 // ErrMissionNotFound is returned when a mission is not found in the database

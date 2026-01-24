@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/cucumber/godog"
-	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/bdd/testcontext"
 )
 
 // iSetCookie sets a cookie to be sent with the next HTTP request

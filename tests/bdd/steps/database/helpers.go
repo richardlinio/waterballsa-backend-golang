@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/cucumber/godog"
-	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/bdd/testcontext"
 )
 
 // parseTableToMap converts a Gherkin table to a map[string]string

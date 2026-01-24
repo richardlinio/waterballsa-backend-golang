@@ -74,4 +74,4 @@ func RegisterSteps(sc *godog.ScenarioContext) {
 
 ## Database Schema 參考
 
-實作步驟時可參考：`/Users/linporu/Documents/world-of-code/waterballsa-project/docs/db-schema.dbml`
+實作步驟時可參考：`/Users/richardlinio/Documents/world-of-code/waterballsa-project/docs/db-schema.dbml`

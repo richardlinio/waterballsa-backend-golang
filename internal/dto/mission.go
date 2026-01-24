@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/linporu/waterballsa-backend-golang/internal/model"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 )
 
 // MissionDetailResponse is the response for GET /journeys/{journeyId}/missions/{missionId} endpoint

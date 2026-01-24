@@ -9,9 +9,9 @@ import (
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
-	"github.com/linporu/waterballsa-backend-golang/internal/config"
-	"github.com/linporu/waterballsa-backend-golang/internal/dto"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/apperror"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/config"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 )
 
 func ErrorHandler(logger *slog.Logger, jwtConfig config.JWTConfig) gin.HandlerFunc {

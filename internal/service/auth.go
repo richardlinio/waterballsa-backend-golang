@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
-	"github.com/linporu/waterballsa-backend-golang/internal/dto"
-	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/auth"
-	"github.com/linporu/waterballsa-backend-golang/internal/model"
-	"github.com/linporu/waterballsa-backend-golang/internal/repository"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/apperror"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/infrastructure/auth"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 

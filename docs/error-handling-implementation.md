@@ -206,8 +206,8 @@ import (
 
     "github.com/gin-gonic/gin"
     "github.com/go-playground/validator/v10"
-    "github.com/linporu/waterballsa-backend-golang/internal/apperror"
-    "github.com/linporu/waterballsa-backend-golang/internal/dto"
+    "github.com/richardlinio/waterballsa-backend-golang/internal/apperror"
+    "github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 )
 
 func ErrorHandler(logger *slog.Logger) gin.HandlerFunc {
@@ -617,13 +617,11 @@ type ErrorResponse struct {
 3. **完整覆蓋**：確保所有 service 層的錯誤都使用 `apperror`，避免出現未處理的錯誤類型
 
 4. **日誌記錄責任分離**：
-
    - **Service 層**：不記錄錯誤日誌，只返回包裝好的 `AppError`
    - **Middleware**：統一記錄所有錯誤日誌（Warn 級別記錄 AppError，Error 級別記錄底層錯誤）
    - **Handler 層**：不記錄錯誤日誌，使用 `c.Error()` 傳遞錯誤給 middleware
 
 5. **驗證錯誤處理**：
-
    - Handler 使用 `apperror.NewWithError(apperror.CodeValidationFailed, err)` 保留原始驗證錯誤
    - Middleware 會自動解析 Gin 驗證錯誤並填入 `Details` 欄位
    - 前端可根據 `Details` 顯示欄位級別的錯誤訊息

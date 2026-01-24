@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
-	"github.com/linporu/waterballsa-backend-golang/internal/config"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/apperror"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/config"
 )
 
 // ipRecord stores request count and window start time for an IP address

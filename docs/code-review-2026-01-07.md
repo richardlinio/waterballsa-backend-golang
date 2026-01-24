@@ -642,7 +642,7 @@ import (
     "time"
 
     "github.com/gin-gonic/gin"
-    "github.com/linporu/waterballsa-backend-golang/internal/infrastructure/logger"
+    "github.com/richardlinio/waterballsa-backend-golang/internal/infrastructure/logger"
 )
 
 // Logger middleware 為每個請求建立帶有 context 的 logger
@@ -762,8 +762,8 @@ import (
 
     "github.com/jackc/pgx/v5"
     "github.com/jackc/pgx/v5/pgconn"
-    "github.com/linporu/waterballsa-backend-golang/internal/db"
-    "github.com/linporu/waterballsa-backend-golang/internal/model"
+    "github.com/richardlinio/waterballsa-backend-golang/internal/db"
+    "github.com/richardlinio/waterballsa-backend-golang/internal/model"
 )
 
 var (
@@ -1027,7 +1027,7 @@ package handler
 import (
     "net/http"
     "github.com/gin-gonic/gin"
-    "github.com/linporu/waterballsa-backend-golang/internal/dto"
+    "github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 )
 
 // RespondError 統一的錯誤回應函數
@@ -1155,7 +1155,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 ### 高優先（架構性問題）
 
 1. **引入 Service 和 Repository 的 interface 抽象**
-
    - 影響：可測試性、可維護性
    - 難度：中
    - 預估工時：2-3 小時
@@ -1168,13 +1167,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 ### 中優先（可維護性）
 
 3. **改進 Error Response 結構**
-
    - 影響：API 品質、前端體驗
    - 難度：低
    - 預估工時：1 小時
 
 4. **加入 Request ID middleware**
-
    - 影響：可除錯性
    - 難度：低
    - 預估工時：1 小時
@@ -1187,13 +1184,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 ### 低優先（錦上添花）
 
 6. **錯誤訊息常數化**
-
    - 影響：國際化準備
    - 難度：低
    - 預估工時：0.5 小時
 
 7. **命名一致性調整**
-
    - 影響：程式碼可讀性
    - 難度：低
    - 預估工時：0.5 小時

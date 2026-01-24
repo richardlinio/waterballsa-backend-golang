@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/linporu/waterballsa-backend-golang/internal/model"
+import "github.com/richardlinio/waterballsa-backend-golang/internal/model"
 
 // JourneyListResponse is the response for GET /journeys endpoint
 type JourneyListResponse struct {

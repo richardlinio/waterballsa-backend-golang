@@ -9,10 +9,10 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
-	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
-	"github.com/linporu/waterballsa-backend-golang/internal/config"
-	"github.com/linporu/waterballsa-backend-golang/internal/dto"
-	"github.com/linporu/waterballsa-backend-golang/internal/service"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/apperror"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/config"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/service"
 )
 
 const (

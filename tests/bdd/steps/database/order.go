@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	"github.com/cucumber/godog"
-	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
-	"github.com/linporu/waterballsa-backend-golang/tests/testutil"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/bdd/testcontext"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/testutil"
 )
 
 // theDatabaseHasAnOrder creates a test order in the database from a Gherkin data table

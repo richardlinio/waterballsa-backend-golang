@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/cucumber/godog"
-	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/bdd/testcontext"
 )
 
 // iSetRequestBodyTo stores the request body from a doc string for later use

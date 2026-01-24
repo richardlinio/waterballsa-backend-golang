@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/cucumber/godog"
-	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
-	"github.com/linporu/waterballsa-backend-golang/tests/testutil"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/bdd/testcontext"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/testutil"
 )
 
 // theDatabaseHasAJourney creates a test journey in the database from a Gherkin data table

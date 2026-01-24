@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/linporu/waterballsa-backend-golang/internal/infrastructure/scheduler"
-	"github.com/linporu/waterballsa-backend-golang/internal/repository"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/infrastructure/scheduler"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/repository"
 )
 
 // expiredAccessTokenCleaner is used by TokenCleanup job to clean expired access tokens

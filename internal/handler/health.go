@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/linporu/waterballsa-backend-golang/internal/dto"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 )
 
 type HealthHandler struct {

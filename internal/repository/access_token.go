@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/linporu/waterballsa-backend-golang/internal/db"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/db"
 )
 
 // AccessTokenRepository implements access token blacklist operations using sqlc generated queries.

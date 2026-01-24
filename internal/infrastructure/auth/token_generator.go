@@ -6,8 +6,8 @@ import (
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/linporu/waterballsa-backend-golang/internal/config"
-	"github.com/linporu/waterballsa-backend-golang/internal/model"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/config"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 )
 
 // Token type constants

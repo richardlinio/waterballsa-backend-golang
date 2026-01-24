@@ -8,7 +8,7 @@ import (
 	"reflect"
 
 	"github.com/cucumber/godog"
-	"github.com/linporu/waterballsa-backend-golang/tests/bdd/testcontext"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/bdd/testcontext"
 )
 
 // theResponseStatusCodeShouldBe asserts that the response status code matches expected value

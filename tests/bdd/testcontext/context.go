@@ -3,7 +3,7 @@ package testcontext
 import (
 	"sync"
 
-	"github.com/linporu/waterballsa-backend-golang/tests/testutil"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/testutil"
 )
 
 // ContextKey is the type for context keys used in step definitions

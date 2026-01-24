@@ -7,8 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/linporu/waterballsa-backend-golang/internal/db"
-	"github.com/linporu/waterballsa-backend-golang/internal/model"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/db"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 )
 
 // ErrRefreshTokenNotFound is returned when a refresh token is not found or is invalid

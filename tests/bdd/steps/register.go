@@ -2,8 +2,8 @@ package steps
 
 import (
 	"github.com/cucumber/godog"
-	"github.com/linporu/waterballsa-backend-golang/tests/bdd/steps/database"
-	"github.com/linporu/waterballsa-backend-golang/tests/bdd/steps/http"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/bdd/steps/database"
+	"github.com/richardlinio/waterballsa-backend-golang/tests/bdd/steps/http"
 )
 
 // RegisterSteps registers all step definitions (database and HTTP)

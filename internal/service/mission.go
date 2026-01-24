@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/linporu/waterballsa-backend-golang/internal/apperror"
-	"github.com/linporu/waterballsa-backend-golang/internal/model"
-	"github.com/linporu/waterballsa-backend-golang/internal/repository"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/apperror"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/repository"
 )
 
 // missionRepository provides mission data access operations for MissionService
