@@ -1,126 +1,51 @@
 ---
 name: check-isa-steps
-description: Analyze a .isa.feature file to identify which step definitions are NOT YET IMPLEMENTED and create an implementation plan with TodoWrite. This skill runs in plan mode - after analysis, it creates todos for missing steps and waits for user approval (lgtm) before implementing.
+description: Analyze .isa.feature, find missing steps, create TodoWrite plan. Plan mode - waits for "lgtm" before implementing.
 allowed-tools: Read, Glob, Grep, TodoWrite, Edit, Write
 ---
 
-# Check ISA Steps - Step Definition Analyzer & Implementer
+# Execution Steps
 
-分析 `.isa.feature` 檔案,找出缺少的 step definitions 並建立實作計畫（使用 TodoWrite）。
+## 1. 讀取 feature 檔案
 
-## 執行步驟
+讀取用戶指定的 .isa.feature 檔案，提取所有 Given/When/Then/And 步驟。
 
-### 1. 讀取目標 feature 檔案
+## 2. 建立索引
 
-如果用戶提供了檔案路徑,讀取該檔案。如果沒有提供,檢查是否有打開的 `.isa.feature` 檔案。
+讀取 `tests/bdd/steps/register.go`，提取所有 `Register*Steps(sc)` 呼叫，建立檔案路徑映射。
 
-### 2. 提取 feature 檔案中的步驟
+範例: `database.RegisterUserSteps(sc)` → `tests/bdd/steps/database/user.go`
 
-提取所有的 Given/When/Then/And 步驟,建立待查找清單。
+## 3. 匹配步驟
 
-### 3. 建立步驟組索引 (讀取 1 個檔案)
+對每個步驟：
 
-**讀取 `tests/bdd/steps/register.go`**:
+1. 使用 [reference.md](reference.md) 的匹配規則推斷候選檔案（1-2 個）
+2. 用 Grep 搜尋 `sc.Step(` 提取該檔案中的正則表達式
+3. 匹配步驟 → 標記已實作或缺少
 
-- 提取所有 `Register*Steps(sc)` 呼叫
-- 建立包名到檔案路徑的映射
+## 4. 判斷實作位置
 
-範例映射:
+對缺少的步驟，參考 [reference.md](reference.md) 判斷：
 
-```
-database.RegisterUserSteps    → tests/bdd/steps/database/user.go
-http.RegisterRequestSteps     → tests/bdd/steps/http/request.go
-```
+- 現有 entity → 加入現有檔案
+- 新 entity → 建議新檔案
+- 確定函式名稱（camelCase）和正則表達式
 
-### 4. 逐步匹配每個步驟 (Progressive Disclosure)
+## 5. 建立 TodoWrite 計畫
 
-**對 feature 中的每個步驟**:
+為每個缺少的步驟建立 todo：
 
-1. **智慧推斷最可能的檔案**
+- **content**: `"實作 '{步驟}' 於 {檔案路徑} (函式: {函式名稱})"`
+- **activeForm**: `"實作 '{步驟}'"`
+- **status**: `"pending"`
 
-   讀取 `reference.md` 的「階段 2: 智慧匹配步驟到檔案」,使用以下策略:
-   - **Entity 關鍵字匹配**: 步驟中的名詞 (user, journey, mission) → `database/{entity}.go`
-   - **HTTP 動作關鍵字匹配**:
-     - `I send`, `I set request` → `http/request.go`
-     - `response status`, `response body` → `http/response.go`
-     - `cookie` → `http/cookies.go`
-     - `I store`, `{{variable}}` → `http/variables.go`
+輸出簡短摘要：找到 X 個缺少步驟，等待 lgtm。
 
-2. **只讀取候選檔案 (1-2 個)**
+## 6. 實作步驟（用戶確認後）
 
-   使用 Grep 搜尋 `sc.Step(` 來提取該檔案中的所有步驟正則表達式。
+逐一實作每個 todo，包括：
 
-3. **匹配步驟**
-
-   將 feature 步驟與正則表達式匹配:
-   - 找到 → 標記為已實作,記錄檔案位置和函式名稱
-   - 找不到 → 標記為缺少
-
-4. **如果有多個候選檔案**
-
-   按優先順序逐一檢查,直到找到或確認缺少。
-
-### 5. 提供實作建議 (針對缺少的步驟)
-
-對於每個未匹配的步驟:
-
-1. **讀取 `reference.md`** 了解命名慣例和正則表達式模式
-
-2. **判斷實作位置**:
-   - 是否為現有 entity 的新步驟? → 加入現有檔案
-   - 是否為新 entity? → 建議創建新檔案
-
-3. **建議內容**:
-   - 函式名稱 (遵循 camelCase 慣例)
-   - 正則表達式模式
-   - 註冊方式 (在哪個 `Register*Steps` 函式中)
-   - 是否需要在 `register.go` 中新增註冊呼叫
-
-### 6. 建立實作計畫（使用 TodoWrite）
-
-**不要輸出完整分析報告**，而是使用 TodoWrite 建立實作 todo list：
-
-1. **為每個缺少的步驟建立一個 todo**:
-   - content: "實作步驟: {步驟文字}" (例如: "實作步驟: Given the database has 5 journeys")
-   - activeForm: "實作步驟: {步驟文字}"
-   - status: "pending"
-
-2. **Todo 描述中包含關鍵資訊**:
-   - 建議實作位置 (檔案路徑)
-   - 函式名稱建議
-   - 是否需要新增註冊
-
-3. **簡短摘要輸出**:
-   - 找到 X 個缺少的步驟
-   - 已建立實作計畫，等待用戶確認（說 "lgtm" 開始實作）
-
-**範例 Todo**:
-```
-content: "實作步驟 'Given the database has 5 journeys' 於 tests/bdd/steps/database/journey.go (函式: theDatabaseHasJourneys)"
-activeForm: "實作步驟 'Given the database has 5 journeys'"
-status: "pending"
-```
-
-## Token 最佳化原則
-
-1. ✅ **只讀 1 次 register.go** - 建立完整索引
-2. ✅ **智慧推斷候選檔案** - 減少不必要的檔案讀取
-3. ✅ **使用 Grep 提取步驟** - 不需要讀取整個檔案
-4. ✅ **Progressive disclosure** - 只在需要時讀取 reference.md 和 examples.md
-5. ✅ **動態適應** - 不寫死分類規則,從程式碼結構推斷
-
-## 工作流程
-
-這個 skill 在 **plan mode** 中運作:
-
-1. **分析階段**: 找出缺少的步驟並判斷實作位置
-2. **計畫階段**: 使用 TodoWrite 建立實作 todo list
-3. **等待確認**: 等待用戶說 "lgtm" 才開始實作
-4. **實作階段**: 逐一實作每個缺少的步驟
-
-## 重要提醒
-
-- **先建立計畫，再實作**: 使用 TodoWrite 建立 todo list，等待用戶確認
-- **不要輸出冗長報告**: 只需簡短摘要 + todo list
-- **提供清楚的檔案路徑**: 使用 markdown link 格式 `[file.go](path/to/file.go)`
-- **建議實作時**: 在 todo 描述中包含函式名稱、正則表達式、註冊方式
+1. 寫入或編輯步驟檔案
+2. 在對應的 `Register*Steps` 函式中註冊步驟
+3. 必要時更新 `register.go` 新增 `Register*Steps` 呼叫
