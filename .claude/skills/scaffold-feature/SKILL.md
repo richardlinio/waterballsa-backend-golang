@@ -107,8 +107,8 @@ allowed-tools: Read, Glob, Grep, Bash, Write
 
 ## 驗證計畫
 
-1. 建置: `make sqlc && make fmt && make lint && make build`
-2. 測試: `cd tests/bdd && go test -v -tags=isa ./...`
+1. 建置: `make sqlc && make fmt && make lint`
+2. 測試: `make test`
 3. 場景: [列出每個 ISA 場景]
 
 ## 成功標準
