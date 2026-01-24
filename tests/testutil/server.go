@@ -106,6 +106,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	journeyService := service.NewJourneyService(journeyRepository)
 	missionService := service.NewMissionService(missionRepository)
 	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository)
+	userService := service.NewUserService(userRepository)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
@@ -124,6 +125,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	journeyHandler := handler.NewJourneyHandler(journeyService, log, cfg.Server.RequestTimeout)
 	missionHandler := handler.NewMissionHandler(missionService, log, cfg.Server.RequestTimeout)
 	progressHandler := handler.NewProgressHandler(progressService, log, cfg.Server.RequestTimeout)
+	userHandler := handler.NewUserHandler(userService, log, cfg.Server.RequestTimeout)
 
 	// Initialize blacklist checker middleware
 	//nolint:contextcheck // False positive: middleware correctly captures context from c.Request.Context() at request time
@@ -132,7 +134,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	// Setup Gin router with test mode
 	gin.SetMode(gin.TestMode)
 	ginEngine := gin.New()
-	r := router.NewRouter(ginEngine, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, missionHandler, progressHandler, jwtMiddleware, blacklistChecker)
+	r := router.NewRouter(ginEngine, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, missionHandler, progressHandler, userHandler, jwtMiddleware, blacklistChecker)
 	r.Setup()
 
 	return &TestServer{
