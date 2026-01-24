@@ -108,3 +108,48 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUs
 	)
 	return i, err
 }
+
+const updateUserExperience = `-- name: UpdateUserExperience :one
+UPDATE users
+SET
+    experience_points = $2,
+    level = $3,
+    updated_at = NOW()
+WHERE
+    id = $1
+    AND deleted_at IS NULL
+RETURNING id, username, password_hash, role, experience_points, level, created_at, updated_at
+`
+
+type UpdateUserExperienceParams struct {
+	ID               int64 `json:"id"`
+	ExperiencePoints int32 `json:"experience_points"`
+	Level            int32 `json:"level"`
+}
+
+type UpdateUserExperienceRow struct {
+	ID               int64            `json:"id"`
+	Username         string           `json:"username"`
+	PasswordHash     string           `json:"password_hash"`
+	Role             UserRole         `json:"role"`
+	ExperiencePoints int32            `json:"experience_points"`
+	Level            int32            `json:"level"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUserExperience(ctx context.Context, arg UpdateUserExperienceParams) (UpdateUserExperienceRow, error) {
+	row := q.db.QueryRow(ctx, updateUserExperience, arg.ID, arg.ExperiencePoints, arg.Level)
+	var i UpdateUserExperienceRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Role,
+		&i.ExperiencePoints,
+		&i.Level,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

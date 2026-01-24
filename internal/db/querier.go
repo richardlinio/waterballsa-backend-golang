@@ -29,6 +29,7 @@ type Querier interface {
 	ListResourcesByMissionID(ctx context.Context, missionID int64) ([]ListResourcesByMissionIDRow, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
 	RevokeRefreshToken(ctx context.Context, tokenJti string) error
+	UpdateUserExperience(ctx context.Context, arg UpdateUserExperienceParams) (UpdateUserExperienceRow, error)
 	UpsertUserMissionProgress(ctx context.Context, arg UpsertUserMissionProgressParams) (UpsertUserMissionProgressRow, error)
 }
 
