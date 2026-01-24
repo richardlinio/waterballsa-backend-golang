@@ -49,3 +49,26 @@ allowed-tools: Read, Glob, Grep, TodoWrite, Edit, Write
 1. 寫入或編輯步驟檔案
 2. 在對應的 `Register*Steps` 函式中註冊步驟
 3. 必要時更新 `register.go` 新增 `Register*Steps` 呼叫
+
+## 7. 代碼品質檢查
+
+實作完成後，執行代碼品質檢查：
+
+```bash
+make fmt && make lint
+```
+
+確保代碼格式化正確且符合 linting 規則。
+
+## 8. 測試驗證
+
+最後執行測試：
+
+```bash
+make test
+```
+
+確認測試失敗的原因是 **API not implemented** (通常是 404)，而不是 **missing steps**。
+
+- ✅ 預期錯誤: HTTP 404 或 API endpoint not found
+- ❌ 不應該出現: step definition not found 或 undefined step
