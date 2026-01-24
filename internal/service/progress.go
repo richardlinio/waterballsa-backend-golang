@@ -82,6 +82,12 @@ func (s *ProgressService) UpdateProgress(ctx context.Context, userID, missionID 
 		status = "COMPLETED"
 	}
 
+	// Preserve COMPLETED status when rewatching (e.g., user watches from middle)
+	// Once marked as COMPLETED, it should remain COMPLETED unless explicitly reset
+	if existingProgress.Status == "COMPLETED" {
+		status = "COMPLETED"
+	}
+
 	// Preserve DELIVERED status even when rewatching
 	if existingProgress.Status == "DELIVERED" {
 		status = "DELIVERED"

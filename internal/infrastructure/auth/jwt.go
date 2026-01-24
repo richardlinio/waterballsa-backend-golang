@@ -23,7 +23,7 @@ func NewJWTMiddleware(
 		Key:         cfg.Secret,
 		Timeout:     cfg.AccessTokenTimeout,
 		MaxRefresh:  cfg.RefreshTokenTimeout,
-		IdentityKey: "user_id",
+		IdentityKey: "JWT_PAYLOAD",
 
 		// Token lookup configuration
 		// Supports both Authorization header and cookie for flexibility
