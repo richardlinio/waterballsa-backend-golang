@@ -1,150 +1,123 @@
 ---
 name: scaffold-feature
 description: 根據 ISA feature 檔案分析需求,建立完整的後端功能實作計畫,包含分層架構的所有元件 (DTO, Model, Repository, Service, Handler, Router, DI)。
-allowed-tools: Read, Glob, Grep, Bash, Write
+allowed-tools: Read Glob Grep Bash Write
 ---
 
-# 執行步驟
+此 skill 旨在分析 ISA feature 檔案的需求，並為新的後端功能生成一個完整、逐步的實作計畫，嚴格遵循專案的既定分層架構。
 
-## 階段 1: 讀取文件
+有關詳細的實作模式、程式碼範例和檢查清單，請參閱[參考指南](references/REFERENCE.md)。
 
-1. 讀取 ISA feature 檔案，識別：
-   - API 端點 (方法、路徑、參數)
-   - 請求/回應 JSON 結構
-   - 業務邏輯規則
-   - 測試場景
+## 執行步驟
 
-2. 讀取 `/docs/api-docs/swagger.yaml` 和 `/docs/api-docs/openapi/paths/*.yaml`，提取：
-   - 完整端點規格
-   - 請求/回應 schema
-   - HTTP 狀態碼
-   - 認證需求
+### 階段 1: 分析需求
 
-3. 讀取 `/docs/db-schema.dbml`，確認：
-   - 相關資料表結構
-   - 欄位定義與限制
-   - 關聯與索引
+首先，透過閱讀相關文件來收集所有必要的背景資訊。
 
-4. 讀取 `/CLAUDE.md`，理解：
-   - 分層架構模式
-   - 錯誤處理機制
-   - 命名與設定慣例
+1.  **讀取 ISA feature 檔案** 以了解：
+    *   API 端點 (方法、路徑、參數)。
+    *   請求/回應的 JSON 結構。
+    *   業務邏輯與規則。
+    *   測試場景。
+2.  **讀取 API 規格文件** (`/docs/api-docs/swagger.yaml`, `/docs/api-docs/openapi/paths/*.yaml`) 以提取：
+    *   完整的端點規格。
+    *   請求/回應的 schemas。
+    *   HTTP 狀態碼。
+    *   認證需求。
+3.  **讀取資料庫綱要** (`/docs/db-schema.dbml`) 以確認：
+    *   相關的資料表結構。
+    *   欄位定義與約束。
+    *   關聯與索引。
+4.  **讀取專案慣例** (`/CLAUDE.md`) 以理解：
+    *   分層架構模式。
+    *   錯誤處理機制。
+    *   命名與設定慣例。
 
-## 階段 2: 探索程式碼
+### 階段 2: 探索現有程式碼
 
-1. 使用 **Grep** 和 **Glob** 搜尋：
-   - 現有的相關 handlers, services, repositories
-   - Domain models 和 DTOs
-   - 錯誤處理與認證模式
+使用程式碼搜尋工具來識別可重用的元件，並確定需要建立哪些新元件。
 
-2. 檢查 `migrations/` 目錄：
-   - 確認所需資料表是否存在
-   - 驗證欄位定義是否一致
-   - 標記是否需要新增 migration
+1.  **使用 `Grep` 和 `Glob` 搜尋程式碼庫**，尋找：
+    *   與該功能相關的現有 handlers、services 和 repositories。
+    *   相關的 domain models 和 DTOs。
+    *   現有的錯誤處理與認證模式。
+2.  **檢查 `migrations/` 目錄**，確認資料表是否已存在或需要修改。
+3.  **檢查 `tests/bdd/steps/` 目錄**，尋找可重用的 BDD step definitions。
+4.  **總結你的發現**，將元件分類為「✅ 已存在」和「❌ 缺少」。
 
-3. 檢查 `tests/bdd/steps/` 目錄：
-   - 確認已實作的 step definitions
-   - 識別可重用的測試步驟
+### 階段 3: 產生 Scaffold 計畫
 
-4. 分類結果：
-   - ✅ 已存在: [列出可用的基礎設施]
-   - ❌ 缺少: [列出需要實作的部分]
-
-## 階段 3: 建立 Scaffold 計畫
-
-按以下結構輸出 markdown 計畫檔案：
+根據你的分析，在一個 markdown 檔案中建立詳細的實作計畫。請使用以下結構。
 
 ```markdown
 # Feature Scaffold 計畫: [功能名稱]
 
-## 概述
+## 1. 現況分析
 
-[簡短描述]
+### 缺少元件
+- ❌ [需要建立的元件列表]
 
-## 參考文件
+## 2. API 端點需求
 
-- ISA Feature: [路徑]
-- API Spec: [路徑]
-- DB Schema: [路徑]
-
-## 現況分析
-
-### 已存在
-
-- ✅ [項目]
-
-### 缺少
-
-- ❌ [項目]
-
-## API 需求
-
-### [端點名稱]
-
-- **方法與路徑**: GET/POST/PUT/DELETE /path
+### [端點名稱: 例如，建立使用者]
+- **方法與路徑**: `POST /users`
 - **請求範例**: [JSON]
 - **回應範例**: [JSON]
-- **業務規則**: [關鍵邏輯]
+- **業務邏輯**: [關鍵規則]
 
-## 實作步驟
+## 3. 實作步驟
 
-### 步驟 1: [標題]
+The implementation should follow the dependency order outlined in the checklist below. For detailed code examples and anti-patterns, consult the [Implementation Guide](references/implementation_guide.md).
+## Scaffold 檢查清單
 
-**檔案**: [路徑] (建立/修改)
-**內容**:
+實作順序 (依賴關係):
 
-- [具體指示]
-- [程式碼結構範例]
+1.  **Domain Models** (無依賴) - `internal/model/`
+2.  **DTOs** (依賴 models) - `internal/dto/`
+3.  **SQLc Queries** (無依賴) - `internal/db/queries/*.sql`
+4.  **錯誤碼** (可提前) - `internal/apperror/`
+5.  **Repository** (依賴 SQLc) - `internal/repository/`
+6.  **Service** (依賴 repository) - `internal/service/`
+7.  **Handler** (依賴 service) - `internal/handler/`
+8.  **路由註冊** (依賴 handler) - `internal/router/router.go`
+9.  **依賴注入** (依賴所有元件)
+   - `internal/app/app.go` - 生產環境
+   - `tests/testutil/server.go` - 測試環境 ⚠️ **必須同步更新**
 
-**依賴**: [先決條件]
+必檢項目:
 
-[重複其他步驟...]
+- [ ] 所有層級已建立
+- [ ] 錯誤處理已加入 (參考 `/add-error-handling`)
+- [ ] 授權檢查已實作 (如需要)
+- [ ] 路由已註冊
+- [ ] 依賴注入已配置 (`internal/app/app.go`)
+- [ ] **測試伺服器已更新** (`tests/testutil/server.go`) ⚠️
+- [ ] Migration 已建立 (如需要)
+- [ ] SQLc 已執行 (`make sqlc`)
+- [ ] 測試步驟已定義
+- [ ] 遵循 Go idiomatic patterns (參考 `/go-idiomatic`)
+## 4. 檔案總結
 
-## 關鍵檔案
+**需建立的檔案**:
+- `[file/path_1.go]`
+- `[file/path_2.go]`
 
-**建立**: [列表]
-**修改**: [列表]
+**需修改的檔案**:
+- `[file/path_3.go]`
+- `[file/path_4.go]`
 
-## 驗證計畫
-
-1. 建置: `make sqlc && make fmt && make lint`
-2. 測試: `make test`
-3. 場景: [列出每個 ISA 場景]
-
-## 成功標準
-
-- [ ] 所有 ISA 場景通過
-- [ ] 符合 swagger 規格
-- [ ] 遵循 CLAUDE.md 模式
+## 5. 驗證計畫
+1.  **建置與檢查**: `make sqlc && make fmt && make lint`
+2.  **測試**: `make test`
 ```
 
-### 步驟排序原則
+### 階段 4: 審查計畫
 
-1. Domain Models (無依賴) - **若 Service 需回傳多個資料欄位，建立 result struct**
-2. DTOs (依賴 models)
-3. SQLc Queries (無依賴)
-4. Repository (依賴 SQLc 生成的程式碼)
-5. Service (依賴 repository) - **回傳 (result, error) 而非多個值**
-6. Handler (依賴 service)
-7. 錯誤碼 (可提前)
-8. 路由註冊 (依賴 handler)
-9. 依賴注入 (依賴所有元件)
-
-**設計原則**:
-
-- Service 方法若需回傳 2 個以上資料欄位 → 建立 domain model struct
-- Domain model 放 `internal/model/` (業務結果)
-- DTO converter 負責 model → DTO 轉換 (HTTP 格式)
-- 遵循 Go idiomatic: `func Method() (*Result, error)` 優於 `func Method() (val1, val2, val3, error)`
-
-## 階段 4: 審查
-
-確認計畫：
-
-- ✅ 涵蓋所有 ISA 場景
-- ✅ 符合 swagger 規格
-- ✅ 符合 db-schema 定義
-- ✅ 遵循 CLAUDE.md 慣例
-- ✅ 包含所有需要的檔案
-- ✅ 包含錯誤處理與授權檢查
-- ✅ 包含驗證步驟
+在執行前，審查產生的計畫以確保其完整與正確。
+- ✅ 涵蓋 ISA 檔案中的所有場景。
+- ✅ 符合 OpenAPI/Swagger 規格。
+- ✅ 與資料庫綱要匹配。
+- ✅ 遵循 `CLAUDE.md` 中的專案慣例。
+- ✅ 包含所有必要的檔案與修改。
+- ✅ 考慮到錯誤處理與授權。
+- ✅ 定義了清晰的驗證策略。
