@@ -40,7 +40,7 @@ func parseTableToMap(table *godog.Table) (map[string]string, error) {
 }
 
 // replaceVariables replaces {{variableName}} placeholders with values from context
-// Supports: lastJourneyId, lastChapterId, lastMissionId
+// Supports: lastJourneyId, lastChapterId, lastMissionId, lastUserId, and stored variables
 func replaceVariables(ctx context.Context, value string) (string, error) {
 	// Regular expression to find {{variableName}} patterns
 	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
@@ -52,7 +52,7 @@ func replaceVariables(ctx context.Context, value string) (string, error) {
 		// Extract variable name (remove {{ and }})
 		varName := strings.Trim(match, "{}")
 
-		// Get variable value from context based on name
+		// Try context keys first
 		switch varName {
 		case "lastJourneyId":
 			if val, ok := ctx.Value(testcontext.ContextKeyLastJourneyID).(int64); ok {
@@ -65,6 +65,17 @@ func replaceVariables(ctx context.Context, value string) (string, error) {
 		case "lastMissionId":
 			if val, ok := ctx.Value(testcontext.ContextKeyLastMissionID).(int64); ok {
 				return fmt.Sprintf("%d", val)
+			}
+		case "lastUserId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastUserID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		}
+
+		// Try stored variables
+		if storedVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]any); ok {
+			if val, exists := storedVars[varName]; exists {
+				return fmt.Sprintf("%v", val)
 			}
 		}
 

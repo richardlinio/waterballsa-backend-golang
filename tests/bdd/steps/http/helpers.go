@@ -130,7 +130,7 @@ func toFloat64(val any) (float64, bool) {
 }
 
 // replaceVariablesInPath replaces {{variableName}} placeholders in URL paths with values from context
-// Supports: lastJourneyId, lastChapterId, lastMissionId
+// Supports: lastJourneyId, lastChapterId, lastMissionId, lastUserId, and stored variables
 func replaceVariablesInPath(ctx context.Context, path string) (string, error) {
 	// Regular expression to find {{variableName}} patterns
 	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
@@ -139,19 +139,118 @@ func replaceVariablesInPath(ctx context.Context, path string) (string, error) {
 		// Extract variable name (remove {{ and }})
 		varName := strings.Trim(match, "{}")
 
-		// Get variable value from context based on name
+		// Try context keys first
 		switch varName {
-		case "lastJourneyId":
+		case varLastJourneyID:
 			if val, ok := ctx.Value(testcontext.ContextKeyLastJourneyID).(int64); ok {
 				return fmt.Sprintf("%d", val)
 			}
-		case "lastChapterId":
+		case varLastChapterID:
 			if val, ok := ctx.Value(testcontext.ContextKeyLastChapterID).(int64); ok {
 				return fmt.Sprintf("%d", val)
 			}
-		case "lastMissionId":
+		case varLastMissionID:
 			if val, ok := ctx.Value(testcontext.ContextKeyLastMissionID).(int64); ok {
 				return fmt.Sprintf("%d", val)
+			}
+		case varLastUserID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastUserID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		}
+
+		// Try stored variables
+		if storedVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]any); ok {
+			if val, exists := storedVars[varName]; exists {
+				return fmt.Sprintf("%v", val)
+			}
+		}
+
+		// If variable not found, keep original placeholder
+		return match
+	})
+
+	return result, nil
+}
+
+// replaceVariablesInRequestBody replaces {{variableName}} placeholders in request bodies with values from context
+// Supports: lastJourneyId, lastChapterId, lastMissionId, lastUserId, and stored variables
+func replaceVariablesInRequestBody(ctx context.Context, body string) (string, error) {
+	// Regular expression to find {{variableName}} patterns
+	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
+
+	result := re.ReplaceAllStringFunc(body, func(match string) string {
+		// Extract variable name (remove {{ and }})
+		varName := strings.Trim(match, "{}")
+
+		// Try context keys first
+		switch varName {
+		case varLastJourneyID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastJourneyID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case varLastChapterID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastChapterID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case varLastMissionID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastMissionID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case varLastUserID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastUserID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		}
+
+		// Try stored variables
+		if storedVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]any); ok {
+			if val, exists := storedVars[varName]; exists {
+				return fmt.Sprintf("%v", val)
+			}
+		}
+
+		// If variable not found, keep original placeholder
+		return match
+	})
+
+	return result, nil
+}
+
+// replaceVariablesInString replaces {{variableName}} placeholders in strings with values from context
+// Supports: lastJourneyId, lastChapterId, lastMissionId, lastUserId, and stored variables
+func replaceVariablesInString(ctx context.Context, str string) (string, error) {
+	// Regular expression to find {{variableName}} patterns
+	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
+
+	result := re.ReplaceAllStringFunc(str, func(match string) string {
+		// Extract variable name (remove {{ and }})
+		varName := strings.Trim(match, "{}")
+
+		// Try context keys first
+		switch varName {
+		case varLastJourneyID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastJourneyID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case varLastChapterID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastChapterID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case varLastMissionID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastMissionID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case varLastUserID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastUserID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		}
+
+		// Try stored variables
+		if storedVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]any); ok {
+			if val, exists := storedVars[varName]; exists {
+				return fmt.Sprintf("%v", val)
 			}
 		}
 

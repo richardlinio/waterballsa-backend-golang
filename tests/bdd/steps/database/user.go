@@ -44,8 +44,8 @@ func theDatabaseHasAUser(ctx context.Context, table *godog.Table) (context.Conte
 		return ctx, fmt.Errorf("failed to create test user: %w", err)
 	}
 
-	// Optionally store user ID in context if needed by other steps
-	_ = userID
+	// Store user ID in context for use by other steps
+	ctx = context.WithValue(ctx, testcontext.ContextKeyLastUserID, userID)
 
 	return ctx, nil
 }

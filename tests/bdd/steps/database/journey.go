@@ -89,7 +89,45 @@ func theDatabaseHasAJourney(ctx context.Context, table *godog.Table) (context.Co
 	return ctx, nil
 }
 
+// iUpdateTheJourneyWithIdToPrice updates a journey's price in the database
+// Supports variable substitution for journey ID
+func iUpdateTheJourneyWithIdToPrice(ctx context.Context, journeyIDStr, priceStr string) (context.Context, error) {
+	// Get test server from context
+	testServer, ok := ctx.Value(testcontext.ContextKeyTestServer).(*testcontext.TestServerWrapper)
+	if !ok {
+		return ctx, fmt.Errorf("test server not found in context")
+	}
+
+	// Resolve template variable if present
+	journeyIDStr, err := replaceVariables(ctx, journeyIDStr)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to resolve journey ID variable: %w", err)
+	}
+
+	// Parse journey ID
+	var journeyID int64
+	if _, err := fmt.Sscanf(journeyIDStr, "%d", &journeyID); err != nil {
+		return ctx, fmt.Errorf("invalid journey ID '%s': %w", journeyIDStr, err)
+	}
+
+	// Parse price
+	var price float64
+	if _, err := fmt.Sscanf(priceStr, "%f", &price); err != nil {
+		return ctx, fmt.Errorf("invalid price '%s': %w", priceStr, err)
+	}
+
+	// Update journey price in database
+	query := `UPDATE journeys SET price = $1 WHERE id = $2`
+	_, err = testServer.Server.Pool.Exec(ctx, query, price, journeyID)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to update journey price: %w", err)
+	}
+
+	return ctx, nil
+}
+
 // RegisterJourneySteps registers journey-related step definitions
 func RegisterJourneySteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the database has a journey:$`, theDatabaseHasAJourney)
+	sc.Step(`^I update the journey with id "([^"]*)" to price "([^"]*)"$`, iUpdateTheJourneyWithIdToPrice)
 }
