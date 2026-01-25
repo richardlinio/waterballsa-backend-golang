@@ -9,15 +9,22 @@ import (
 )
 
 type Querier interface {
+	CheckUserHasPurchasedJourney(ctx context.Context, arg CheckUserHasPurchasedJourneyParams) (bool, error)
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error)
+	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (CreateOrderItemRow, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (int64, error)
 	DeleteExpiredRefreshTokens(ctx context.Context) error
 	DeleteExpiredTokens(ctx context.Context) error
 	ExistsUserByUsername(ctx context.Context, username string) (bool, error)
 	GetJourneyByID(ctx context.Context, id int64) (GetJourneyByIDRow, error)
+	GetJourneyTitleByID(ctx context.Context, id int64) (string, error)
 	GetMissionByID(ctx context.Context, id int64) (GetMissionByIDRow, error)
+	GetOrderByID(ctx context.Context, id int64) (GetOrderByIDRow, error)
+	GetOrderItemsByOrderID(ctx context.Context, orderID int64) ([]GetOrderItemsByOrderIDRow, error)
 	GetRefreshToken(ctx context.Context, tokenJti string) (RefreshToken, error)
 	GetRewardByMissionID(ctx context.Context, missionID int64) (GetRewardByMissionIDRow, error)
+	GetUnpaidOrderByUserAndJourney(ctx context.Context, arg GetUnpaidOrderByUserAndJourneyParams) (GetUnpaidOrderByUserAndJourneyRow, error)
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
 	GetUserMissionProgress(ctx context.Context, arg GetUserMissionProgressParams) (GetUserMissionProgressRow, error)
@@ -29,6 +36,7 @@ type Querier interface {
 	ListResourcesByMissionID(ctx context.Context, missionID int64) ([]ListResourcesByMissionIDRow, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
 	RevokeRefreshToken(ctx context.Context, tokenJti string) error
+	UpdateJourneyPrice(ctx context.Context, arg UpdateJourneyPriceParams) error
 	UpdateUserExperience(ctx context.Context, arg UpdateUserExperienceParams) (UpdateUserExperienceRow, error)
 	UpsertUserMissionProgress(ctx context.Context, arg UpsertUserMissionProgressParams) (UpsertUserMissionProgressRow, error)
 }

@@ -58,6 +58,17 @@ func (q *Queries) GetJourneyByID(ctx context.Context, id int64) (GetJourneyByIDR
 	return i, err
 }
 
+const getJourneyTitleByID = `-- name: GetJourneyTitleByID :one
+SELECT title FROM journeys WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetJourneyTitleByID(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRow(ctx, getJourneyTitleByID, id)
+	var title string
+	err := row.Scan(&title)
+	return title, err
+}
+
 const listChaptersByJourneyID = `-- name: ListChaptersByJourneyID :many
 SELECT
     id,
@@ -230,4 +241,18 @@ func (q *Queries) ListMissionsByChapterIDs(ctx context.Context, dollar_1 []int64
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateJourneyPrice = `-- name: UpdateJourneyPrice :exec
+UPDATE journeys SET price = $2, updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL
+`
+
+type UpdateJourneyPriceParams struct {
+	ID    int64          `json:"id"`
+	Price pgtype.Numeric `json:"price"`
+}
+
+func (q *Queries) UpdateJourneyPrice(ctx context.Context, arg UpdateJourneyPriceParams) error {
+	_, err := q.db.Exec(ctx, updateJourneyPrice, arg.ID, arg.Price)
+	return err
 }
