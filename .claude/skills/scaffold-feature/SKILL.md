@@ -67,27 +67,35 @@ allowed-tools: Read Glob Grep Bash Write
 
 ## 3. 實作步驟
 
-實作應遵循以下依賴順序：
-1.  Domain Models (`internal/model/`)
-2.  DTOs (`internal/dto/`)
-3.  SQLc Queries (`internal/db/queries/`)
-4.  Repository (`internal/repository/`)
-5.  Service (`internal/service/`)
-6.  Handler (`internal/handler/`)
-7.  錯誤碼 (`internal/apperror/`)
-8.  路由註冊 (`internal/router/router.go`)
-9.  依賴注入 (`internal/app/app.go`, `tests/testutil/server.go`)
+The implementation should follow the dependency order outlined in the checklist below. For detailed code examples and anti-patterns, consult the [Implementation Guide](references/implementation_guide.md).
+## Scaffold 檢查清單
 
-### 步驟 1: [步驟標題, 例如，建立 Domain Model]
-**檔案**: `[path/to/file.go]` (建立/修改)
-**說明**:
-- [此步驟的具體指示]
-- [程式碼結構範例]
+實作順序 (依賴關係):
 
----
-*(重複所有步驟)*
----
+1.  **Domain Models** (無依賴) - `internal/model/`
+2.  **DTOs** (依賴 models) - `internal/dto/`
+3.  **SQLc Queries** (無依賴) - `internal/db/queries/*.sql`
+4.  **錯誤碼** (可提前) - `internal/apperror/`
+5.  **Repository** (依賴 SQLc) - `internal/repository/`
+6.  **Service** (依賴 repository) - `internal/service/`
+7.  **Handler** (依賴 service) - `internal/handler/`
+8.  **路由註冊** (依賴 handler) - `internal/router/router.go`
+9.  **依賴注入** (依賴所有元件)
+   - `internal/app/app.go` - 生產環境
+   - `tests/testutil/server.go` - 測試環境 ⚠️ **必須同步更新**
 
+必檢項目:
+
+- [ ] 所有層級已建立
+- [ ] 錯誤處理已加入 (參考 `/add-error-handling`)
+- [ ] 授權檢查已實作 (如需要)
+- [ ] 路由已註冊
+- [ ] 依賴注入已配置 (`internal/app/app.go`)
+- [ ] **測試伺服器已更新** (`tests/testutil/server.go`) ⚠️
+- [ ] Migration 已建立 (如需要)
+- [ ] SQLc 已執行 (`make sqlc`)
+- [ ] 測試步驟已定義
+- [ ] 遵循 Go idiomatic patterns (參考 `/go-idiomatic`)
 ## 4. 檔案總結
 
 **需建立的檔案**:
