@@ -10,41 +10,6 @@ Feature: Create Order API Implementation
     # Database is cleaned before each scenario (handled by @Before hook)
 
   # ============================================================
-  # Scenario Group A & B: Purchase Button Display and Navigation
-  # These are FRONTEND scenarios - cannot be tested via backend API
-  # ============================================================
-
-  @frontend
-  Scenario: Already purchased journey shows "Continue Learning" button
-    # 前端場景：此場景測試 UI 按鈕顯示邏輯
-    # 後端 API /journeys/{journeyId} 不返回購買狀態或按鈕顯示資訊
-    # 建議使用前端測試工具（如 Playwright/Cypress）進行測試
-
-  @frontend
-  Scenario: Not purchased journey shows "Join Course Now" button
-    # 前端場景：此場景測試 UI 按鈕顯示邏輯
-    # 後端 API /journeys/{journeyId} 不返回購買狀態或按鈕顯示資訊
-    # 建議使用前端測試工具（如 Playwright/Cypress）進行測試
-
-  @frontend
-  Scenario: Guest viewing journey shows "Join Course Now" button
-    # 前端場景：此場景測試 UI 按鈕顯示邏輯
-    # 訪客查看旅程屬於前端渲染邏輯
-    # 建議使用前端測試工具（如 Playwright/Cypress）進行測試
-
-  @frontend
-  Scenario: Already purchased journey clicking "Continue Learning" navigates to first task
-    # 前端場景：此場景測試導航行為
-    # 導航邏輯屬於前端路由處理
-    # 建議使用前端測試工具（如 Playwright/Cypress）進行測試
-
-  @frontend
-  Scenario: Guest clicking purchase button navigates to login page
-    # 前端場景：此場景測試導航行為
-    # 導航邏輯屬於前端路由處理
-    # 建議使用前端測試工具（如 Playwright/Cypress）進行測試
-
-  # ============================================================
   # Scenario Group C: Successful Order Creation Flow
   # ============================================================
 
