@@ -1,6 +1,6 @@
 ---
 name: go-idiomatic
-description: Go 語言慣用寫法與設計模式指南，包含回傳值設計、Aggregate Structures、Slice 初始化、命名慣例等。
+description: 當修改或撰寫 Go 程式碼時，為了確保程式碼符合 Go 語言的慣用寫法和設計模式，本 skill 提供指南與檢查清單。
 allowed-tools: Read
 ---
 
