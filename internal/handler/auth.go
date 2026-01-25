@@ -96,7 +96,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	c.JSON(http.StatusOK, dto.LoginResponse{
 		AccessToken: result.AccessToken,
-		User:        result.UserInfo,
+		User: dto.UserInfo{
+			ID:         result.UserID,
+			Username:   result.Username,
+			Experience: result.Experience,
+		},
 	})
 }
 
@@ -142,7 +146,11 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 	c.JSON(http.StatusOK, dto.RefreshResponse{
 		AccessToken: result.AccessToken,
-		User:        result.UserInfo,
+		User: dto.UserInfo{
+			ID:         result.UserID,
+			Username:   result.Username,
+			Experience: result.Experience,
+		},
 	})
 }
 
