@@ -11,6 +11,7 @@ import (
 	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/service"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/util"
 )
 
 type userService interface {
@@ -42,7 +43,7 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 	defer cancel()
 
 	// Extract authenticated user from JWT middleware
-	authenticatedUser := h.getAuthenticatedUser(c)
+	authenticatedUser := util.GetAuthenticatedUser(c)
 	if authenticatedUser == nil {
 		_ = c.Error(apperror.Unauthorized())
 		return
@@ -57,19 +58,4 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 
 	response := dto.ToUserProfileResponse(user)
 	c.JSON(http.StatusOK, response)
-}
-
-// getAuthenticatedUser extracts authenticated user from JWT context
-func (h *UserHandler) getAuthenticatedUser(c *gin.Context) *model.User {
-	payload, exists := c.Get("JWT_PAYLOAD")
-	if !exists {
-		return nil
-	}
-
-	user, ok := payload.(*model.User)
-	if !ok {
-		return nil
-	}
-
-	return user
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/service"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/util"
 )
 
 // missionService defines the mission service operations needed by the handler
@@ -58,7 +59,7 @@ func (h *MissionHandler) GetMissionDetail(c *gin.Context) {
 
 	// Check access level and authentication
 	if detail.Mission.AccessLevel == "AUTHENTICATED" || detail.Mission.AccessLevel == "PURCHASED" {
-		user := h.getAuthenticatedUser(c)
+		user := util.GetAuthenticatedUser(c)
 		if user == nil {
 			_ = c.Error(apperror.Unauthorized())
 			return
@@ -82,20 +83,4 @@ func (h *MissionHandler) GetMissionDetail(c *gin.Context) {
 
 	response := dto.ToMissionDetailResponse(detail)
 	c.JSON(http.StatusOK, response)
-}
-
-// getAuthenticatedUser extracts authenticated user from context
-// Returns nil if user is not authenticated
-func (h *MissionHandler) getAuthenticatedUser(c *gin.Context) *model.User {
-	payload, exists := c.Get("JWT_PAYLOAD")
-	if !exists {
-		return nil
-	}
-
-	user, ok := payload.(*model.User)
-	if !ok {
-		return nil
-	}
-
-	return user
 }

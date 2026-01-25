@@ -12,6 +12,7 @@ import (
 	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/service"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/util"
 )
 
 type progressService interface {
@@ -50,7 +51,7 @@ func (h *ProgressHandler) GetProgress(c *gin.Context) {
 	}
 
 	// Check authorization: user can only access their own progress
-	authenticatedUser := h.getAuthenticatedUser(c)
+	authenticatedUser := util.GetAuthenticatedUser(c)
 	if authenticatedUser == nil {
 		_ = c.Error(apperror.Unauthorized())
 		return
@@ -84,7 +85,7 @@ func (h *ProgressHandler) UpdateProgress(c *gin.Context) {
 	}
 
 	// Check authorization: user can only update their own progress
-	authenticatedUser := h.getAuthenticatedUser(c)
+	authenticatedUser := util.GetAuthenticatedUser(c)
 	if authenticatedUser == nil {
 		_ = c.Error(apperror.Unauthorized())
 		return
@@ -125,7 +126,7 @@ func (h *ProgressHandler) DeliverMission(c *gin.Context) {
 	}
 
 	// Check authorization: user can only deliver their own missions
-	authenticatedUser := h.getAuthenticatedUser(c)
+	authenticatedUser := util.GetAuthenticatedUser(c)
 	if authenticatedUser == nil {
 		_ = c.Error(apperror.Unauthorized())
 		return
@@ -162,19 +163,4 @@ func (h *ProgressHandler) parsePathParams(c *gin.Context) (userID int64, mission
 	}
 
 	return userID, missionID, nil
-}
-
-// getAuthenticatedUser extracts authenticated user from context
-func (h *ProgressHandler) getAuthenticatedUser(c *gin.Context) *model.User {
-	payload, exists := c.Get("JWT_PAYLOAD")
-	if !exists {
-		return nil
-	}
-
-	user, ok := payload.(*model.User)
-	if !ok {
-		return nil
-	}
-
-	return user
 }

@@ -10,8 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/apperror"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
-	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/service"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/util"
 )
 
 type orderService interface {
@@ -47,7 +47,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// Get authenticated user from JWT
-	authenticatedUser := h.getAuthenticatedUser(c)
+	authenticatedUser := util.GetAuthenticatedUser(c)
 	if authenticatedUser == nil {
 		_ = c.Error(apperror.Unauthorized())
 		return
@@ -73,19 +73,6 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	c.JSON(statusCode, response)
 }
 
-// getAuthenticatedUser retrieves the authenticated user from the Gin context
-func (h *OrderHandler) getAuthenticatedUser(c *gin.Context) *model.User {
-	payload, exists := c.Get("JWT_PAYLOAD")
-	if !exists {
-		return nil
-	}
-	user, ok := payload.(*model.User)
-	if !ok {
-		return nil
-	}
-	return user
-}
-
 // GetOrderDetail handles GET /orders/:orderId
 func (h *OrderHandler) GetOrderDetail(c *gin.Context) {
 	orderIDStr := c.Param("orderId")
@@ -96,7 +83,7 @@ func (h *OrderHandler) GetOrderDetail(c *gin.Context) {
 	}
 
 	// Get authenticated user from JWT
-	authenticatedUser := h.getAuthenticatedUser(c)
+	authenticatedUser := util.GetAuthenticatedUser(c)
 	if authenticatedUser == nil {
 		_ = c.Error(apperror.Unauthorized())
 		return
