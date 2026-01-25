@@ -20,10 +20,12 @@ const (
 	CodeJourneyNotFound  = "ERR_JOURNEY_NOT_FOUND"
 	CodeMissionNotFound  = "ERR_MISSION_NOT_FOUND"
 	CodeProgressNotFound = "ERR_PROGRESS_NOT_FOUND"
+	CodeOrderNotFound    = "ERR_ORDER_NOT_FOUND"
 
 	// Conflict errors (409 - Conflict)
 	CodeUsernameExists          = "ERR_USERNAME_EXISTS"
 	CodeMissionAlreadyDelivered = "ERR_MISSION_ALREADY_DELIVERED"
+	CodeJourneyAlreadyPurchased = "ERR_JOURNEY_ALREADY_PURCHASED"
 
 	// Rate limiting errors (429 - Too Many Requests)
 	CodeRateLimitExceeded = "ERR_RATE_LIMIT_EXCEEDED"

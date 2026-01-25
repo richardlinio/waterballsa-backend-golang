@@ -20,10 +20,12 @@ var httpStatusMap = map[string]int{
 	CodeJourneyNotFound:  http.StatusNotFound,
 	CodeMissionNotFound:  http.StatusNotFound,
 	CodeProgressNotFound: http.StatusNotFound,
+	CodeOrderNotFound:    http.StatusNotFound,
 
 	// Conflict errors (409 - Conflict)
 	CodeUsernameExists:          http.StatusConflict,
 	CodeMissionAlreadyDelivered: http.StatusConflict,
+	CodeJourneyAlreadyPurchased: http.StatusConflict,
 
 	// Rate limiting errors (429)
 	CodeRateLimitExceeded: http.StatusTooManyRequests,

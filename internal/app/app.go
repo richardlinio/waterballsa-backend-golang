@@ -75,6 +75,7 @@ func New() (*Application, error) {
 	journeyRepository := repository.NewJourneyRepository(queries)
 	missionRepository := repository.NewMissionRepository(queries)
 	progressRepository := repository.NewProgressRepository(queries)
+	orderRepository := repository.NewOrderRepository(queries)
 
 	// Initialize token generator (JWT token operations)
 	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
@@ -85,6 +86,7 @@ func New() (*Application, error) {
 	missionService := service.NewMissionService(missionRepository)
 	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository)
 	userService := service.NewUserService(userRepository)
+	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
@@ -104,13 +106,14 @@ func New() (*Application, error) {
 	missionHandler := handler.NewMissionHandler(missionService, log, cfg.Server.RequestTimeout)
 	progressHandler := handler.NewProgressHandler(progressService, log, cfg.Server.RequestTimeout)
 	userHandler := handler.NewUserHandler(userService, log, cfg.Server.RequestTimeout)
+	orderHandler := handler.NewOrderHandler(orderService, log, cfg.Server.RequestTimeout)
 
 	// Initialize blacklist checker middleware
 	blacklistChecker := middleware.BlacklistChecker(accessTokenRepository)
 
 	// Setup Gin router
 	ginRouter := gin.New()
-	r := router.NewRouter(ginRouter, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, missionHandler, progressHandler, userHandler, jwtMiddleware, blacklistChecker)
+	r := router.NewRouter(ginRouter, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, missionHandler, progressHandler, userHandler, orderHandler, jwtMiddleware, blacklistChecker)
 	r.Setup()
 
 	// Create HTTP server

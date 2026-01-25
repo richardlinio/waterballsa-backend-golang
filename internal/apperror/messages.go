@@ -18,10 +18,12 @@ var errorMessages = map[string]string{
 	CodeJourneyNotFound:  "查無此旅程",
 	CodeMissionNotFound:  "查無此任務",
 	CodeProgressNotFound: "找不到進度記錄",
+	CodeOrderNotFound:    "找不到訂單",
 
 	// Conflict errors (409 - Conflict)
 	CodeUsernameExists:          "使用者名稱已存在",
 	CodeMissionAlreadyDelivered: "任務已經交付過了",
+	CodeJourneyAlreadyPurchased: "你已經購買此課程",
 
 	// Rate limiting errors (429)
 	CodeRateLimitExceeded: "請求次數過多,請稍後再試",

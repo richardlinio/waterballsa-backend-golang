@@ -22,6 +22,7 @@ const (
 	ContextKeyLastJourneyID   ContextKey = "lastJourneyId"   // int64 for last created journey ID
 	ContextKeyLastChapterID   ContextKey = "lastChapterId"   // int64 for last created chapter ID
 	ContextKeyLastMissionID   ContextKey = "lastMissionId"   // int64 for last created mission ID
+	ContextKeyLastUserID      ContextKey = "lastUserId"      // int64 for last created user ID
 )
 
 // TestServerWrapper wraps the test server for sharing across scenarios

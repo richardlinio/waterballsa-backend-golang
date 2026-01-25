@@ -23,7 +23,9 @@
       "Read(**/*.go)",
       "Read(**/Dockerfile*)",
       "Read(**/*.yml)",
-      "Read(**/*.yaml)"
+      "Read(**/*.yaml)",
+      "Skill(check-isa-steps)",
+      "Skill(check-isa-steps:*)"
     ]
   }
 }

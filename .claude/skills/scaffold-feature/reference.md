@@ -43,6 +43,16 @@ tree -L 3 -I 'vendor|node_modules|.git|tmp' --dirsfirst
 
 ## 常見實作模式
 
+### Slice 初始化風格
+
+```go
+// 使用 append 模式 (推薦)
+items := make([]T, 0, len(source))
+for _, item := range source {
+    items = append(items, T{...})
+}
+```
+
 ### 回傳值設計 (Go Idiomatic)
 
 ❌ **避免多個回傳值**:
