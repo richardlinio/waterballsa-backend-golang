@@ -9,23 +9,23 @@ import (
 	"github.com/richardlinio/waterballsa-backend-golang/internal/repository"
 )
 
-type userProfileRepository interface {
+type userRepository interface {
 	GetByID(ctx context.Context, id int64) (*model.User, error)
 }
 
 type UserService struct {
-	userProfileRepository userProfileRepository
+	userRepository userRepository
 }
 
 func NewUserService(userRepository *repository.UserRepository) *UserService {
 	return &UserService{
-		userProfileRepository: userRepository,
+		userRepository: userRepository,
 	}
 }
 
 // GetProfile retrieves user profile by user ID
 func (s *UserService) GetProfile(ctx context.Context, userID int64) (*model.User, error) {
-	user, err := s.userProfileRepository.GetByID(ctx, userID)
+	user, err := s.userRepository.GetByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
 			return nil, apperror.Unauthorized()

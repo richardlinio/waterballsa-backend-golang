@@ -13,8 +13,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// userRepository provides user data access operations for AuthService
-type userRepository interface {
+// authUserRepository provides user data access operations for AuthService
+type authUserRepository interface {
 	Create(ctx context.Context, username, passwordHash string) (int64, error)
 	GetByID(ctx context.Context, id int64) (*model.User, error)
 	GetByUsername(ctx context.Context, username string) (*model.User, error)
@@ -44,7 +44,7 @@ type tokenGenerator interface {
 
 // AuthService implements authentication business logic operations.
 type AuthService struct {
-	userRepository         userRepository
+	userRepository         authUserRepository
 	accessTokenRepository  accessTokenRepository
 	refreshTokenRepository refreshTokenRepository
 	tokenGenerator         tokenGenerator
