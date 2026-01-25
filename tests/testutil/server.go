@@ -97,6 +97,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	journeyRepository := repository.NewJourneyRepository(queries)
 	missionRepository := repository.NewMissionRepository(queries)
 	progressRepository := repository.NewProgressRepository(queries)
+	orderRepository := repository.NewOrderRepository(queries)
 
 	// Initialize token generator
 	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
@@ -107,6 +108,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	missionService := service.NewMissionService(missionRepository)
 	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository)
 	userService := service.NewUserService(userRepository)
+	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
@@ -126,6 +128,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	missionHandler := handler.NewMissionHandler(missionService, log, cfg.Server.RequestTimeout)
 	progressHandler := handler.NewProgressHandler(progressService, log, cfg.Server.RequestTimeout)
 	userHandler := handler.NewUserHandler(userService, log, cfg.Server.RequestTimeout)
+	orderHandler := handler.NewOrderHandler(orderService, log, cfg.Server.RequestTimeout)
 
 	// Initialize blacklist checker middleware
 	//nolint:contextcheck // False positive: middleware correctly captures context from c.Request.Context() at request time
@@ -134,7 +137,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	// Setup Gin router with test mode
 	gin.SetMode(gin.TestMode)
 	ginEngine := gin.New()
-	r := router.NewRouter(ginEngine, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, missionHandler, progressHandler, userHandler, jwtMiddleware, blacklistChecker)
+	r := router.NewRouter(ginEngine, cfg.CORS, cfg.RateLimit, cfg.JWT, log, healthHandler, authHandler, journeyHandler, missionHandler, progressHandler, userHandler, orderHandler, jwtMiddleware, blacklistChecker)
 	r.Setup()
 
 	return &TestServer{

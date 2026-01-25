@@ -110,3 +110,11 @@ func MissionNotCompleted() *AppError {
 func MissionAlreadyDelivered() *AppError {
 	return New(CodeMissionAlreadyDelivered)
 }
+
+func OrderNotFound() *AppError {
+	return New(CodeOrderNotFound)
+}
+
+func JourneyAlreadyPurchased() *AppError {
+	return New(CodeJourneyAlreadyPurchased)
+}

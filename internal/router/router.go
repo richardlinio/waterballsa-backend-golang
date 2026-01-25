@@ -24,6 +24,7 @@ type Router struct {
 	missionHandler   *handler.MissionHandler
 	progressHandler  *handler.ProgressHandler
 	userHandler      *handler.UserHandler
+	orderHandler     *handler.OrderHandler
 	jwtMiddleware    *jwt.GinJWTMiddleware
 	blacklistChecker gin.HandlerFunc
 }
@@ -40,6 +41,7 @@ func NewRouter(
 	missionHandler *handler.MissionHandler,
 	progressHandler *handler.ProgressHandler,
 	userHandler *handler.UserHandler,
+	orderHandler *handler.OrderHandler,
 	jwtMiddleware *jwt.GinJWTMiddleware,
 	blacklistChecker gin.HandlerFunc,
 ) *Router {
@@ -55,6 +57,7 @@ func NewRouter(
 		missionHandler:   missionHandler,
 		progressHandler:  progressHandler,
 		userHandler:      userHandler,
+		orderHandler:     orderHandler,
 		jwtMiddleware:    jwtMiddleware,
 		blacklistChecker: blacklistChecker,
 	}
@@ -77,6 +80,7 @@ func (r *Router) Setup() {
 	r.setupMissionRoutes()
 	r.setupProgressRoutes()
 	r.setupUserRoutes()
+	r.setupOrderRoutes()
 }
 
 func (r *Router) setupRequestIDMiddleware() {
@@ -151,5 +155,16 @@ func (r *Router) setupUserRoutes() {
 	users.Use(r.blacklistChecker)
 	{
 		users.GET("/me", r.userHandler.GetCurrentUser)
+	}
+}
+
+func (r *Router) setupOrderRoutes() {
+	// Order routes require JWT authentication
+	orders := r.engine.Group("/orders")
+	orders.Use(middleware.JWTAuth(r.jwtMiddleware))
+	orders.Use(r.blacklistChecker)
+	{
+		orders.POST("", r.orderHandler.CreateOrder)
+		orders.GET("/:orderId", r.orderHandler.GetOrderDetail)
 	}
 }
