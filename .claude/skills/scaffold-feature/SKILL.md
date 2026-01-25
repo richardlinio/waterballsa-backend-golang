@@ -57,21 +57,7 @@ allowed-tools: Read, Glob, Grep, Bash, Write
 ```markdown
 # Feature Scaffold 計畫: [功能名稱]
 
-## 概述
-
-[簡短描述]
-
-## 參考文件
-
-- ISA Feature: [路徑]
-- API Spec: [路徑]
-- DB Schema: [路徑]
-
 ## 現況分析
-
-### 已存在
-
-- ✅ [項目]
 
 ### 缺少
 
@@ -110,12 +96,6 @@ allowed-tools: Read, Glob, Grep, Bash, Write
 1. 建置: `make sqlc && make fmt && make lint`
 2. 測試: `make test`
 3. 場景: [列出每個 ISA 場景]
-
-## 成功標準
-
-- [ ] 所有 ISA 場景通過
-- [ ] 符合 swagger 規格
-- [ ] 遵循 CLAUDE.md 模式
 ```
 
 ### 步驟排序原則

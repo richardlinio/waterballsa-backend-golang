@@ -1,6 +1,12 @@
 # Reference Guide: Feature Scaffolding
 
-本參考指南補充 SKILL.md 的執行步驟,提供實戰範例與速查表。詳細的架構說明請參考 `/CLAUDE.md`。
+本參考指南補充 SKILL.md 的執行步驟,提供實戰範例與速查表。
+
+## 相關文件與 Skills
+
+- **專案架構**: `/CLAUDE.md` - 分層架構、開發流程
+- **Go 慣用寫法**: `/go-idiomatic` - 回傳值設計、Aggregate Structures、命名慣例
+- **錯誤處理**: `/add-error-handling` - 5 步驟新增錯誤類型
 
 ## 專案結構查詢
 
@@ -53,16 +59,11 @@ for _, item := range source {
 }
 ```
 
-### 回傳值設計 (Go Idiomatic)
+**詳細說明**: 參考 `/go-idiomatic` skill
 
-❌ **避免多個回傳值**:
+### 回傳值設計
 
-```go
-// 不佳: 太多回傳值，難以維護
-func DeliverMission(ctx context.Context, userID, missionID int64) (message string, expGained int, totalExp, currentLevel int32, err error)
-```
-
-✅ **使用 struct 封裝**:
+**原則**: Service 方法若需回傳 2 個以上資料欄位，應建立 domain model struct
 
 ```go
 // Domain Model (internal/model/)
@@ -75,31 +76,12 @@ type MissionDeliveryResult struct {
 
 // Service 方法
 func (s *Service) DeliverMission(ctx context.Context, userID, missionID int64) (*model.MissionDeliveryResult, error) {
-    // ...
-    return &model.MissionDeliveryResult{
-        Message:          "成功",
-        ExperienceGained: reward.Value,
-        TotalExperience:  newExp,
-        CurrentLevel:     newLevel,
-    }, nil
-}
-
-// DTO Converter (internal/dto/)
-func ToDeliverResponse(result *model.MissionDeliveryResult) DeliverResponse {
-    return DeliverResponse{
-        Message:          result.Message,
-        ExperienceGained: result.ExperienceGained,
-        TotalExperience:  result.TotalExperience,
-        CurrentLevel:     result.CurrentLevel,
-    }
+    // ... 業務邏輯
+    return &model.MissionDeliveryResult{...}, nil
 }
 ```
 
-**原則**:
-
-- Service 回傳 domain model (業務結果)
-- DTO converter 負責轉換為 API 回應格式
-- 超過 2 個資料欄位時，優先考慮 struct
+**詳細說明與反模式**: 參考 `/go-idiomatic` skill
 
 ### 授權檢查
 
@@ -270,7 +252,7 @@ Feature: 功能名稱
 必檢項目:
 
 - [ ] 所有層級已建立
-- [ ] 錯誤處理已加入
+- [ ] 錯誤處理已加入 (參考 `/add-error-handling`)
 - [ ] 授權檢查已實作 (如需要)
 - [ ] 路由已註冊
 - [ ] 依賴注入已配置 (`internal/app/app.go`)
@@ -278,31 +260,35 @@ Feature: 功能名稱
 - [ ] Migration 已建立 (如需要)
 - [ ] SQLc 已執行 (`make sqlc`)
 - [ ] 測試步驟已定義
+- [ ] 遵循 Go idiomatic patterns (參考 `/go-idiomatic`)
 
 ## 常見陷阱
 
 ❌ **避免:**
 
-- Service 方法回傳太多值 (超過 2 個資料欄位應使用 struct)
-- **Service 層檢查 `pgx.ErrNoRows`** (違反分層架構)
+- Service 方法回傳太多值 (參考 `/go-idiomatic`)
+- **Service 層檢查 `pgx.ErrNoRows`** (參考 `/go-idiomatic`)
+- Service 依賴 DTO layer (參考 `/go-idiomatic`)
 - 跳過授權檢查
 - 忘記註冊路由
 - 遺漏依賴注入
 - **忘記更新測試伺服器** (`tests/testutil/server.go`)
-- 使用縮寫命名 (repo, svc, cfg)
+- 使用縮寫命名 (repo, svc, cfg) (參考 `/go-idiomatic`)
+- 錯誤處理未依 HTTP status 排序 (參考 `/add-error-handling`)
 - 忘記執行 `make sqlc`
 - 忽略檢查現有 migrations
 - 忽略檢查現有 step definitions
 
 ✅ **務必:**
 
-- Service 回傳多個資料時使用 domain model struct
-- **Service 檢查 repository 自訂錯誤，而非 pgx 錯誤**
+- Service 回傳多個資料時使用 domain model struct (參考 `/go-idiomatic`)
+- **Service 檢查 repository 自訂錯誤，而非 pgx 錯誤** (參考 `/go-idiomatic`)
 - 驗證使用者權限
 - 透過建構子注入依賴
 - **同步更新生產與測試環境的 DI 配置**
-- Repository 將 `pgx.ErrNoRows` 轉為 domain error
-- 使用完整變數名稱 (repository, service, config)
+- Repository 將 `pgx.ErrNoRows` 轉為 domain error (參考 `/go-idiomatic`)
+- 使用完整變數名稱 (repository, service, config) (參考 `/go-idiomatic`)
+- 新增錯誤類型遵循 5 步驟流程 (參考 `/add-error-handling`)
 - 新增 queries 後執行 `make sqlc`
 - 確認資料表結構一致
 - 重用現有測試步驟
