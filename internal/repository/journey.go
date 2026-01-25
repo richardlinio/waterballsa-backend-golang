@@ -3,8 +3,10 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/db"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 )
@@ -136,4 +138,36 @@ func (r *JourneyRepository) ListMissionsByChapterIDs(ctx context.Context, chapte
 	}
 
 	return missions, nil
+}
+
+// GetJourneyTitleByID retrieves journey title by ID
+func (r *JourneyRepository) GetJourneyTitleByID(ctx context.Context, journeyID int64) (string, error) {
+	title, err := r.queries.GetJourneyTitleByID(ctx, journeyID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrJourneyNotFound
+		}
+		return "", err
+	}
+	return title, nil
+}
+
+// UpdateJourneyPrice updates the price of a journey
+func (r *JourneyRepository) UpdateJourneyPrice(ctx context.Context, journeyID int64, price float64) error {
+	var priceNumeric pgtype.Numeric
+	if err := priceNumeric.Scan(fmt.Sprintf("%.2f", price)); err != nil {
+		return err
+	}
+
+	err := r.queries.UpdateJourneyPrice(ctx, db.UpdateJourneyPriceParams{
+		ID:    journeyID,
+		Price: priceNumeric,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrJourneyNotFound
+		}
+		return err
+	}
+	return nil
 }
