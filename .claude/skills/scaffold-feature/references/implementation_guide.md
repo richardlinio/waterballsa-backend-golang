@@ -1,76 +1,25 @@
 # Implementation Guide: Patterns & Pitfalls
 
-This guide provides common Go implementation patterns for this project, along with anti-patterns to avoid. Following these conventions is crucial for maintaining code consistency and quality.
+This guide provides common implementation patterns for this project, along with anti-patterns to avoid.
 
-Each section presents the recommended approach (✅ **Do**) and contrasts it with common mistakes (❌ **Don't**).
+## Go Idiomatic Patterns
 
-## Slice Initialization Style
+For general Go language conventions, including:
 
-✅ **Do:** Use the `make` and `append` pattern for efficiency and clarity, especially when the final size is known.
+- **Slice Initialization**
+- **Return Value Design**
+- **Repository Error Handling**
+- **Variable Naming Conventions**
+- **Aggregate Structure Design**
+- **Configuration Management**
 
-```go
-// Pre-allocate capacity when source length is known
-items := make([]T, 0, len(source))
-for _, item := range source {
-    items = append(items, T{...})
-}
-```
+Please refer to the `go-idiomatic` skill. It contains detailed explanations and code examples for ensuring your Go code is idiomatic and consistent with our project's standards.
 
-Further details on idiomatic Go can be found in the `/go-idiomatic` skill.
+You can activate it by typing `@go-idiomatic` in the chat.
 
-## Return Value Design
+---
 
-✅ **Do:** If a Service method needs to return more than two data fields, create a dedicated `domain model` struct. This improves readability and makes the function signature stable.
-
-```go
-// Domain Model (internal/model/)
-type MissionDeliveryResult struct {
-    Message          string
-    ExperienceGained int
-    TotalExperience  int32
-    CurrentLevel     int32
-}
-
-// Service Method
-func (s *Service) DeliverMission(ctx context.Context, userID, missionID int64) (*model.MissionDeliveryResult, error) {
-    // ... business logic
-    return &model.MissionDeliveryResult{...}, nil
-}
-```
-
-❌ **Don't:** Return numerous values from a single function. This is a code smell and makes the code harder to refactor and read.
-
-```go
-// ANTI-PATTERN: Avoid this in service layers
-func (s *Service) DeliverMission(...) (string, int, int32, int32, error) {
-    // ...
-}
-```
-
-## Handling "Not Found" Errors
-
-✅ **Do:** Maintain separation of concerns. The Repository layer should convert database-specific errors (like `pgx.ErrNoRows`) into a generic domain error. The Service layer should only check for this domain error.
-
-```go
-// Repository: Convert to a domain error, hiding pgx details.
-if errors.Is(err, pgx.ErrNoRows) {
-    return nil, repository.ErrResourceNotFound // A custom error defined in the repository package
-}
-
-// Service: Check the repository's custom error, not the pgx error.
-if errors.Is(err, repository.ErrResourceNotFound) {
-    return nil, apperror.ResourceNotFound() // Return a standard application error
-}
-```
-
-❌ **Don't:** Let service layers depend on `pgx` or any other database-specific implementation details.
-
-```go
-// ANTI-PATTERN: Service checking pgx.ErrNoRows breaks architectural boundaries.
-if errors.Is(err, pgx.ErrNoRows) {
-    // ...
-}
-```
+The following sections cover patterns specific to scaffolding new features in this application.
 
 ## Authorization Checks
 
@@ -88,26 +37,6 @@ if user.ID != requestedUserID {
 ```
 
 ❌ **Don't:** Skip authorization checks. This is a critical security vulnerability.
-
-## Variable Naming
-
-✅ **Do:** Use descriptive, full-word variable names. This improves code readability.
-
-```go
-// Correct
-var repository repository.UserRepository
-var service service.UserService
-var config config.Config
-```
-
-❌ **Don't:** Use abbreviations. While it saves a few characters, it makes the code harder to understand for new developers.
-
-```go
-// ANTI-PATTERN
-var repo repository.UserRepository // -> repository
-var svc service.UserService     // -> service
-var cfg config.Config         // -> config is acceptable, but be consistent
-```
 
 ## UPSERT Pattern in SQL
 
