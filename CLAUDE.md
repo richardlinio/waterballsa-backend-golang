@@ -105,6 +105,91 @@ When adding new configuration, maintain consistency with pass-by-value pattern:
 
 This expresses config immutability and ensures consistent behavior across the codebase.
 
+### Aggregate Structures and Layer Responsibilities
+
+The codebase distinguishes between different types of aggregate structures based on their purpose and layer placement.
+
+#### Model Layer
+
+Contains two types of structures:
+
+1. **Database Entity**: Single database table mappings
+   - Examples: `Journey`, `Mission`, `Order`, `User`
+   - Represents a single row/document in the database
+   - May contain entity-specific business methods (e.g., `User.CalculateLevel()`)
+
+2. **Query Result Aggregate**: Multi-table query result containers
+   - Examples: `JourneyDetail`, `MissionDetail`
+   - Pure data containers with no business logic
+   - Assembled by Service layer but defined in Model layer
+   - Purpose: Avoid returning too many parameters from Service methods
+   - Identification: Combines data from multiple DB tables for read operations
+
+#### Service Layer
+
+Contains **Business Result Structs**: Results of business operations
+
+- Examples: `OrderResult`, `LoginResult`
+- Contains data produced by business logic (denormalized data, computed fields)
+- Naming convention: `*Result` suffix
+- Identification: Includes business logic-generated data, not just raw DB queries
+- **MUST NOT** depend on DTO layer (avoid `service → dto` dependency)
+
+#### DTO Layer
+
+Contains **Request/Response DTOs**: API serialization/deserialization
+
+- Examples: `OrderResponse`, `LoginRequest`, `UserInfo`
+- Only handles JSON tags, validation tags, API formatting
+- **MUST NOT** be imported by Service layer
+- Can depend on Model layer for conversion purposes
+
+#### Dependency Rules
+
+```
+Handler → DTO ← (converts from) ← Service → Model
+   ↓                                   ↓
+(uses)                              (uses)
+   ↓                                   ↓
+Service                            Repository
+```
+
+- ✅ Handler can depend on Service and DTO
+- ✅ Service can depend on Model and Repository
+- ✅ DTO can depend on Model (for conversion functions)
+- ❌ Service MUST NOT depend on DTO (prevents circular dependency and layer confusion)
+
+**Example - Correct Pattern**:
+```go
+// service/auth.go
+type LoginResult struct {
+    AccessToken string
+    UserID      int64      // ✅ Independent fields
+    Username    string     // ✅ No dto.UserInfo dependency
+    Experience  int32
+}
+
+// handler/auth.go
+result, _ := authService.Login(ctx, req)
+c.JSON(http.StatusOK, dto.LoginResponse{
+    AccessToken: result.AccessToken,
+    User: dto.UserInfo{  // ✅ Handler constructs DTO from Result
+        ID:         result.UserID,
+        Username:   result.Username,
+        Experience: result.Experience,
+    },
+})
+```
+
+**Anti-pattern**:
+```go
+// ❌ WRONG: Service depending on DTO
+type LoginResult struct {
+    AccessToken string
+    UserInfo    dto.UserInfo  // ❌ Creates service → dto dependency
+}
+```
+
 #### Migration Files
 
 Migrations use Goose format with `-- +goose Up` and `-- +goose Down` directives:

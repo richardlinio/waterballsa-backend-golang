@@ -21,7 +21,7 @@ const (
 	orderNumberRandomCodeLen   = 5            // Take first 5 chars from hex string
 )
 
-type orderRepositoryForOrder interface {
+type orderRepository interface {
 	CreateOrder(ctx context.Context, orderNumber string, userID int64, originalPrice, discount, price float64, expiredAt time.Time) (*model.Order, error)
 	CreateOrderItem(ctx context.Context, orderID, journeyID int64, quantity int32, originalPrice, discount, price float64) (*model.OrderItem, error)
 	GetOrderByID(ctx context.Context, orderID int64) (*model.Order, error)
@@ -30,12 +30,12 @@ type orderRepositoryForOrder interface {
 	GetUnpaidOrderByUserAndJourney(ctx context.Context, userID, journeyID int64) (*model.Order, error)
 }
 
-type journeyRepositoryForOrder interface {
+type orderJourneyRepository interface {
 	GetByID(ctx context.Context, journeyID int64) (*model.Journey, error)
 	GetJourneyTitleByID(ctx context.Context, journeyID int64) (string, error)
 }
 
-type userRepositoryForOrder interface {
+type orderUserRepository interface {
 	GetByID(ctx context.Context, id int64) (*model.User, error)
 }
 
@@ -48,9 +48,9 @@ type OrderResult struct {
 }
 
 type OrderService struct {
-	orderRepository   orderRepositoryForOrder
-	journeyRepository journeyRepositoryForOrder
-	userRepository    userRepositoryForOrder
+	orderRepository   orderRepository
+	journeyRepository orderJourneyRepository
+	userRepository    orderUserRepository
 }
 
 func NewOrderService(
