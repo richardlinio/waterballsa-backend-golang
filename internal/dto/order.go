@@ -13,6 +13,15 @@ type CreateOrderItemRequest struct {
 	Quantity  int32 `json:"quantity" binding:"required,min=1"`
 }
 
+type OrderItemDTO struct {
+	JourneyID     int64   `json:"journeyId"`
+	JourneyTitle  string  `json:"journeyTitle"`
+	Quantity      int32   `json:"quantity"`
+	OriginalPrice float64 `json:"originalPrice"`
+	Discount      float64 `json:"discount"`
+	Price         float64 `json:"price"`
+}
+
 type OrderResponse struct {
 	ID            int64          `json:"id"`
 	OrderNumber   string         `json:"orderNumber"`
@@ -26,15 +35,6 @@ type OrderResponse struct {
 	CreatedAt     int64          `json:"createdAt"` // Unix milliseconds
 	ExpiredAt     *int64         `json:"expiredAt"` // Unix milliseconds, nullable
 	PaidAt        *int64         `json:"paidAt"`    // Unix milliseconds, nullable
-}
-
-type OrderItemDTO struct {
-	JourneyID     int64   `json:"journeyId"`
-	JourneyTitle  string  `json:"journeyTitle"`
-	Quantity      int32   `json:"quantity"`
-	OriginalPrice float64 `json:"originalPrice"`
-	Discount      float64 `json:"discount"`
-	Price         float64 `json:"price"`
 }
 
 // ToOrderResponse converts order data to OrderResponse DTO
@@ -85,5 +85,26 @@ func ToOrderResponse(
 		CreatedAt:     createdAt,
 		ExpiredAt:     expiredAt,
 		PaidAt:        paidAt,
+	}
+}
+
+type PayOrderResponse struct {
+	ID          int64   `json:"id"`
+	OrderNumber string  `json:"orderNumber"`
+	Status      string  `json:"status"`
+	Price       float64 `json:"price"`
+	PaidAt      int64   `json:"paidAt"`
+	Message     string  `json:"message"`
+}
+
+// ToPayOrderResponse converts paid order data to PayOrderResponse DTO
+func ToPayOrderResponse(order *model.Order, message string) PayOrderResponse {
+	return PayOrderResponse{
+		ID:          order.ID,
+		OrderNumber: order.OrderNumber,
+		Status:      order.Status,
+		Price:       order.Price,
+		PaidAt:      order.PaidAt.UnixMilli(),
+		Message:     message,
 	}
 }

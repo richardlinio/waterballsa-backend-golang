@@ -28,6 +28,11 @@ type orderRepository interface {
 	GetOrderItemsByOrderID(ctx context.Context, orderID int64) ([]model.OrderItem, error)
 	CheckUserHasPurchasedJourney(ctx context.Context, userID, journeyID int64) (bool, error)
 	GetUnpaidOrderByUserAndJourney(ctx context.Context, userID, journeyID int64) (*model.Order, error)
+	UpdateOrderStatusToPaid(ctx context.Context, orderID int64) (*model.Order, error)
+}
+
+type userJourneyRepository interface {
+	CreateUserJourney(ctx context.Context, userID, journeyID, orderID int64) error
 }
 
 type orderJourneyRepository interface {
@@ -48,20 +53,23 @@ type OrderResult struct {
 }
 
 type OrderService struct {
-	orderRepository   orderRepository
-	journeyRepository orderJourneyRepository
-	userRepository    orderUserRepository
+	orderRepository       orderRepository
+	journeyRepository     orderJourneyRepository
+	userRepository        orderUserRepository
+	userJourneyRepository userJourneyRepository
 }
 
 func NewOrderService(
 	orderRepository *repository.OrderRepository,
 	journeyRepository *repository.JourneyRepository,
 	userRepository *repository.UserRepository,
+	userJourneyRepository *repository.UserJourneyRepository,
 ) *OrderService {
 	return &OrderService{
-		orderRepository:   orderRepository,
-		journeyRepository: journeyRepository,
-		userRepository:    userRepository,
+		orderRepository:       orderRepository,
+		journeyRepository:     journeyRepository,
+		userRepository:        userRepository,
+		userJourneyRepository: userJourneyRepository,
 	}
 }
 
@@ -191,6 +199,53 @@ func (s *OrderService) toOrderResult(ctx context.Context, order *model.Order) (*
 		JourneyTitles: journeyTitles,
 		Username:      user.Username,
 	}, nil
+}
+
+// PayOrder processes payment for an order
+func (s *OrderService) PayOrder(ctx context.Context, orderID, userID int64) (*model.Order, error) {
+	// 1. Get order by ID
+	order, err := s.orderRepository.GetOrderByID(ctx, orderID)
+	if err != nil {
+		if errors.Is(err, repository.ErrOrderNotFound) {
+			return nil, apperror.OrderNotFound()
+		}
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// 2. Authorization: user can only pay their own orders
+	if order.UserID != userID {
+		return nil, apperror.OrderNotFound() // Return 404 to avoid info leakage
+	}
+
+	// 3. Check order status
+	if order.Status == "PAID" {
+		return nil, apperror.OrderAlreadyPaid()
+	}
+	if order.Status == "EXPIRED" {
+		return nil, apperror.OrderExpired()
+	}
+
+	// 4. Update order status to PAID
+	paidOrder, err := s.orderRepository.UpdateOrderStatusToPaid(ctx, orderID)
+	if err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// 5. Get order items to grant journey access
+	items, err := s.orderRepository.GetOrderItemsByOrderID(ctx, orderID)
+	if err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// 6. Create user journey ownership for each item
+	for _, item := range items {
+		err := s.userJourneyRepository.CreateUserJourney(ctx, userID, item.JourneyID, orderID)
+		if err != nil {
+			return nil, apperror.DatabaseError(err)
+		}
+	}
+
+	return paidOrder, nil
 }
 
 // generateOrderNumber generates a unique order number

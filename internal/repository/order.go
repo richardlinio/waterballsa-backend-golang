@@ -279,3 +279,49 @@ func (r *OrderRepository) GetUnpaidOrderByUserAndJourney(ctx context.Context, us
 
 	return order, nil
 }
+
+// UpdateOrderStatusToPaid updates order status to PAID and sets paid_at timestamp
+func (r *OrderRepository) UpdateOrderStatusToPaid(ctx context.Context, orderID int64) (*model.Order, error) {
+	row, err := r.queries.UpdateOrderStatusToPaid(ctx, orderID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrOrderNotFound
+		}
+		return nil, err
+	}
+
+	// Convert numeric values to float64
+	originalPriceFloat, err := row.OriginalPrice.Float64Value()
+	if err != nil {
+		return nil, err
+	}
+	discountFloat, err := row.Discount.Float64Value()
+	if err != nil {
+		return nil, err
+	}
+	priceFloat, err := row.Price.Float64Value()
+	if err != nil {
+		return nil, err
+	}
+
+	order := &model.Order{
+		ID:            row.ID,
+		OrderNumber:   row.OrderNumber,
+		UserID:        row.UserID,
+		Status:        string(row.Status),
+		OriginalPrice: originalPriceFloat.Float64,
+		Discount:      discountFloat.Float64,
+		Price:         priceFloat.Float64,
+		CreatedAt:     row.CreatedAt.Time,
+		UpdatedAt:     row.UpdatedAt.Time,
+	}
+
+	if row.ExpiredAt.Valid {
+		order.ExpiredAt = &row.ExpiredAt.Time
+	}
+	if row.PaidAt.Valid {
+		order.PaidAt = &row.PaidAt.Time
+	}
+
+	return order, nil
+}
