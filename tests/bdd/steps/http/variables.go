@@ -14,6 +14,7 @@ const (
 	varLastChapterID = "lastChapterId"
 	varLastMissionID = "lastMissionId"
 	varLastUserID    = "lastUserId"
+	varLastOrderID   = "lastOrderId"
 )
 
 // iStoreTheResponseFieldAs stores a field value from the response body for later use
@@ -76,6 +77,11 @@ func iCopyVariableTo(ctx context.Context, sourceVarName, targetVarName string) (
 		}
 	case varLastUserID:
 		if val, ok := ctx.Value(testcontext.ContextKeyLastUserID).(int64); ok {
+			value = val
+			found = true
+		}
+	case varLastOrderID:
+		if val, ok := ctx.Value(testcontext.ContextKeyLastOrderID).(int64); ok {
 			value = val
 			found = true
 		}

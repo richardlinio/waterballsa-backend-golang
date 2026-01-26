@@ -130,7 +130,7 @@ func toFloat64(val any) (float64, bool) {
 }
 
 // replaceVariablesInPath replaces {{variableName}} placeholders in URL paths with values from context
-// Supports: lastJourneyId, lastChapterId, lastMissionId, lastUserId, and stored variables
+// Supports: lastJourneyId, lastChapterId, lastMissionId, lastUserId, lastOrderId, and stored variables
 func replaceVariablesInPath(ctx context.Context, path string) (string, error) {
 	// Regular expression to find {{variableName}} patterns
 	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
@@ -157,6 +157,10 @@ func replaceVariablesInPath(ctx context.Context, path string) (string, error) {
 			if val, ok := ctx.Value(testcontext.ContextKeyLastUserID).(int64); ok {
 				return fmt.Sprintf("%d", val)
 			}
+		case varLastOrderID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastOrderID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
 		}
 
 		// Try stored variables
@@ -174,7 +178,7 @@ func replaceVariablesInPath(ctx context.Context, path string) (string, error) {
 }
 
 // replaceVariablesInRequestBody replaces {{variableName}} placeholders in request bodies with values from context
-// Supports: lastJourneyId, lastChapterId, lastMissionId, lastUserId, and stored variables
+// Supports: lastJourneyId, lastChapterId, lastMissionId, lastUserId, lastOrderId, and stored variables
 func replaceVariablesInRequestBody(ctx context.Context, body string) (string, error) {
 	// Regular expression to find {{variableName}} patterns
 	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
@@ -201,6 +205,10 @@ func replaceVariablesInRequestBody(ctx context.Context, body string) (string, er
 			if val, ok := ctx.Value(testcontext.ContextKeyLastUserID).(int64); ok {
 				return fmt.Sprintf("%d", val)
 			}
+		case varLastOrderID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastOrderID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
 		}
 
 		// Try stored variables
@@ -218,7 +226,7 @@ func replaceVariablesInRequestBody(ctx context.Context, body string) (string, er
 }
 
 // replaceVariablesInString replaces {{variableName}} placeholders in strings with values from context
-// Supports: lastJourneyId, lastChapterId, lastMissionId, lastUserId, and stored variables
+// Supports: lastJourneyId, lastChapterId, lastMissionId, lastUserId, lastOrderId, and stored variables
 func replaceVariablesInString(ctx context.Context, str string) (string, error) {
 	// Regular expression to find {{variableName}} patterns
 	re := regexp.MustCompile(`\{\{([^}]+)\}\}`)
@@ -243,6 +251,10 @@ func replaceVariablesInString(ctx context.Context, str string) (string, error) {
 			}
 		case varLastUserID:
 			if val, ok := ctx.Value(testcontext.ContextKeyLastUserID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
+		case varLastOrderID:
+			if val, ok := ctx.Value(testcontext.ContextKeyLastOrderID).(int64); ok {
 				return fmt.Sprintf("%d", val)
 			}
 		}
