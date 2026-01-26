@@ -26,6 +26,8 @@ const (
 	CodeUsernameExists          = "ERR_USERNAME_EXISTS"
 	CodeMissionAlreadyDelivered = "ERR_MISSION_ALREADY_DELIVERED"
 	CodeJourneyAlreadyPurchased = "ERR_JOURNEY_ALREADY_PURCHASED"
+	CodeOrderAlreadyPaid        = "ERR_ORDER_ALREADY_PAID"
+	CodeOrderExpired            = "ERR_ORDER_EXPIRED"
 
 	// Rate limiting errors (429 - Too Many Requests)
 	CodeRateLimitExceeded = "ERR_RATE_LIMIT_EXCEEDED"

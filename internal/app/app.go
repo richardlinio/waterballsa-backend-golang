@@ -76,6 +76,7 @@ func New() (*Application, error) {
 	missionRepository := repository.NewMissionRepository(queries)
 	progressRepository := repository.NewProgressRepository(queries)
 	orderRepository := repository.NewOrderRepository(queries)
+	userJourneyRepository := repository.NewUserJourneyRepository(queries)
 
 	// Initialize token generator (JWT token operations)
 	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
@@ -86,7 +87,7 @@ func New() (*Application, error) {
 	missionService := service.NewMissionService(missionRepository)
 	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository)
 	userService := service.NewUserService(userRepository)
-	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository)
+	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository, userJourneyRepository)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)

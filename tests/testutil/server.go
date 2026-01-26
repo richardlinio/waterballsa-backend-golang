@@ -98,6 +98,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	missionRepository := repository.NewMissionRepository(queries)
 	progressRepository := repository.NewProgressRepository(queries)
 	orderRepository := repository.NewOrderRepository(queries)
+	userJourneyRepository := repository.NewUserJourneyRepository(queries)
 
 	// Initialize token generator
 	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
@@ -108,7 +109,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	missionService := service.NewMissionService(missionRepository)
 	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository)
 	userService := service.NewUserService(userRepository)
-	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository)
+	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository, userJourneyRepository)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)
