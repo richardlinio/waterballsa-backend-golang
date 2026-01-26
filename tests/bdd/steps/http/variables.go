@@ -17,6 +17,36 @@ const (
 	varLastOrderID   = "lastOrderId"
 )
 
+// contextKeyMapping defines the mapping from variable names to context keys
+var contextKeyMapping = map[string]testcontext.ContextKey{
+	varLastJourneyID: testcontext.ContextKeyLastJourneyID,
+	varLastChapterID: testcontext.ContextKeyLastChapterID,
+	varLastMissionID: testcontext.ContextKeyLastMissionID,
+	varLastUserID:    testcontext.ContextKeyLastUserID,
+	varLastOrderID:   testcontext.ContextKeyLastOrderID,
+}
+
+// resolveVariable resolves a variable value from context
+// It first checks context keys (using contextKeyMapping), then checks stored variables
+// Returns (value, found) where found is true if the variable exists
+func resolveVariable(ctx context.Context, varName string) (any, bool) {
+	// Try context keys first
+	if contextKey, exists := contextKeyMapping[varName]; exists {
+		if val, ok := ctx.Value(contextKey).(int64); ok {
+			return val, true
+		}
+	}
+
+	// Try stored variables
+	if storedVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]any); ok {
+		if val, exists := storedVars[varName]; exists {
+			return val, true
+		}
+	}
+
+	return nil, false
+}
+
 // iStoreTheResponseFieldAs stores a field value from the response body for later use
 func iStoreTheResponseFieldAs(ctx context.Context, fieldName, variableName string) (context.Context, error) {
 	body, ok := ctx.Value(testcontext.ContextKeyResponseBody).([]byte)
@@ -55,48 +85,8 @@ func iStoreTheResponseFieldAs(ctx context.Context, fieldName, variableName strin
 // iCopyVariableTo copies a variable from one name to another
 // Supports copying from context keys (lastJourneyId, lastUserId, etc.) or stored variables
 func iCopyVariableTo(ctx context.Context, sourceVarName, targetVarName string) (context.Context, error) {
-	var value any
-	var found bool
-
-	// Try context keys first
-	switch sourceVarName {
-	case varLastJourneyID:
-		if val, ok := ctx.Value(testcontext.ContextKeyLastJourneyID).(int64); ok {
-			value = val
-			found = true
-		}
-	case varLastChapterID:
-		if val, ok := ctx.Value(testcontext.ContextKeyLastChapterID).(int64); ok {
-			value = val
-			found = true
-		}
-	case varLastMissionID:
-		if val, ok := ctx.Value(testcontext.ContextKeyLastMissionID).(int64); ok {
-			value = val
-			found = true
-		}
-	case varLastUserID:
-		if val, ok := ctx.Value(testcontext.ContextKeyLastUserID).(int64); ok {
-			value = val
-			found = true
-		}
-	case varLastOrderID:
-		if val, ok := ctx.Value(testcontext.ContextKeyLastOrderID).(int64); ok {
-			value = val
-			found = true
-		}
-	}
-
-	// If not found in context keys, try stored variables
-	if !found {
-		if storedVars, ok := ctx.Value(testcontext.ContextKeyStoredVariables).(map[string]any); ok {
-			if val, exists := storedVars[sourceVarName]; exists {
-				value = val
-				found = true
-			}
-		}
-	}
-
+	// Use the unified resolveVariable function
+	value, found := resolveVariable(ctx, sourceVarName)
 	if !found {
 		return ctx, fmt.Errorf("source variable '%s' not found in context or stored variables", sourceVarName)
 	}
