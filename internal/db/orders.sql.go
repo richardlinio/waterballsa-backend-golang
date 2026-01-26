@@ -151,6 +151,22 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 	return i, err
 }
 
+const createUserJourney = `-- name: CreateUserJourney :exec
+INSERT INTO user_journeys (user_id, journey_id, order_id, purchased_at)
+VALUES ($1, $2, $3, now())
+`
+
+type CreateUserJourneyParams struct {
+	UserID    int64 `json:"user_id"`
+	JourneyID int64 `json:"journey_id"`
+	OrderID   int64 `json:"order_id"`
+}
+
+func (q *Queries) CreateUserJourney(ctx context.Context, arg CreateUserJourneyParams) error {
+	_, err := q.db.Exec(ctx, createUserJourney, arg.UserID, arg.JourneyID, arg.OrderID)
+	return err
+}
+
 const getOrderByID = `-- name: GetOrderByID :one
 SELECT id, order_number, user_id, status, original_price, discount, price, created_at, expired_at, paid_at, updated_at
 FROM orders
@@ -266,6 +282,48 @@ type GetUnpaidOrderByUserAndJourneyRow struct {
 func (q *Queries) GetUnpaidOrderByUserAndJourney(ctx context.Context, arg GetUnpaidOrderByUserAndJourneyParams) (GetUnpaidOrderByUserAndJourneyRow, error) {
 	row := q.db.QueryRow(ctx, getUnpaidOrderByUserAndJourney, arg.UserID, arg.JourneyID)
 	var i GetUnpaidOrderByUserAndJourneyRow
+	err := row.Scan(
+		&i.ID,
+		&i.OrderNumber,
+		&i.UserID,
+		&i.Status,
+		&i.OriginalPrice,
+		&i.Discount,
+		&i.Price,
+		&i.CreatedAt,
+		&i.ExpiredAt,
+		&i.PaidAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateOrderStatusToPaid = `-- name: UpdateOrderStatusToPaid :one
+UPDATE orders
+SET status = 'PAID',
+    paid_at = now(),
+    updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, order_number, user_id, status, original_price, discount, price, created_at, expired_at, paid_at, updated_at
+`
+
+type UpdateOrderStatusToPaidRow struct {
+	ID            int64            `json:"id"`
+	OrderNumber   string           `json:"order_number"`
+	UserID        int64            `json:"user_id"`
+	Status        OrderStatus      `json:"status"`
+	OriginalPrice pgtype.Numeric   `json:"original_price"`
+	Discount      pgtype.Numeric   `json:"discount"`
+	Price         pgtype.Numeric   `json:"price"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	ExpiredAt     pgtype.Timestamp `json:"expired_at"`
+	PaidAt        pgtype.Timestamp `json:"paid_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) UpdateOrderStatusToPaid(ctx context.Context, id int64) (UpdateOrderStatusToPaidRow, error) {
+	row := q.db.QueryRow(ctx, updateOrderStatusToPaid, id)
+	var i UpdateOrderStatusToPaidRow
 	err := row.Scan(
 		&i.ID,
 		&i.OrderNumber,

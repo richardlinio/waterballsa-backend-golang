@@ -45,3 +45,15 @@ FROM orders o
 INNER JOIN order_items oi ON o.id = oi.order_id
 WHERE o.user_id = $1 AND oi.journey_id = $2 AND o.status = 'UNPAID' AND o.deleted_at IS NULL
 LIMIT 1;
+
+-- name: UpdateOrderStatusToPaid :one
+UPDATE orders
+SET status = 'PAID',
+    paid_at = now(),
+    updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, order_number, user_id, status, original_price, discount, price, created_at, expired_at, paid_at, updated_at;
+
+-- name: CreateUserJourney :exec
+INSERT INTO user_journeys (user_id, journey_id, order_id, purchased_at)
+VALUES ($1, $2, $3, now());

@@ -14,6 +14,7 @@ type Querier interface {
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (CreateOrderItemRow, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (int64, error)
+	CreateUserJourney(ctx context.Context, arg CreateUserJourneyParams) error
 	DeleteExpiredRefreshTokens(ctx context.Context) error
 	DeleteExpiredTokens(ctx context.Context) error
 	ExistsUserByUsername(ctx context.Context, username string) (bool, error)
@@ -37,6 +38,7 @@ type Querier interface {
 	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
 	RevokeRefreshToken(ctx context.Context, tokenJti string) error
 	UpdateJourneyPrice(ctx context.Context, arg UpdateJourneyPriceParams) error
+	UpdateOrderStatusToPaid(ctx context.Context, id int64) (UpdateOrderStatusToPaidRow, error)
 	UpdateUserExperience(ctx context.Context, arg UpdateUserExperienceParams) (UpdateUserExperienceRow, error)
 	UpsertUserMissionProgress(ctx context.Context, arg UpsertUserMissionProgressParams) (UpsertUserMissionProgressRow, error)
 }
