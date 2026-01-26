@@ -166,5 +166,6 @@ func (r *Router) setupOrderRoutes() {
 	{
 		orders.POST("", r.orderHandler.CreateOrder)
 		orders.GET("/:orderId", r.orderHandler.GetOrderDetail)
+		orders.POST("/:orderId/action/pay", r.orderHandler.PayOrder)
 	}
 }

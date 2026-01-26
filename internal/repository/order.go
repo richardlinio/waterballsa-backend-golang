@@ -27,14 +27,8 @@ func NewOrderRepository(queries db.Querier) *OrderRepository {
 
 // CreateOrder creates a new order and returns the created order
 func (r *OrderRepository) CreateOrder(ctx context.Context, orderNumber string, userID int64, originalPrice, discount, price float64, expiredAt time.Time) (*model.Order, error) {
-	var originalPriceNumeric, discountNumeric, priceNumeric pgtype.Numeric
-	if err := originalPriceNumeric.Scan(fmt.Sprintf("%.2f", originalPrice)); err != nil {
-		return nil, err
-	}
-	if err := discountNumeric.Scan(fmt.Sprintf("%.2f", discount)); err != nil {
-		return nil, err
-	}
-	if err := priceNumeric.Scan(fmt.Sprintf("%.2f", price)); err != nil {
+	originalPriceNumeric, discountNumeric, priceNumeric, err := convertPriceFieldsToNumeric(originalPrice, discount, price)
+	if err != nil {
 		return nil, err
 	}
 
@@ -51,16 +45,11 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, orderNumber string, u
 		return nil, err
 	}
 
-	// Convert numeric values
-	originalPriceFloat, err := row.OriginalPrice.Float64Value()
-	if err != nil {
-		return nil, err
-	}
-	discountFloat, err := row.Discount.Float64Value()
-	if err != nil {
-		return nil, err
-	}
-	priceFloat, err := row.Price.Float64Value()
+	originalPriceFloat, discountFloat, priceFloat, err := convertPriceFieldsToFloat64(
+		row.OriginalPrice,
+		row.Discount,
+		row.Price,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -70,9 +59,9 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, orderNumber string, u
 		OrderNumber:   row.OrderNumber,
 		UserID:        row.UserID,
 		Status:        string(row.Status),
-		OriginalPrice: originalPriceFloat.Float64,
-		Discount:      discountFloat.Float64,
-		Price:         priceFloat.Float64,
+		OriginalPrice: originalPriceFloat,
+		Discount:      discountFloat,
+		Price:         priceFloat,
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,
 	}
@@ -89,14 +78,8 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, orderNumber string, u
 
 // CreateOrderItem creates a new order item
 func (r *OrderRepository) CreateOrderItem(ctx context.Context, orderID, journeyID int64, quantity int32, originalPrice, discount, price float64) (*model.OrderItem, error) {
-	var originalPriceNumeric, discountNumeric, priceNumeric pgtype.Numeric
-	if err := originalPriceNumeric.Scan(fmt.Sprintf("%.2f", originalPrice)); err != nil {
-		return nil, err
-	}
-	if err := discountNumeric.Scan(fmt.Sprintf("%.2f", discount)); err != nil {
-		return nil, err
-	}
-	if err := priceNumeric.Scan(fmt.Sprintf("%.2f", price)); err != nil {
+	originalPriceNumeric, discountNumeric, priceNumeric, err := convertPriceFieldsToNumeric(originalPrice, discount, price)
+	if err != nil {
 		return nil, err
 	}
 
@@ -112,16 +95,11 @@ func (r *OrderRepository) CreateOrderItem(ctx context.Context, orderID, journeyI
 		return nil, err
 	}
 
-	// Convert numeric values
-	originalPriceFloat, err := row.OriginalPrice.Float64Value()
-	if err != nil {
-		return nil, err
-	}
-	discountFloat, err := row.Discount.Float64Value()
-	if err != nil {
-		return nil, err
-	}
-	priceFloat, err := row.Price.Float64Value()
+	originalPriceFloat, discountFloat, priceFloat, err := convertPriceFieldsToFloat64(
+		row.OriginalPrice,
+		row.Discount,
+		row.Price,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -131,9 +109,9 @@ func (r *OrderRepository) CreateOrderItem(ctx context.Context, orderID, journeyI
 		OrderID:       row.OrderID,
 		JourneyID:     row.JourneyID,
 		Quantity:      row.Quantity,
-		OriginalPrice: originalPriceFloat.Float64,
-		Discount:      discountFloat.Float64,
-		Price:         priceFloat.Float64,
+		OriginalPrice: originalPriceFloat,
+		Discount:      discountFloat,
+		Price:         priceFloat,
 		CreatedAt:     row.CreatedAt.Time,
 	}, nil
 }
@@ -148,15 +126,11 @@ func (r *OrderRepository) GetOrderByID(ctx context.Context, orderID int64) (*mod
 		return nil, err
 	}
 
-	originalPriceFloat, err := row.OriginalPrice.Float64Value()
-	if err != nil {
-		return nil, err
-	}
-	discountFloat, err := row.Discount.Float64Value()
-	if err != nil {
-		return nil, err
-	}
-	priceFloat, err := row.Price.Float64Value()
+	originalPriceFloat, discountFloat, priceFloat, err := convertPriceFieldsToFloat64(
+		row.OriginalPrice,
+		row.Discount,
+		row.Price,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -166,9 +140,9 @@ func (r *OrderRepository) GetOrderByID(ctx context.Context, orderID int64) (*mod
 		OrderNumber:   row.OrderNumber,
 		UserID:        row.UserID,
 		Status:        string(row.Status),
-		OriginalPrice: originalPriceFloat.Float64,
-		Discount:      discountFloat.Float64,
-		Price:         priceFloat.Float64,
+		OriginalPrice: originalPriceFloat,
+		Discount:      discountFloat,
+		Price:         priceFloat,
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,
 	}
@@ -192,15 +166,11 @@ func (r *OrderRepository) GetOrderItemsByOrderID(ctx context.Context, orderID in
 
 	items := make([]model.OrderItem, 0, len(rows))
 	for _, row := range rows {
-		originalPriceFloat, err := row.OriginalPrice.Float64Value()
-		if err != nil {
-			return nil, err
-		}
-		discountFloat, err := row.Discount.Float64Value()
-		if err != nil {
-			return nil, err
-		}
-		priceFloat, err := row.Price.Float64Value()
+		originalPriceFloat, discountFloat, priceFloat, err := convertPriceFieldsToFloat64(
+			row.OriginalPrice,
+			row.Discount,
+			row.Price,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -210,9 +180,9 @@ func (r *OrderRepository) GetOrderItemsByOrderID(ctx context.Context, orderID in
 			OrderID:       row.OrderID,
 			JourneyID:     row.JourneyID,
 			Quantity:      row.Quantity,
-			OriginalPrice: originalPriceFloat.Float64,
-			Discount:      discountFloat.Float64,
-			Price:         priceFloat.Float64,
+			OriginalPrice: originalPriceFloat,
+			Discount:      discountFloat,
+			Price:         priceFloat,
 			CreatedAt:     row.CreatedAt.Time,
 		})
 	}
@@ -245,15 +215,11 @@ func (r *OrderRepository) GetUnpaidOrderByUserAndJourney(ctx context.Context, us
 		return nil, err
 	}
 
-	originalPriceFloat, err := row.OriginalPrice.Float64Value()
-	if err != nil {
-		return nil, err
-	}
-	discountFloat, err := row.Discount.Float64Value()
-	if err != nil {
-		return nil, err
-	}
-	priceFloat, err := row.Price.Float64Value()
+	originalPriceFloat, discountFloat, priceFloat, err := convertPriceFieldsToFloat64(
+		row.OriginalPrice,
+		row.Discount,
+		row.Price,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -263,9 +229,9 @@ func (r *OrderRepository) GetUnpaidOrderByUserAndJourney(ctx context.Context, us
 		OrderNumber:   row.OrderNumber,
 		UserID:        row.UserID,
 		Status:        string(row.Status),
-		OriginalPrice: originalPriceFloat.Float64,
-		Discount:      discountFloat.Float64,
-		Price:         priceFloat.Float64,
+		OriginalPrice: originalPriceFloat,
+		Discount:      discountFloat,
+		Price:         priceFloat,
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,
 	}
@@ -278,4 +244,79 @@ func (r *OrderRepository) GetUnpaidOrderByUserAndJourney(ctx context.Context, us
 	}
 
 	return order, nil
+}
+
+// UpdateOrderStatusToPaid updates order status to PAID and sets paid_at timestamp
+func (r *OrderRepository) UpdateOrderStatusToPaid(ctx context.Context, orderID int64) (*model.Order, error) {
+	row, err := r.queries.UpdateOrderStatusToPaid(ctx, orderID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrOrderNotFound
+		}
+		return nil, err
+	}
+
+	originalPriceFloat, discountFloat, priceFloat, err := convertPriceFieldsToFloat64(
+		row.OriginalPrice,
+		row.Discount,
+		row.Price,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	order := &model.Order{
+		ID:            row.ID,
+		OrderNumber:   row.OrderNumber,
+		UserID:        row.UserID,
+		Status:        string(row.Status),
+		OriginalPrice: originalPriceFloat,
+		Discount:      discountFloat,
+		Price:         priceFloat,
+		CreatedAt:     row.CreatedAt.Time,
+		UpdatedAt:     row.UpdatedAt.Time,
+	}
+
+	if row.ExpiredAt.Valid {
+		order.ExpiredAt = &row.ExpiredAt.Time
+	}
+	if row.PaidAt.Valid {
+		order.PaidAt = &row.PaidAt.Time
+	}
+
+	return order, nil
+}
+
+// Helper functions for numeric conversions and model construction
+
+// convertPriceFieldsToNumeric converts three float64 price fields to pgtype.Numeric
+func convertPriceFieldsToNumeric(originalPrice, discount, price float64) (pgtype.Numeric, pgtype.Numeric, pgtype.Numeric, error) {
+	var originalPriceNumeric, discountNumeric, priceNumeric pgtype.Numeric
+	if err := originalPriceNumeric.Scan(fmt.Sprintf("%.2f", originalPrice)); err != nil {
+		return pgtype.Numeric{}, pgtype.Numeric{}, pgtype.Numeric{}, err
+	}
+	if err := discountNumeric.Scan(fmt.Sprintf("%.2f", discount)); err != nil {
+		return pgtype.Numeric{}, pgtype.Numeric{}, pgtype.Numeric{}, err
+	}
+	if err := priceNumeric.Scan(fmt.Sprintf("%.2f", price)); err != nil {
+		return pgtype.Numeric{}, pgtype.Numeric{}, pgtype.Numeric{}, err
+	}
+	return originalPriceNumeric, discountNumeric, priceNumeric, nil
+}
+
+// convertPriceFieldsToFloat64 converts three pgtype.Numeric price fields to float64
+func convertPriceFieldsToFloat64(originalPrice, discount, price pgtype.Numeric) (float64, float64, float64, error) {
+	originalPriceFloat, err := originalPrice.Float64Value()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	discountFloat, err := discount.Float64Value()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	priceFloat, err := price.Float64Value()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	return originalPriceFloat.Float64, discountFloat.Float64, priceFloat.Float64, nil
 }

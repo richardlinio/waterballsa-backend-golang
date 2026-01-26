@@ -118,3 +118,11 @@ func OrderNotFound() *AppError {
 func JourneyAlreadyPurchased() *AppError {
 	return New(CodeJourneyAlreadyPurchased)
 }
+
+func OrderAlreadyPaid() *AppError {
+	return New(CodeOrderAlreadyPaid)
+}
+
+func OrderExpired() *AppError {
+	return New(CodeOrderExpired)
+}

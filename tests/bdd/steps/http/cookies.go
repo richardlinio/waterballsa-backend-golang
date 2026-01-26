@@ -14,8 +14,8 @@ import (
 // Supports "stored cookieName" syntax to use a previously extracted cookie
 func iSetCookie(ctx context.Context, cookieName, cookieValue string) (context.Context, error) {
 	// Check if cookieValue is a reference to a stored cookie (format: "stored cookie_name")
-	if strings.HasPrefix(cookieValue, "stored ") {
-		storedCookieName := strings.TrimPrefix(cookieValue, "stored ")
+	if after, ok := strings.CutPrefix(cookieValue, "stored "); ok {
+		storedCookieName := after
 		storedCookies, _ := ctx.Value(testcontext.ContextKeyStoredCookies).(map[string]string)
 		if storedCookies == nil {
 			return ctx, fmt.Errorf("no stored cookies found")

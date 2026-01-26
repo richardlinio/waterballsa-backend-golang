@@ -81,8 +81,8 @@ func theDatabaseHasAnOrder(ctx context.Context, table *godog.Table) (context.Con
 		return ctx, fmt.Errorf("failed to create test order: %w", err)
 	}
 
-	// Store order ID in context if needed
-	_ = orderID
+	// Store order ID in context for variable substitution ({{lastOrderId}})
+	ctx = context.WithValue(ctx, testcontext.ContextKeyLastOrderID, orderID)
 
 	return ctx, nil
 }

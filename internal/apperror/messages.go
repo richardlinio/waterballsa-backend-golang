@@ -24,6 +24,8 @@ var errorMessages = map[string]string{
 	CodeUsernameExists:          "使用者名稱已存在",
 	CodeMissionAlreadyDelivered: "任務已經交付過了",
 	CodeJourneyAlreadyPurchased: "你已經購買此課程",
+	CodeOrderAlreadyPaid:        "訂單已經付款",
+	CodeOrderExpired:            "訂單已過期",
 
 	// Rate limiting errors (429)
 	CodeRateLimitExceeded: "請求次數過多,請稍後再試",

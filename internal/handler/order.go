@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/apperror"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/service"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/util"
 )
@@ -17,6 +18,7 @@ import (
 type orderService interface {
 	CreateOrder(ctx context.Context, userID int64, req dto.CreateOrderRequest) (*service.OrderResult, bool, error)
 	GetOrderByID(ctx context.Context, orderID, userID int64) (*service.OrderResult, error)
+	PayOrder(ctx context.Context, orderID, userID int64) (*model.Order, error)
 }
 
 type OrderHandler struct {
@@ -100,5 +102,36 @@ func (h *OrderHandler) GetOrderDetail(c *gin.Context) {
 	}
 
 	response := dto.ToOrderResponse(result.Order, result.Items, result.JourneyTitles, result.Username)
+	c.JSON(http.StatusOK, response)
+}
+
+// PayOrder handles POST /orders/:orderId/action/pay
+func (h *OrderHandler) PayOrder(c *gin.Context) {
+	orderIDStr := c.Param("orderId")
+	orderID, err := strconv.ParseInt(orderIDStr, 10, 64)
+	if err != nil {
+		_ = c.Error(apperror.ValidationFailed())
+		return
+	}
+
+	// Get authenticated user from JWT
+	authenticatedUser := util.GetAuthenticatedUser(c)
+	if authenticatedUser == nil {
+		_ = c.Error(apperror.Unauthorized())
+		return
+	}
+	userID := authenticatedUser.ID
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), h.requestTimeout)
+	defer cancel()
+
+	paidOrder, err := h.orderService.PayOrder(ctx, orderID, userID)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	message := "付款完成"
+	response := dto.ToPayOrderResponse(paidOrder, message)
 	c.JSON(http.StatusOK, response)
 }

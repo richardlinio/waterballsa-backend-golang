@@ -70,6 +70,10 @@ func replaceVariables(ctx context.Context, value string) (string, error) {
 			if val, ok := ctx.Value(testcontext.ContextKeyLastUserID).(int64); ok {
 				return fmt.Sprintf("%d", val)
 			}
+		case "lastOrderId":
+			if val, ok := ctx.Value(testcontext.ContextKeyLastOrderID).(int64); ok {
+				return fmt.Sprintf("%d", val)
+			}
 		}
 
 		// Try stored variables
