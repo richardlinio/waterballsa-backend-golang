@@ -92,7 +92,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req dto.Cr
 	}
 	if err == nil {
 		// Return existing order (not a new order)
-		result, err := s.buildOrderResult(ctx, existingOrder)
+		result, err := s.toOrderResult(ctx, existingOrder)
 		return result, false, err
 	}
 
@@ -158,11 +158,11 @@ func (s *OrderService) GetOrderByID(ctx context.Context, orderID, userID int64) 
 		return nil, apperror.OrderNotFound() // Return 404 to avoid info leakage
 	}
 
-	return s.buildOrderResult(ctx, order)
+	return s.toOrderResult(ctx, order)
 }
 
-// buildOrderResult builds a complete order result with items and journey titles
-func (s *OrderService) buildOrderResult(ctx context.Context, order *model.Order) (*OrderResult, error) {
+// toOrderResult builds a complete order result with items and journey titles
+func (s *OrderService) toOrderResult(ctx context.Context, order *model.Order) (*OrderResult, error) {
 	// Get order items
 	items, err := s.orderRepository.GetOrderItemsByOrderID(ctx, order.ID)
 	if err != nil {
