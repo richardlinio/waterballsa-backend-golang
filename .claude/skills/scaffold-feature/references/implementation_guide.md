@@ -38,6 +38,66 @@ if user.ID != requestedUserID {
 
 ❌ **Don't:** Skip authorization checks. This is a critical security vulnerability.
 
+## DTO Assembly Pattern
+
+✅ **Do:** Define converter functions in the DTO layer to assemble response DTOs. Extract message variables in handlers for better readability.
+
+```go
+// internal/dto/order.go
+type PayOrderResponse struct {
+    ID          int64   `json:"id"`
+    OrderNumber string  `json:"orderNumber"`
+    Status      string  `json:"status"`
+    Price       float64 `json:"price"`
+    PaidAt      int64   `json:"paidAt"`
+    Message     string  `json:"message"`
+}
+
+// ToPayOrderResponse converts paid order data to PayOrderResponse DTO
+func ToPayOrderResponse(order *model.Order, message string) PayOrderResponse {
+    return PayOrderResponse{
+        ID:          order.ID,
+        OrderNumber: order.OrderNumber,
+        Status:      order.Status,
+        Price:       order.Price,
+        PaidAt:      order.PaidAt.UnixMilli(),
+        Message:     message,
+    }
+}
+```
+
+```go
+// internal/handler/order.go
+func (h *OrderHandler) PayOrder(c *gin.Context) {
+    // ... validation and service call ...
+
+    paidOrder, err := h.orderService.PayOrder(ctx, orderID, userID)
+    if err != nil {
+        _ = c.Error(err)
+        return
+    }
+
+    message := "付款完成"
+    response := dto.ToPayOrderResponse(paidOrder, message)
+    c.JSON(http.StatusOK, response)
+}
+```
+
+❌ **Don't:** Manually construct response DTOs in handlers. This violates separation of concerns.
+
+```go
+// Bad: Assembling DTO directly in handler
+response := dto.PayOrderResponse{
+    ID:          paidOrder.ID,
+    OrderNumber: paidOrder.OrderNumber,
+    Status:      paidOrder.Status,
+    Price:       paidOrder.Price,
+    PaidAt:      paidOrder.PaidAt.UnixMilli(),
+    Message:     "付款完成",
+}
+c.JSON(http.StatusOK, response)
+```
+
 ## UPSERT Pattern in SQL
 
 ✅ **Do:** Use the `INSERT ... ON CONFLICT DO UPDATE` statement for creating or updating records in a single database round-trip.
