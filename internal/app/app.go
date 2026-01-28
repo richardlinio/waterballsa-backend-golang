@@ -25,6 +25,7 @@ import (
 	"github.com/richardlinio/waterballsa-backend-golang/internal/repository"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/router"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/service"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/store"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/validator"
 	"golang.org/x/sync/errgroup"
 )
@@ -68,6 +69,9 @@ func New() (*Application, error) {
 	// Initialize data layer (sqlc queries)
 	queries := db.New(pool)
 
+	// Initialize store (provides queries and transactions)
+	st := store.New(pool)
+
 	// Initialize repository layer (data access)
 	userRepository := repository.NewUserRepository(queries)
 	accessTokenRepository := repository.NewAccessTokenRepository(queries)
@@ -87,7 +91,7 @@ func New() (*Application, error) {
 	missionService := service.NewMissionService(missionRepository)
 	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository)
 	userService := service.NewUserService(userRepository)
-	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository, userJourneyRepository)
+	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository, userJourneyRepository, st)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)

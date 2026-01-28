@@ -12,6 +12,7 @@ import (
 	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/repository"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/store"
 )
 
 const (
@@ -57,6 +58,7 @@ type OrderService struct {
 	journeyRepository     orderJourneyRepository
 	userRepository        orderUserRepository
 	userJourneyRepository userJourneyRepository
+	store                 *store.Store
 }
 
 func NewOrderService(
@@ -64,12 +66,14 @@ func NewOrderService(
 	journeyRepository *repository.JourneyRepository,
 	userRepository *repository.UserRepository,
 	userJourneyRepository *repository.UserJourneyRepository,
+	store *store.Store,
 ) *OrderService {
 	return &OrderService{
 		orderRepository:       orderRepository,
 		journeyRepository:     journeyRepository,
 		userRepository:        userRepository,
 		userJourneyRepository: userJourneyRepository,
+		store:                 store,
 	}
 }
 
@@ -203,7 +207,7 @@ func (s *OrderService) toOrderResult(ctx context.Context, order *model.Order) (*
 
 // PayOrder processes payment for an order
 func (s *OrderService) PayOrder(ctx context.Context, orderID, userID int64) (*model.Order, error) {
-	// 1. Get order by ID
+	// 1. Get order by ID (pre-transaction validation)
 	order, err := s.orderRepository.GetOrderByID(ctx, orderID)
 	if err != nil {
 		if errors.Is(err, repository.ErrOrderNotFound) {
@@ -217,7 +221,7 @@ func (s *OrderService) PayOrder(ctx context.Context, orderID, userID int64) (*mo
 		return nil, apperror.OrderNotFound() // Return 404 to avoid info leakage
 	}
 
-	// 3. Check order status
+	// 3. Check order status (pre-transaction validation)
 	if order.Status == "PAID" {
 		return nil, apperror.OrderAlreadyPaid()
 	}
@@ -225,27 +229,16 @@ func (s *OrderService) PayOrder(ctx context.Context, orderID, userID int64) (*mo
 		return nil, apperror.OrderExpired()
 	}
 
-	// 4. Update order status to PAID
-	paidOrder, err := s.orderRepository.UpdateOrderStatusToPaid(ctx, orderID)
+	// 4. Execute payment transaction through Store
+	result, err := s.store.PayOrderTx(ctx, store.PayOrderTxParams{
+		OrderID: orderID,
+		UserID:  userID,
+	})
 	if err != nil {
 		return nil, apperror.DatabaseError(err)
 	}
 
-	// 5. Get order items to grant journey access
-	items, err := s.orderRepository.GetOrderItemsByOrderID(ctx, orderID)
-	if err != nil {
-		return nil, apperror.DatabaseError(err)
-	}
-
-	// 6. Create user journey ownership for each item
-	for _, item := range items {
-		err := s.userJourneyRepository.CreateUserJourney(ctx, userID, item.JourneyID, orderID)
-		if err != nil {
-			return nil, apperror.DatabaseError(err)
-		}
-	}
-
-	return paidOrder, nil
+	return result.Order, nil
 }
 
 // generateOrderNumber generates a unique order number
