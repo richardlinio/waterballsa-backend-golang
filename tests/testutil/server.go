@@ -108,10 +108,10 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
 
 	// Initialize service layer
-	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator)
+	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator, st)
 	journeyService := service.NewJourneyService(journeyRepository)
 	missionService := service.NewMissionService(missionRepository)
-	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository)
+	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository, st)
 	userService := service.NewUserService(userRepository)
 	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository, userJourneyRepository, st)
 
