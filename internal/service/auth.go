@@ -212,8 +212,8 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*LoginR
 		NewExpiresAt: refreshExpire,
 	})
 	if err != nil {
-		// Check if token was not found or invalid - return Unauthorized
-		if errors.Is(err, repository.ErrRefreshTokenNotFound) {
+		// Check for specific error types - all auth failures should return Unauthorized
+		if errors.Is(err, repository.ErrRefreshTokenNotFound) || errors.Is(err, store.ErrTokenUserMismatch) {
 			return nil, apperror.Unauthorized()
 		}
 		return nil, apperror.DatabaseError(err)

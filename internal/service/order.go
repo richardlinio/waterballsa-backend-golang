@@ -114,13 +114,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req dto.Cr
 		ExpiredAt:   expiredAt,
 	})
 	if err != nil {
-		// Check for specific error types from transaction
-		errMsg := err.Error()
-		if errors.Is(err, repository.ErrJourneyNotFound) ||
-			(len(errMsg) > 0 && errMsg == "create order transaction failed: journey not found") {
+		// Check for specific error types using errors.Is()
+		if errors.Is(err, repository.ErrJourneyNotFound) {
 			return nil, false, apperror.JourneyNotFound()
 		}
-		if len(errMsg) > 0 && errMsg == "create order transaction failed: journey already purchased" {
+		if errors.Is(err, store.ErrJourneyAlreadyPurchased) {
 			return nil, false, apperror.JourneyAlreadyPurchased()
 		}
 		return nil, false, apperror.DatabaseError(err)

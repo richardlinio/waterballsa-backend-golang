@@ -62,7 +62,7 @@ func (s *Store) CreateOrderTx(ctx context.Context, arg CreateOrderTxParams) (Cre
 			return fmt.Errorf("failed to check purchase status: %w", err)
 		}
 		if hasPurchased {
-			return fmt.Errorf("journey already purchased")
+			return ErrJourneyAlreadyPurchased
 		}
 
 		// 2. Check for existing unpaid order
@@ -83,7 +83,7 @@ func (s *Store) CreateOrderTx(ctx context.Context, arg CreateOrderTxParams) (Cre
 					return fmt.Errorf("failed to get order items: %w", err)
 				}
 				if len(items) == 0 {
-					return fmt.Errorf("existing order has no items")
+					return ErrExistingOrderHasNoItems
 				}
 
 				// Get journey for response
@@ -105,9 +105,7 @@ func (s *Store) CreateOrderTx(ctx context.Context, arg CreateOrderTxParams) (Cre
 		// Get journey by ID to lock price (prevents price changes during order creation)
 		journey, err := journeyRepository.GetByID(ctx, arg.JourneyID)
 		if err != nil {
-			if errors.Is(err, repository.ErrJourneyNotFound) {
-				return fmt.Errorf("journey not found")
-			}
+			// Wrap repository error to preserve error chain for errors.Is()
 			return fmt.Errorf("failed to get journey: %w", err)
 		}
 

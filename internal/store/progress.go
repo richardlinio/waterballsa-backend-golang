@@ -52,7 +52,7 @@ func (s *Store) DeliverMissionTx(ctx context.Context, arg DeliverMissionTxParams
 		// This provides TOCTOU protection - even if pre-transaction check passed,
 		// we verify again inside the transaction
 		if progress.Status == "DELIVERED" {
-			return fmt.Errorf("mission already delivered")
+			return ErrMissionAlreadyDelivered
 		}
 
 		// 3. Update user experience and level

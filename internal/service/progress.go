@@ -211,6 +211,10 @@ func (s *ProgressService) DeliverMission(ctx context.Context, userID, missionID 
 		WatchPositionSeconds: progress.WatchPositionSeconds,
 	})
 	if err != nil {
+		// Check for store domain errors
+		if errors.Is(err, store.ErrMissionAlreadyDelivered) {
+			return nil, apperror.MissionAlreadyDelivered()
+		}
 		return nil, apperror.DatabaseError(err)
 	}
 

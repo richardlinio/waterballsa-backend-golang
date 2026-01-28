@@ -48,7 +48,7 @@ func (s *Store) RefreshTokenTx(ctx context.Context, arg RefreshTokenTxParams) (R
 
 		// Verify user ID matches
 		if oldToken.UserID != arg.UserID {
-			return fmt.Errorf("token user ID mismatch: expected %d, got %d", arg.UserID, oldToken.UserID)
+			return ErrTokenUserMismatch
 		}
 
 		// 2. Revoke old refresh token
