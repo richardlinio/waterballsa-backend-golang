@@ -79,6 +79,7 @@ func NewOrderService(
 
 // CreateOrder creates a new order or returns existing unpaid order
 // Returns (result, isNewOrder, error) where isNewOrder is true for newly created orders
+// This method uses a transaction to ensure atomicity and prevent race conditions
 func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req dto.CreateOrderRequest) (*OrderResult, bool, error) {
 	// 1. Validate that we have exactly one item (MVP constraint)
 	if len(req.Items) != 1 {
@@ -88,71 +89,56 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req dto.Cr
 	item := req.Items[0]
 	journeyID := item.JourneyID
 
-	// 2. Check if user has already purchased this journey
-	hasPurchased, err := s.orderRepository.CheckUserHasPurchasedJourney(ctx, userID, journeyID)
-	if err != nil {
-		return nil, false, apperror.DatabaseError(err)
-	}
-	if hasPurchased {
-		return nil, false, apperror.JourneyAlreadyPurchased()
-	}
-
-	// 3. Check if user has existing unpaid order for this journey
-	existingOrder, err := s.orderRepository.GetUnpaidOrderByUserAndJourney(ctx, userID, journeyID)
-	if err != nil && !errors.Is(err, repository.ErrNoUnpaidOrderFound) {
-		return nil, false, apperror.DatabaseError(err)
-	}
-	if err == nil {
-		// Return existing order (not a new order)
-		result, err := s.toOrderResult(ctx, existingOrder)
-		return result, false, err
-	}
-
-	// 4. Get journey to lock price
-	journey, err := s.journeyRepository.GetByID(ctx, journeyID)
-	if err != nil {
-		if errors.Is(err, repository.ErrJourneyNotFound) {
-			return nil, false, apperror.JourneyNotFound()
-		}
-		return nil, false, apperror.DatabaseError(err)
-	}
-
-	// 5. Calculate prices
-	originalPrice := journey.Price
-	discount := 0.0
-	price := originalPrice - discount
-
-	// 6. Generate order number: {timestamp(10)}{userId}{randomCode(5)}
+	// 2. Generate order number (outside TX - no side effects)
 	orderNumber, err := s.generateOrderNumber(userID)
 	if err != nil {
 		return nil, false, apperror.InternalServerError(err)
 	}
 
-	// 7. Create order
+	// 3. Set parameters for transaction
+	discount := 0.0
 	expiredAt := time.Now().Add(72 * time.Hour) // 3 days
-	order, err := s.orderRepository.CreateOrder(ctx, orderNumber, userID, originalPrice, discount, price, expiredAt)
+
+	// 4. Execute atomic transaction to create or get order
+	// This ensures purchase checks, price locking, and order creation are atomic
+	// Journey price is fetched and locked inside the transaction
+	txCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	txResult, err := s.store.CreateOrderTx(txCtx, store.CreateOrderTxParams{
+		OrderNumber: orderNumber,
+		UserID:      userID,
+		JourneyID:   journeyID,
+		Quantity:    item.Quantity,
+		Discount:    discount,
+		ExpiredAt:   expiredAt,
+	})
 	if err != nil {
+		// Check for specific error types from transaction
+		errMsg := err.Error()
+		if errors.Is(err, repository.ErrJourneyNotFound) ||
+			(len(errMsg) > 0 && errMsg == "create order transaction failed: journey not found") {
+			return nil, false, apperror.JourneyNotFound()
+		}
+		if len(errMsg) > 0 && errMsg == "create order transaction failed: journey already purchased" {
+			return nil, false, apperror.JourneyAlreadyPurchased()
+		}
 		return nil, false, apperror.DatabaseError(err)
 	}
 
-	// 8. Create order item
-	orderItem, err := s.orderRepository.CreateOrderItem(ctx, order.ID, journeyID, item.Quantity, originalPrice, discount, price)
-	if err != nil {
-		return nil, false, apperror.DatabaseError(err)
-	}
-
-	// 9. Build result
+	// 5. Get user data for response (outside TX - doesn't affect order creation)
 	user, err := s.userRepository.GetByID(ctx, userID)
 	if err != nil {
 		return nil, false, apperror.DatabaseError(err)
 	}
 
+	// 6. Build result
 	return &OrderResult{
-		Order:         order,
-		Items:         []model.OrderItem{*orderItem},
-		JourneyTitles: map[int64]string{journeyID: journey.Title},
+		Order:         txResult.Order,
+		Items:         []model.OrderItem{*txResult.OrderItem},
+		JourneyTitles: map[int64]string{journeyID: txResult.Journey.Title},
 		Username:      user.Username,
-	}, true, nil
+	}, txResult.IsNewOrder, nil
 }
 
 // GetOrderByID retrieves an order by ID with authorization check
