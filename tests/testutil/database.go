@@ -238,14 +238,24 @@ func CreateTestOrder(
 	}
 
 	// Insert order
-	query := `
-		INSERT INTO orders (order_number, user_id, status, original_price, discount, price)
-		VALUES ($1, $2, $3, $4, 0, $4)
-		RETURNING id
-	`
-
+	// For PAID orders, set paid_at to current timestamp
+	var query string
 	var orderID int64
-	err = pool.QueryRow(ctx, query, orderNumber, userID, status, price).Scan(&orderID)
+	if status == "PAID" {
+		query = `
+			INSERT INTO orders (order_number, user_id, status, original_price, discount, price, paid_at)
+			VALUES ($1, $2, $3, $4, 0, $4, NOW())
+			RETURNING id
+		`
+		err = pool.QueryRow(ctx, query, orderNumber, userID, status, price).Scan(&orderID)
+	} else {
+		query = `
+			INSERT INTO orders (order_number, user_id, status, original_price, discount, price)
+			VALUES ($1, $2, $3, $4, 0, $4)
+			RETURNING id
+		`
+		err = pool.QueryRow(ctx, query, orderNumber, userID, status, price).Scan(&orderID)
+	}
 	if err != nil {
 		return 0, fmt.Errorf("failed to create test order: %w", err)
 	}
