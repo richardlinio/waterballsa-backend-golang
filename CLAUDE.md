@@ -106,12 +106,36 @@ The codebase follows clean separation of concerns across different layers:
 - **Model Layer**: Domain entities and business data structures
 
 For detailed information about:
+
 - Aggregate structures design (Model, Service, DTO layers)
 - Layer dependency rules and anti-patterns
 - Return value patterns
 - Service/Repository error handling patterns
 
 Refer to the `/go-idiomatic` skill.
+
+### Store Pattern (Transactions)
+
+When business operations require **atomic multi-step database operations**, use the **Store pattern**:
+
+- **Location**: `internal/store/`
+- **Purpose**: Encapsulate transaction logic separate from business logic
+- **Pattern**: Each transaction function has `{Action}TxParams`, `{Action}TxResult`, and uses `execTx()`
+- **Error Handling**: Domain-specific errors in `internal/store/errors.go`
+- **Usage**: Service receives `*store.Store` via DI, calls transaction methods
+
+**Examples:**
+
+- [store/auth.go](internal/store/auth.go) - Atomic token rotation
+- [store/order_create.go](internal/store/order_create.go) - Order creation with race protection
+- [store/progress.go](internal/store/progress.go) - Reward claiming with TOCTOU prevention
+
+**When to use:**
+
+- Store: TOCTOU prevention, atomic multi-table updates, complex validation requiring locks
+- Repository: Single-table operations, read-only queries, simple CRUD
+
+For detailed implementation patterns, refer to the `/scaffold-feature` skill's [store-transactions reference](/.claude/skills/scaffold-feature/references/store-transactions.md).
 
 #### Migration Files
 

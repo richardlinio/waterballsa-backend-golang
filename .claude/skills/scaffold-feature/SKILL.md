@@ -77,17 +77,20 @@ The implementation should follow the dependency order outlined in the checklist 
 3.  **SQLc Queries** (無依賴) - `internal/db/queries/*.sql`
 4.  **錯誤碼** (可提前) - `internal/apperror/`
 5.  **Repository** (依賴 SQLc) - `internal/repository/`
-6.  **Service** (依賴 repository) - `internal/service/`
-7.  **Handler** (依賴 service) - `internal/handler/`
-8.  **路由註冊** (依賴 handler) - `internal/router/router.go`
-9.  **依賴注入** (依賴所有元件)
-   - `internal/app/app.go` - 生產環境
-   - `tests/testutil/server.go` - 測試環境 ⚠️ **必須同步更新**
+6.  **Store Transactions** (如需要原子操作) - `internal/store/`
+    - 參考 [store-transactions.md](references/store-transactions.md) 了解實作模式
+7.  **Service** (依賴 repository/store) - `internal/service/`
+8.  **Handler** (依賴 service) - `internal/handler/`
+9.  **路由註冊** (依賴 handler) - `internal/router/router.go`
+10. **依賴注入** (依賴所有元件)
+    - `internal/app/app.go` - 生產環境
+    - `tests/testutil/server.go` - 測試環境 ⚠️ **必須同步更新**
 
 必檢項目:
 
 - [ ] 所有層級已建立
 - [ ] 錯誤處理已加入 (參考 `/add-error-handling`)
+- [ ] **交易處理已評估** (多步驟原子操作使用 Store pattern，參考 [store-transactions.md](references/store-transactions.md))
 - [ ] 授權檢查已實作 (如需要)
 - [ ] 路由已註冊
 - [ ] 依賴注入已配置 (`internal/app/app.go`)

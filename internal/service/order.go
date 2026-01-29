@@ -12,6 +12,7 @@ import (
 	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/repository"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/store"
 )
 
 const (
@@ -57,6 +58,7 @@ type OrderService struct {
 	journeyRepository     orderJourneyRepository
 	userRepository        orderUserRepository
 	userJourneyRepository userJourneyRepository
+	store                 *store.Store
 }
 
 func NewOrderService(
@@ -64,17 +66,20 @@ func NewOrderService(
 	journeyRepository *repository.JourneyRepository,
 	userRepository *repository.UserRepository,
 	userJourneyRepository *repository.UserJourneyRepository,
+	store *store.Store,
 ) *OrderService {
 	return &OrderService{
 		orderRepository:       orderRepository,
 		journeyRepository:     journeyRepository,
 		userRepository:        userRepository,
 		userJourneyRepository: userJourneyRepository,
+		store:                 store,
 	}
 }
 
 // CreateOrder creates a new order or returns existing unpaid order
 // Returns (result, isNewOrder, error) where isNewOrder is true for newly created orders
+// This method uses a transaction to ensure atomicity and prevent race conditions
 func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req dto.CreateOrderRequest) (*OrderResult, bool, error) {
 	// 1. Validate that we have exactly one item (MVP constraint)
 	if len(req.Items) != 1 {
@@ -84,71 +89,54 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req dto.Cr
 	item := req.Items[0]
 	journeyID := item.JourneyID
 
-	// 2. Check if user has already purchased this journey
-	hasPurchased, err := s.orderRepository.CheckUserHasPurchasedJourney(ctx, userID, journeyID)
-	if err != nil {
-		return nil, false, apperror.DatabaseError(err)
-	}
-	if hasPurchased {
-		return nil, false, apperror.JourneyAlreadyPurchased()
-	}
-
-	// 3. Check if user has existing unpaid order for this journey
-	existingOrder, err := s.orderRepository.GetUnpaidOrderByUserAndJourney(ctx, userID, journeyID)
-	if err != nil && !errors.Is(err, repository.ErrNoUnpaidOrderFound) {
-		return nil, false, apperror.DatabaseError(err)
-	}
-	if err == nil {
-		// Return existing order (not a new order)
-		result, err := s.toOrderResult(ctx, existingOrder)
-		return result, false, err
-	}
-
-	// 4. Get journey to lock price
-	journey, err := s.journeyRepository.GetByID(ctx, journeyID)
-	if err != nil {
-		if errors.Is(err, repository.ErrJourneyNotFound) {
-			return nil, false, apperror.JourneyNotFound()
-		}
-		return nil, false, apperror.DatabaseError(err)
-	}
-
-	// 5. Calculate prices
-	originalPrice := journey.Price
-	discount := 0.0
-	price := originalPrice - discount
-
-	// 6. Generate order number: {timestamp(10)}{userId}{randomCode(5)}
+	// 2. Generate order number (outside TX - no side effects)
 	orderNumber, err := s.generateOrderNumber(userID)
 	if err != nil {
 		return nil, false, apperror.InternalServerError(err)
 	}
 
-	// 7. Create order
+	// 3. Set parameters for transaction
+	discount := 0.0
 	expiredAt := time.Now().Add(72 * time.Hour) // 3 days
-	order, err := s.orderRepository.CreateOrder(ctx, orderNumber, userID, originalPrice, discount, price, expiredAt)
+
+	// 4. Execute atomic transaction to create or get order
+	// This ensures purchase checks, price locking, and order creation are atomic
+	// Journey price is fetched and locked inside the transaction
+	txCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	txResult, err := s.store.CreateOrderTx(txCtx, store.CreateOrderTxParams{
+		OrderNumber: orderNumber,
+		UserID:      userID,
+		JourneyID:   journeyID,
+		Quantity:    item.Quantity,
+		Discount:    discount,
+		ExpiredAt:   expiredAt,
+	})
 	if err != nil {
+		// Check for specific error types using errors.Is()
+		if errors.Is(err, repository.ErrJourneyNotFound) {
+			return nil, false, apperror.JourneyNotFound()
+		}
+		if errors.Is(err, store.ErrJourneyAlreadyPurchased) {
+			return nil, false, apperror.JourneyAlreadyPurchased()
+		}
 		return nil, false, apperror.DatabaseError(err)
 	}
 
-	// 8. Create order item
-	orderItem, err := s.orderRepository.CreateOrderItem(ctx, order.ID, journeyID, item.Quantity, originalPrice, discount, price)
-	if err != nil {
-		return nil, false, apperror.DatabaseError(err)
-	}
-
-	// 9. Build result
+	// 5. Get user data for response (outside TX - doesn't affect order creation)
 	user, err := s.userRepository.GetByID(ctx, userID)
 	if err != nil {
 		return nil, false, apperror.DatabaseError(err)
 	}
 
+	// 6. Build result
 	return &OrderResult{
-		Order:         order,
-		Items:         []model.OrderItem{*orderItem},
-		JourneyTitles: map[int64]string{journeyID: journey.Title},
+		Order:         txResult.Order,
+		Items:         []model.OrderItem{*txResult.OrderItem},
+		JourneyTitles: map[int64]string{journeyID: txResult.Journey.Title},
 		Username:      user.Username,
-	}, true, nil
+	}, txResult.IsNewOrder, nil
 }
 
 // GetOrderByID retrieves an order by ID with authorization check
@@ -203,7 +191,7 @@ func (s *OrderService) toOrderResult(ctx context.Context, order *model.Order) (*
 
 // PayOrder processes payment for an order
 func (s *OrderService) PayOrder(ctx context.Context, orderID, userID int64) (*model.Order, error) {
-	// 1. Get order by ID
+	// 1. Get order by ID (pre-transaction validation)
 	order, err := s.orderRepository.GetOrderByID(ctx, orderID)
 	if err != nil {
 		if errors.Is(err, repository.ErrOrderNotFound) {
@@ -217,7 +205,7 @@ func (s *OrderService) PayOrder(ctx context.Context, orderID, userID int64) (*mo
 		return nil, apperror.OrderNotFound() // Return 404 to avoid info leakage
 	}
 
-	// 3. Check order status
+	// 3. Check order status (pre-transaction validation)
 	if order.Status == "PAID" {
 		return nil, apperror.OrderAlreadyPaid()
 	}
@@ -225,27 +213,16 @@ func (s *OrderService) PayOrder(ctx context.Context, orderID, userID int64) (*mo
 		return nil, apperror.OrderExpired()
 	}
 
-	// 4. Update order status to PAID
-	paidOrder, err := s.orderRepository.UpdateOrderStatusToPaid(ctx, orderID)
+	// 4. Execute payment transaction through Store
+	result, err := s.store.PayOrderTx(ctx, store.PayOrderTxParams{
+		OrderID: orderID,
+		UserID:  userID,
+	})
 	if err != nil {
 		return nil, apperror.DatabaseError(err)
 	}
 
-	// 5. Get order items to grant journey access
-	items, err := s.orderRepository.GetOrderItemsByOrderID(ctx, orderID)
-	if err != nil {
-		return nil, apperror.DatabaseError(err)
-	}
-
-	// 6. Create user journey ownership for each item
-	for _, item := range items {
-		err := s.userJourneyRepository.CreateUserJourney(ctx, userID, item.JourneyID, orderID)
-		if err != nil {
-			return nil, apperror.DatabaseError(err)
-		}
-	}
-
-	return paidOrder, nil
+	return result.Order, nil
 }
 
 // generateOrderNumber generates a unique order number

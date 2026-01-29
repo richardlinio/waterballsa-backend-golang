@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/richardlinio/waterballsa-backend-golang/internal/apperror"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/repository"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/store"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/util"
 )
 
@@ -36,17 +38,20 @@ type ProgressService struct {
 	progressRepository progressRepository
 	missionRepository  progressMissionRepository
 	userRepository     progressUserRepository
+	store              *store.Store
 }
 
 func NewProgressService(
 	progressRepository *repository.ProgressRepository,
 	missionRepository *repository.MissionRepository,
 	userRepository *repository.UserRepository,
+	st *store.Store,
 ) *ProgressService {
 	return &ProgressService{
 		progressRepository: progressRepository,
 		missionRepository:  missionRepository,
 		userRepository:     userRepository,
+		store:              st,
 	}
 }
 
@@ -125,18 +130,21 @@ func (s *ProgressService) UpdateProgress(ctx context.Context, userID, missionID 
 
 // DeliverMission delivers a completed mission and grants experience points
 // Business logic:
-// 1. Verify mission exists and get mission type
-// 2. Get user progress (must exist)
-// 3. Check progress status:
+// 1. Verify mission exists and get mission type (outside TX)
+// 2. Get user progress for pre-validation (outside TX)
+// 3. Check progress status (outside TX):
 //   - VIDEO missions: must be COMPLETED
 //   - Other missions: can be UNCOMPLETED or COMPLETED
 //   - Any mission: cannot be DELIVERED (409 Conflict)
 //
-// 4. Get mission reward (EXPERIENCE type)
-// 5. Update user experience and level
-// 6. Update progress status to DELIVERED
+// 4. Get mission reward (EXPERIENCE type) (outside TX)
+// 5. Calculate new experience and level (outside TX - CPU-bound)
+// 6. Execute atomic transaction:
+//   - Re-lock and re-validate progress status (TOCTOU protection)
+//   - Update user experience and level
+//   - Update progress status to DELIVERED
 func (s *ProgressService) DeliverMission(ctx context.Context, userID, missionID int64) (*model.MissionDeliveryResult, error) {
-	// Get mission details to check mission type
+	// Get mission details to check mission type (outside TX - mission data is stable)
 	mission, _, err := s.missionRepository.GetByID(ctx, missionID)
 	if err != nil {
 		if errors.Is(err, repository.ErrMissionNotFound) {
@@ -145,7 +153,7 @@ func (s *ProgressService) DeliverMission(ctx context.Context, userID, missionID 
 		return nil, apperror.DatabaseError(err)
 	}
 
-	// Get progress record
+	// Get progress record for pre-validation (outside TX)
 	progress, err := s.progressRepository.GetByUserAndMission(ctx, userID, missionID)
 	if err != nil {
 		if errors.Is(err, repository.ErrProgressNotFound) {
@@ -154,7 +162,7 @@ func (s *ProgressService) DeliverMission(ctx context.Context, userID, missionID 
 		return nil, apperror.DatabaseError(err)
 	}
 
-	// Check if already delivered
+	// Pre-check if already delivered (will be re-checked inside TX)
 	if progress.Status == StatusDelivered {
 		return nil, apperror.MissionAlreadyDelivered()
 	}
@@ -165,7 +173,7 @@ func (s *ProgressService) DeliverMission(ctx context.Context, userID, missionID 
 	}
 	// Non-video missions can be delivered in UNCOMPLETED or COMPLETED status
 
-	// Get mission reward
+	// Get mission reward (outside TX - reward config is stable)
 	reward, err := s.missionRepository.GetRewardByMissionID(ctx, missionID)
 	if err != nil {
 		if errors.Is(err, repository.ErrRewardNotFound) {
@@ -176,7 +184,7 @@ func (s *ProgressService) DeliverMission(ctx context.Context, userID, missionID 
 		}
 	}
 
-	// Get current user data
+	// Get current user data for experience calculation (outside TX)
 	user, err := s.userRepository.GetByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
@@ -185,27 +193,35 @@ func (s *ProgressService) DeliverMission(ctx context.Context, userID, missionID 
 		return nil, apperror.DatabaseError(err)
 	}
 
-	// Calculate new experience and level
+	// Calculate new experience and level (outside TX - CPU-bound)
 	//nolint:gosec // reward.RewardValue is validated to be within reasonable bounds by database schema
 	newExp := user.ExperiencePoints + int32(reward.RewardValue)
 	newLevel := util.CalculateLevelFromExperience(newExp)
 
-	// Update user experience and level
-	_, err = s.userRepository.UpdateExperience(ctx, userID, newExp, newLevel)
-	if err != nil {
-		return nil, apperror.DatabaseError(err)
-	}
+	// Execute atomic transaction to deliver mission reward
+	// This ensures user experience update and progress status update happen atomically
+	txCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
-	// Update progress status to DELIVERED
-	_, err = s.progressRepository.Upsert(ctx, userID, missionID, StatusDelivered, progress.WatchPositionSeconds)
+	result, err := s.store.DeliverMissionTx(txCtx, store.DeliverMissionTxParams{
+		UserID:               userID,
+		MissionID:            missionID,
+		NewExperiencePoints:  newExp,
+		NewLevel:             newLevel,
+		WatchPositionSeconds: progress.WatchPositionSeconds,
+	})
 	if err != nil {
+		// Check for store domain errors
+		if errors.Is(err, store.ErrMissionAlreadyDelivered) {
+			return nil, apperror.MissionAlreadyDelivered()
+		}
 		return nil, apperror.DatabaseError(err)
 	}
 
 	return &model.MissionDeliveryResult{
 		Message:          "任務交付成功",
 		ExperienceGained: reward.RewardValue,
-		TotalExperience:  newExp,
-		CurrentLevel:     newLevel,
+		TotalExperience:  result.User.ExperiencePoints,
+		CurrentLevel:     result.User.Level,
 	}, nil
 }
