@@ -5,12 +5,16 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/db"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 )
 
 // ErrUserNotFound is returned when a user is not found in the database
 var ErrUserNotFound = errors.New("user not found")
+
+// ErrUsernameDuplicate is returned when attempting to create a user with a duplicate username
+var ErrUsernameDuplicate = errors.New("username already exists")
 
 // UserRepository implements user data access operations using sqlc generated queries.
 type UserRepository struct {
@@ -80,6 +84,11 @@ func (r *UserRepository) Create(ctx context.Context, username, passwordHash stri
 		PasswordHash: passwordHash,
 	})
 	if err != nil {
+		// Check for unique constraint violation (duplicate username)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return 0, ErrUsernameDuplicate
+		}
 		return 0, err
 	}
 
