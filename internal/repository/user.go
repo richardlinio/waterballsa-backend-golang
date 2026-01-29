@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/db"
@@ -86,7 +87,7 @@ func (r *UserRepository) Create(ctx context.Context, username, passwordHash stri
 	if err != nil {
 		// Check for unique constraint violation (duplicate username)
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 			return 0, ErrUsernameDuplicate
 		}
 		return 0, err
