@@ -39,6 +39,7 @@ type ProgressService struct {
 	missionRepository  progressMissionRepository
 	userRepository     progressUserRepository
 	store              *store.Store
+	transactionTimeout time.Duration
 }
 
 func NewProgressService(
@@ -46,12 +47,14 @@ func NewProgressService(
 	missionRepository *repository.MissionRepository,
 	userRepository *repository.UserRepository,
 	st *store.Store,
+	transactionTimeout time.Duration,
 ) *ProgressService {
 	return &ProgressService{
 		progressRepository: progressRepository,
 		missionRepository:  missionRepository,
 		userRepository:     userRepository,
 		store:              st,
+		transactionTimeout: transactionTimeout,
 	}
 }
 
@@ -200,7 +203,7 @@ func (s *ProgressService) DeliverMission(ctx context.Context, userID, missionID 
 
 	// Execute atomic transaction to deliver mission reward
 	// This ensures user experience update and progress status update happen atomically
-	txCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	txCtx, cancel := context.WithTimeout(ctx, s.transactionTimeout)
 	defer cancel()
 
 	result, err := s.store.DeliverMissionTx(txCtx, store.DeliverMissionTxParams{

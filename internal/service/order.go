@@ -59,6 +59,7 @@ type OrderService struct {
 	userRepository        orderUserRepository
 	userJourneyRepository userJourneyRepository
 	store                 *store.Store
+	transactionTimeout    time.Duration
 }
 
 func NewOrderService(
@@ -67,6 +68,7 @@ func NewOrderService(
 	userRepository *repository.UserRepository,
 	userJourneyRepository *repository.UserJourneyRepository,
 	store *store.Store,
+	transactionTimeout time.Duration,
 ) *OrderService {
 	return &OrderService{
 		orderRepository:       orderRepository,
@@ -74,6 +76,7 @@ func NewOrderService(
 		userRepository:        userRepository,
 		userJourneyRepository: userJourneyRepository,
 		store:                 store,
+		transactionTimeout:    transactionTimeout,
 	}
 }
 
@@ -102,7 +105,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, req dto.Cr
 	// 4. Execute atomic transaction to create or get order
 	// This ensures purchase checks, price locking, and order creation are atomic
 	// Journey price is fetched and locked inside the transaction
-	txCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	txCtx, cancel := context.WithTimeout(ctx, s.transactionTimeout)
 	defer cancel()
 
 	txResult, err := s.store.CreateOrderTx(txCtx, store.CreateOrderTxParams{

@@ -50,6 +50,7 @@ type AuthService struct {
 	refreshTokenRepository refreshTokenRepository
 	tokenGenerator         tokenGenerator
 	store                  *store.Store
+	transactionTimeout     time.Duration
 }
 
 // LoginResult holds the complete result of a successful login
@@ -70,6 +71,7 @@ func NewAuthService(
 	refreshTokenRepository *repository.RefreshTokenRepository,
 	tokenGenerator *auth.JWTTokenGenerator,
 	st *store.Store,
+	transactionTimeout time.Duration,
 ) *AuthService {
 	return &AuthService{
 		userRepository:         userRepository,
@@ -77,6 +79,7 @@ func NewAuthService(
 		refreshTokenRepository: refreshTokenRepository,
 		tokenGenerator:         tokenGenerator,
 		store:                  st,
+		transactionTimeout:     transactionTimeout,
 	}
 }
 
@@ -197,7 +200,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*LoginR
 
 	// Execute token rotation transaction
 	// This ensures atomic revocation and creation of tokens
-	txCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	txCtx, cancel := context.WithTimeout(ctx, s.transactionTimeout)
 	defer cancel()
 
 	_, err = s.store.RefreshTokenTx(txCtx, store.RefreshTokenTxParams{

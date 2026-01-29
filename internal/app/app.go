@@ -86,12 +86,12 @@ func New() (*Application, error) {
 	tokenGenerator := auth.NewJWTTokenGenerator(cfg.JWT)
 
 	// Initialize service layer (business logic)
-	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator, st)
+	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator, st, cfg.Database.TransactionTimeout)
 	journeyService := service.NewJourneyService(journeyRepository)
 	missionService := service.NewMissionService(missionRepository)
-	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository, st)
+	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository, st, cfg.Database.TransactionTimeout)
 	userService := service.NewUserService(userRepository)
-	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository, userJourneyRepository, st)
+	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository, userJourneyRepository, st, cfg.Database.TransactionTimeout)
 
 	// Initialize JWT middleware
 	jwtMiddleware, err := auth.NewJWTMiddleware(cfg.JWT, middleware.ExtractIdentity, middleware.Authorize, middleware.HandleUnauthorized)

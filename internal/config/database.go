@@ -13,17 +13,18 @@ const (
 
 // DatabaseConfig holds database connection configuration
 type DatabaseConfig struct {
-	Host            string
-	Port            int
-	User            string
-	Password        string
-	Name            string
-	SSLMode         string
-	MaxConns        int32
-	MinConns        int32
-	MaxConnLifetime time.Duration
-	MaxConnIdleTime time.Duration
-	ConnectTimeout  time.Duration
+	Host               string
+	Port               int
+	User               string
+	Password           string
+	Name               string
+	SSLMode            string
+	MaxConns           int32
+	MinConns           int32
+	MaxConnLifetime    time.Duration
+	MaxConnIdleTime    time.Duration
+	ConnectTimeout     time.Duration
+	TransactionTimeout time.Duration
 }
 
 // loadDatabaseConfig loads database configuration from environment variables
@@ -58,6 +59,7 @@ func loadDatabaseConfig() (DatabaseConfig, error) {
 	maxConnLifetimeStr := os.Getenv("DB_MAX_CONN_LIFETIME")
 	maxConnIdleTimeStr := os.Getenv("DB_MAX_CONN_IDLE_TIME")
 	connectTimeoutStr := os.Getenv("DB_CONNECT_TIMEOUT")
+	transactionTimeoutStr := os.Getenv("DB_TRANSACTION_TIMEOUT")
 
 	// Validate required fields
 	if host == "" {
@@ -94,19 +96,21 @@ func loadDatabaseConfig() (DatabaseConfig, error) {
 	maxConnLifetime := parseDuration(maxConnLifetimeStr, 1*time.Hour)
 	maxConnIdleTime := parseDuration(maxConnIdleTimeStr, 30*time.Minute)
 	connectTimeout := parseDuration(connectTimeoutStr, 10*time.Second)
+	transactionTimeout := parseDuration(transactionTimeoutStr, 5*time.Second)
 
 	return DatabaseConfig{
-		Host:            host,
-		Port:            port,
-		User:            user,
-		Password:        password,
-		Name:            name,
-		SSLMode:         sslmode,
-		MaxConns:        maxConns,
-		MinConns:        minConns,
-		MaxConnLifetime: maxConnLifetime,
-		MaxConnIdleTime: maxConnIdleTime,
-		ConnectTimeout:  connectTimeout,
+		Host:               host,
+		Port:               port,
+		User:               user,
+		Password:           password,
+		Name:               name,
+		SSLMode:            sslmode,
+		MaxConns:           maxConns,
+		MinConns:           minConns,
+		MaxConnLifetime:    maxConnLifetime,
+		MaxConnIdleTime:    maxConnIdleTime,
+		ConnectTimeout:     connectTimeout,
+		TransactionTimeout: transactionTimeout,
 	}, nil
 }
 
