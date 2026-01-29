@@ -190,6 +190,45 @@ func (r *OrderRepository) GetOrderItemsByOrderID(ctx context.Context, orderID in
 	return items, nil
 }
 
+// GetOrderItemsByOrderIDs retrieves all order items for multiple orders (batch query)
+func (r *OrderRepository) GetOrderItemsByOrderIDs(ctx context.Context, orderIDs []int64) (map[int64][]model.OrderItem, error) {
+	if len(orderIDs) == 0 {
+		return make(map[int64][]model.OrderItem), nil
+	}
+
+	rows, err := r.queries.GetOrderItemsByOrderIDs(ctx, orderIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Group items by order_id
+	itemsByOrderID := make(map[int64][]model.OrderItem)
+	for _, row := range rows {
+		originalPriceFloat, discountFloat, priceFloat, err := convertPriceFieldsToFloat64(
+			row.OriginalPrice,
+			row.Discount,
+			row.Price,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		item := model.OrderItem{
+			ID:            row.ID,
+			OrderID:       row.OrderID,
+			JourneyID:     row.JourneyID,
+			Quantity:      row.Quantity,
+			OriginalPrice: originalPriceFloat,
+			Discount:      discountFloat,
+			Price:         priceFloat,
+			CreatedAt:     row.CreatedAt.Time,
+		}
+		itemsByOrderID[row.OrderID] = append(itemsByOrderID[row.OrderID], item)
+	}
+
+	return itemsByOrderID, nil
+}
+
 // CheckUserHasPurchasedJourney checks if user has already purchased the journey
 func (r *OrderRepository) CheckUserHasPurchasedJourney(ctx context.Context, userID, journeyID int64) (bool, error) {
 	hasPurchased, err := r.queries.CheckUserHasPurchasedJourney(ctx, db.CheckUserHasPurchasedJourneyParams{

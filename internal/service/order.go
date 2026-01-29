@@ -27,6 +27,7 @@ type orderRepository interface {
 	CreateOrderItem(ctx context.Context, orderID, journeyID int64, quantity int32, originalPrice, discount, price float64) (*model.OrderItem, error)
 	GetOrderByID(ctx context.Context, orderID int64) (*model.Order, error)
 	GetOrderItemsByOrderID(ctx context.Context, orderID int64) ([]model.OrderItem, error)
+	GetOrderItemsByOrderIDs(ctx context.Context, orderIDs []int64) (map[int64][]model.OrderItem, error)
 	CheckUserHasPurchasedJourney(ctx context.Context, userID, journeyID int64) (bool, error)
 	GetUnpaidOrderByUserAndJourney(ctx context.Context, userID, journeyID int64) (*model.Order, error)
 	UpdateOrderStatusToPaid(ctx context.Context, orderID int64) (*model.Order, error)
@@ -41,6 +42,7 @@ type userJourneyRepository interface {
 type orderJourneyRepository interface {
 	GetByID(ctx context.Context, journeyID int64) (*model.Journey, error)
 	GetJourneyTitleByID(ctx context.Context, journeyID int64) (string, error)
+	GetJourneyTitlesByIDs(ctx context.Context, journeyIDs []int64) (map[int64]string, error)
 }
 
 type orderUserRepository interface {
@@ -272,30 +274,42 @@ func (s *OrderService) GetUserOrders(ctx context.Context, userID, authenticatedU
 		return nil, apperror.DatabaseError(err)
 	}
 
-	// 6. Fetch order items and journey titles for each order
-	orderItems := make(map[int64][]model.OrderItem)
-	journeyTitles := make(map[int64]string)
-
+	// 6. Extract order IDs for batch querying
+	orderIDs := make([]int64, 0, len(orders))
 	for _, order := range orders {
-		items, err := s.orderRepository.GetOrderItemsByOrderID(ctx, order.ID)
+		orderIDs = append(orderIDs, order.ID)
+	}
+
+	// 7. Batch fetch all order items for all orders
+	orderItems, err := s.orderRepository.GetOrderItemsByOrderIDs(ctx, orderIDs)
+	if err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// 8. Extract unique journey IDs from all order items
+	journeyTitles := make(map[int64]string)
+	if len(orderItems) > 0 {
+		journeyIDSet := make(map[int64]struct{})
+		for _, items := range orderItems {
+			for _, item := range items {
+				journeyIDSet[item.JourneyID] = struct{}{}
+			}
+		}
+
+		// Convert set to slice
+		journeyIDs := make([]int64, 0, len(journeyIDSet))
+		for journeyID := range journeyIDSet {
+			journeyIDs = append(journeyIDs, journeyID)
+		}
+
+		// 9. Batch fetch all journey titles
+		journeyTitles, err = s.journeyRepository.GetJourneyTitlesByIDs(ctx, journeyIDs)
 		if err != nil {
 			return nil, apperror.DatabaseError(err)
 		}
-		orderItems[order.ID] = items
-
-		// Fetch journey titles for each item
-		for _, item := range items {
-			if _, exists := journeyTitles[item.JourneyID]; !exists {
-				title, err := s.journeyRepository.GetJourneyTitleByID(ctx, item.JourneyID)
-				if err != nil {
-					return nil, apperror.DatabaseError(err)
-				}
-				journeyTitles[item.JourneyID] = title
-			}
-		}
 	}
 
-	// 7. Build result
+	// 10. Build result
 	result := &OrderListResult{
 		Orders:        orders,
 		OrderItems:    orderItems,

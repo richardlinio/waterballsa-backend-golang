@@ -265,6 +265,53 @@ func (q *Queries) GetOrderItemsByOrderID(ctx context.Context, orderID int64) ([]
 	return items, nil
 }
 
+const getOrderItemsByOrderIDs = `-- name: GetOrderItemsByOrderIDs :many
+SELECT id, order_id, journey_id, quantity, original_price, discount, price, created_at
+FROM order_items
+WHERE order_id = ANY($1::BIGINT[]) AND deleted_at IS NULL
+ORDER BY order_id, id
+`
+
+type GetOrderItemsByOrderIDsRow struct {
+	ID            int64            `json:"id"`
+	OrderID       int64            `json:"order_id"`
+	JourneyID     int64            `json:"journey_id"`
+	Quantity      int32            `json:"quantity"`
+	OriginalPrice pgtype.Numeric   `json:"original_price"`
+	Discount      pgtype.Numeric   `json:"discount"`
+	Price         pgtype.Numeric   `json:"price"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+}
+
+func (q *Queries) GetOrderItemsByOrderIDs(ctx context.Context, dollar_1 []int64) ([]GetOrderItemsByOrderIDsRow, error) {
+	rows, err := q.db.Query(ctx, getOrderItemsByOrderIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetOrderItemsByOrderIDsRow{}
+	for rows.Next() {
+		var i GetOrderItemsByOrderIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.JourneyID,
+			&i.Quantity,
+			&i.OriginalPrice,
+			&i.Discount,
+			&i.Price,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOrdersByUserID = `-- name: GetOrdersByUserID :many
 SELECT id, order_number, user_id, status, original_price, discount, price,
        created_at, expired_at, paid_at, updated_at

@@ -22,12 +22,6 @@ type orderService interface {
 	GetUserOrders(ctx context.Context, userID, authenticatedUserID int64, page, limit int32) (*service.OrderListResult, error)
 }
 
-const (
-	defaultPage  = int32(1)
-	defaultLimit = int32(20)
-	maxLimit     = int32(100)
-)
-
 type OrderHandler struct {
 	orderService   orderService
 	logger         *slog.Logger
@@ -160,28 +154,18 @@ func (h *OrderHandler) GetUserOrders(c *gin.Context) {
 		return
 	}
 
-	// Parse pagination query parameters with defaults
-	page := defaultPage
-	if pageStr := c.Query("page"); pageStr != "" {
-		pageInt, err := strconv.ParseInt(pageStr, 10, 32)
-		if err == nil && pageInt > 0 {
-			page = int32(pageInt)
-		}
-	}
-
-	limit := defaultLimit
-	if limitStr := c.Query("limit"); limitStr != "" {
-		limitInt, err := strconv.ParseInt(limitStr, 10, 32)
-		if err == nil && limitInt > 0 && limitInt <= int64(maxLimit) {
-			limit = int32(limitInt)
-		}
+	// Parse pagination parameters
+	pagination, err := util.ParsePaginationParams(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), h.requestTimeout)
 	defer cancel()
 
 	// Call service with authorization check
-	result, err := h.orderService.GetUserOrders(ctx, userID, authenticatedUser.ID, page, limit)
+	result, err := h.orderService.GetUserOrders(ctx, userID, authenticatedUser.ID, pagination.Page, pagination.Limit)
 	if err != nil {
 		_ = c.Error(err)
 		return

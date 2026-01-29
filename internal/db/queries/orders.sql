@@ -33,6 +33,12 @@ SELECT id, order_id, journey_id, quantity, original_price, discount, price, crea
 FROM order_items
 WHERE order_id = $1 AND deleted_at IS NULL;
 
+-- name: GetOrderItemsByOrderIDs :many
+SELECT id, order_id, journey_id, quantity, original_price, discount, price, created_at
+FROM order_items
+WHERE order_id = ANY($1::BIGINT[]) AND deleted_at IS NULL
+ORDER BY order_id, id;
+
 -- name: CheckUserHasPurchasedJourney :one
 SELECT EXISTS(
     SELECT 1 FROM user_journeys
