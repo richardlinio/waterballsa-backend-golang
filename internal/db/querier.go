@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	CheckUserHasPurchasedJourney(ctx context.Context, arg CheckUserHasPurchasedJourneyParams) (bool, error)
+	CountOrdersByUserID(ctx context.Context, userID int64) (int64, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (CreateOrderRow, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (CreateOrderItemRow, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error
@@ -23,6 +24,7 @@ type Querier interface {
 	GetMissionByID(ctx context.Context, id int64) (GetMissionByIDRow, error)
 	GetOrderByID(ctx context.Context, id int64) (GetOrderByIDRow, error)
 	GetOrderItemsByOrderID(ctx context.Context, orderID int64) ([]GetOrderItemsByOrderIDRow, error)
+	GetOrdersByUserID(ctx context.Context, arg GetOrdersByUserIDParams) ([]GetOrdersByUserIDRow, error)
 	GetRefreshToken(ctx context.Context, tokenJti string) (RefreshToken, error)
 	GetRewardByMissionID(ctx context.Context, missionID int64) (GetRewardByMissionIDRow, error)
 	GetUnpaidOrderByUserAndJourney(ctx context.Context, arg GetUnpaidOrderByUserAndJourneyParams) (GetUnpaidOrderByUserAndJourneyRow, error)

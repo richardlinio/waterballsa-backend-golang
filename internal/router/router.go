@@ -155,6 +155,7 @@ func (r *Router) setupUserRoutes() {
 	users.Use(r.blacklistChecker)
 	{
 		users.GET("/me", r.userHandler.GetCurrentUser)
+		users.GET("/:userId/orders", r.orderHandler.GetUserOrders)
 	}
 }
 

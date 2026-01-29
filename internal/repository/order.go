@@ -287,6 +287,62 @@ func (r *OrderRepository) UpdateOrderStatusToPaid(ctx context.Context, orderID i
 	return order, nil
 }
 
+// GetOrdersByUserID retrieves paginated orders for a user
+func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID int64, limit, offset int32) ([]model.Order, error) {
+	rows, err := r.queries.GetOrdersByUserID(ctx, db.GetOrdersByUserIDParams{
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	orders := make([]model.Order, 0, len(rows))
+	for _, row := range rows {
+		originalPriceFloat, discountFloat, priceFloat, err := convertPriceFieldsToFloat64(
+			row.OriginalPrice,
+			row.Discount,
+			row.Price,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		order := model.Order{
+			ID:            row.ID,
+			OrderNumber:   row.OrderNumber,
+			UserID:        row.UserID,
+			Status:        string(row.Status),
+			OriginalPrice: originalPriceFloat,
+			Discount:      discountFloat,
+			Price:         priceFloat,
+			CreatedAt:     row.CreatedAt.Time,
+			UpdatedAt:     row.UpdatedAt.Time,
+		}
+
+		if row.ExpiredAt.Valid {
+			order.ExpiredAt = &row.ExpiredAt.Time
+		}
+		if row.PaidAt.Valid {
+			order.PaidAt = &row.PaidAt.Time
+		}
+
+		orders = append(orders, order)
+	}
+
+	return orders, nil
+}
+
+// CountOrdersByUserID counts total orders for a user
+func (r *OrderRepository) CountOrdersByUserID(ctx context.Context, userID int64) (int64, error) {
+	count, err := r.queries.CountOrdersByUserID(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // Helper functions for numeric conversions and model construction
 
 // convertPriceFieldsToNumeric converts three float64 price fields to pgtype.Numeric

@@ -30,6 +30,19 @@ func (q *Queries) CheckUserHasPurchasedJourney(ctx context.Context, arg CheckUse
 	return has_purchased, err
 }
 
+const countOrdersByUserID = `-- name: CountOrdersByUserID :one
+SELECT COUNT(*)
+FROM orders
+WHERE user_id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) CountOrdersByUserID(ctx context.Context, userID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countOrdersByUserID, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO orders (
     order_number,
@@ -241,6 +254,67 @@ func (q *Queries) GetOrderItemsByOrderID(ctx context.Context, orderID int64) ([]
 			&i.Discount,
 			&i.Price,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrdersByUserID = `-- name: GetOrdersByUserID :many
+SELECT id, order_number, user_id, status, original_price, discount, price,
+       created_at, expired_at, paid_at, updated_at
+FROM orders
+WHERE user_id = $1 AND deleted_at IS NULL
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type GetOrdersByUserIDParams struct {
+	UserID int64 `json:"user_id"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type GetOrdersByUserIDRow struct {
+	ID            int64            `json:"id"`
+	OrderNumber   string           `json:"order_number"`
+	UserID        int64            `json:"user_id"`
+	Status        OrderStatus      `json:"status"`
+	OriginalPrice pgtype.Numeric   `json:"original_price"`
+	Discount      pgtype.Numeric   `json:"discount"`
+	Price         pgtype.Numeric   `json:"price"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	ExpiredAt     pgtype.Timestamp `json:"expired_at"`
+	PaidAt        pgtype.Timestamp `json:"paid_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) GetOrdersByUserID(ctx context.Context, arg GetOrdersByUserIDParams) ([]GetOrdersByUserIDRow, error) {
+	rows, err := q.db.Query(ctx, getOrdersByUserID, arg.UserID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetOrdersByUserIDRow{}
+	for rows.Next() {
+		var i GetOrdersByUserIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderNumber,
+			&i.UserID,
+			&i.Status,
+			&i.OriginalPrice,
+			&i.Discount,
+			&i.Price,
+			&i.CreatedAt,
+			&i.ExpiredAt,
+			&i.PaidAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

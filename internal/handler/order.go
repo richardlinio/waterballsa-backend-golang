@@ -19,7 +19,14 @@ type orderService interface {
 	CreateOrder(ctx context.Context, userID int64, req dto.CreateOrderRequest) (*service.OrderResult, bool, error)
 	GetOrderByID(ctx context.Context, orderID, userID int64) (*service.OrderResult, error)
 	PayOrder(ctx context.Context, orderID, userID int64) (*model.Order, error)
+	GetUserOrders(ctx context.Context, userID, authenticatedUserID int64, page, limit int32) (*service.OrderListResult, error)
 }
+
+const (
+	defaultPage  = int32(1)
+	defaultLimit = int32(20)
+	maxLimit     = int32(100)
+)
 
 type OrderHandler struct {
 	orderService   orderService
@@ -133,5 +140,61 @@ func (h *OrderHandler) PayOrder(c *gin.Context) {
 
 	message := "付款完成"
 	response := dto.ToPayOrderResponse(paidOrder, message)
+	c.JSON(http.StatusOK, response)
+}
+
+// GetUserOrders handles GET /users/:userId/orders
+func (h *OrderHandler) GetUserOrders(c *gin.Context) {
+	// Parse userId from path parameter
+	userIDStr := c.Param("userId")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		_ = c.Error(apperror.ValidationFailed())
+		return
+	}
+
+	// Get authenticated user from JWT
+	authenticatedUser := util.GetAuthenticatedUser(c)
+	if authenticatedUser == nil {
+		_ = c.Error(apperror.Unauthorized())
+		return
+	}
+
+	// Parse pagination query parameters with defaults
+	page := defaultPage
+	if pageStr := c.Query("page"); pageStr != "" {
+		pageInt, err := strconv.ParseInt(pageStr, 10, 32)
+		if err == nil && pageInt > 0 {
+			page = int32(pageInt)
+		}
+	}
+
+	limit := defaultLimit
+	if limitStr := c.Query("limit"); limitStr != "" {
+		limitInt, err := strconv.ParseInt(limitStr, 10, 32)
+		if err == nil && limitInt > 0 && limitInt <= int64(maxLimit) {
+			limit = int32(limitInt)
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), h.requestTimeout)
+	defer cancel()
+
+	// Call service with authorization check
+	result, err := h.orderService.GetUserOrders(ctx, userID, authenticatedUser.ID, page, limit)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	// Convert to DTO response
+	response := dto.ToOrderListResponse(
+		result.Orders,
+		result.OrderItems,
+		result.JourneyTitles,
+		result.Pagination.Page,
+		result.Pagination.Limit,
+		result.Pagination.Total,
+	)
 	c.JSON(http.StatusOK, response)
 }
