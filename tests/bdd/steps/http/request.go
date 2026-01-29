@@ -208,6 +208,7 @@ func iLoginAsWithPassword(ctx context.Context, username, password string) (conte
 	// Store access token and user ID in variables map (for template substitution)
 	storedVars["accessToken"] = accessToken
 	storedVars["lastUserId"] = userIDInt64
+	storedVars["userId"] = userIDInt64 // Also store as userId for URL path parameters
 
 	// Update context
 	ctx = context.WithValue(ctx, testcontext.ContextKeyStoredVariables, storedVars)

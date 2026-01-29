@@ -27,9 +27,12 @@ type orderRepository interface {
 	CreateOrderItem(ctx context.Context, orderID, journeyID int64, quantity int32, originalPrice, discount, price float64) (*model.OrderItem, error)
 	GetOrderByID(ctx context.Context, orderID int64) (*model.Order, error)
 	GetOrderItemsByOrderID(ctx context.Context, orderID int64) ([]model.OrderItem, error)
+	GetOrderItemsByOrderIDs(ctx context.Context, orderIDs []int64) (map[int64][]model.OrderItem, error)
 	CheckUserHasPurchasedJourney(ctx context.Context, userID, journeyID int64) (bool, error)
 	GetUnpaidOrderByUserAndJourney(ctx context.Context, userID, journeyID int64) (*model.Order, error)
 	UpdateOrderStatusToPaid(ctx context.Context, orderID int64) (*model.Order, error)
+	GetOrdersByUserID(ctx context.Context, userID int64, limit, offset int32) ([]model.Order, error)
+	CountOrdersByUserID(ctx context.Context, userID int64) (int64, error)
 }
 
 type userJourneyRepository interface {
@@ -39,6 +42,7 @@ type userJourneyRepository interface {
 type orderJourneyRepository interface {
 	GetByID(ctx context.Context, journeyID int64) (*model.Journey, error)
 	GetJourneyTitleByID(ctx context.Context, journeyID int64) (string, error)
+	GetJourneyTitlesByIDs(ctx context.Context, journeyIDs []int64) (map[int64]string, error)
 }
 
 type orderUserRepository interface {
@@ -51,6 +55,18 @@ type OrderResult struct {
 	Items         []model.OrderItem
 	JourneyTitles map[int64]string
 	Username      string
+}
+
+// OrderListResult holds the result of listing orders
+type OrderListResult struct {
+	Orders        []model.Order
+	OrderItems    map[int64][]model.OrderItem // orderID -> items
+	JourneyTitles map[int64]string            // journeyID -> title
+	Pagination    struct {
+		Page  int32
+		Limit int32
+		Total int64
+	}
 }
 
 type OrderService struct {
@@ -226,6 +242,84 @@ func (s *OrderService) PayOrder(ctx context.Context, orderID, userID int64) (*mo
 	}
 
 	return result.Order, nil
+}
+
+// GetUserOrders retrieves paginated orders for a user with authorization check
+func (s *OrderService) GetUserOrders(ctx context.Context, userID, authenticatedUserID int64, page, limit int32) (*OrderListResult, error) {
+	// 1. Authorization: user can only view their own orders
+	if userID != authenticatedUserID {
+		return nil, apperror.OrderNotFound() // Return 404 to avoid info leakage
+	}
+
+	// 2. Validate pagination parameters
+	if page < 1 {
+		return nil, apperror.ValidationFailed()
+	}
+	if limit < 1 || limit > 100 {
+		return nil, apperror.ValidationFailed()
+	}
+
+	// 3. Calculate offset
+	offset := (page - 1) * limit
+
+	// 4. Fetch orders with pagination
+	orders, err := s.orderRepository.GetOrdersByUserID(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// 5. Count total orders for pagination
+	total, err := s.orderRepository.CountOrdersByUserID(ctx, userID)
+	if err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// 6. Extract order IDs for batch querying
+	orderIDs := make([]int64, 0, len(orders))
+	for _, order := range orders {
+		orderIDs = append(orderIDs, order.ID)
+	}
+
+	// 7. Batch fetch all order items for all orders
+	orderItems, err := s.orderRepository.GetOrderItemsByOrderIDs(ctx, orderIDs)
+	if err != nil {
+		return nil, apperror.DatabaseError(err)
+	}
+
+	// 8. Extract unique journey IDs from all order items
+	journeyTitles := make(map[int64]string)
+	if len(orderItems) > 0 {
+		journeyIDSet := make(map[int64]struct{})
+		for _, items := range orderItems {
+			for _, item := range items {
+				journeyIDSet[item.JourneyID] = struct{}{}
+			}
+		}
+
+		// Convert set to slice
+		journeyIDs := make([]int64, 0, len(journeyIDSet))
+		for journeyID := range journeyIDSet {
+			journeyIDs = append(journeyIDs, journeyID)
+		}
+
+		// 9. Batch fetch all journey titles
+		journeyTitles, err = s.journeyRepository.GetJourneyTitlesByIDs(ctx, journeyIDs)
+		if err != nil {
+			return nil, apperror.DatabaseError(err)
+		}
+	}
+
+	// 10. Build result
+	result := &OrderListResult{
+		Orders:        orders,
+		OrderItems:    orderItems,
+		JourneyTitles: journeyTitles,
+	}
+	result.Pagination.Page = page
+	result.Pagination.Limit = limit
+	result.Pagination.Total = total
+
+	return result, nil
 }
 
 // generateOrderNumber generates a unique order number

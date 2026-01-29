@@ -69,6 +69,35 @@ func (q *Queries) GetJourneyTitleByID(ctx context.Context, id int64) (string, er
 	return title, err
 }
 
+const getJourneyTitlesByIDs = `-- name: GetJourneyTitlesByIDs :many
+SELECT id, title FROM journeys WHERE id = ANY($1::BIGINT[]) AND deleted_at IS NULL
+`
+
+type GetJourneyTitlesByIDsRow struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
+}
+
+func (q *Queries) GetJourneyTitlesByIDs(ctx context.Context, dollar_1 []int64) ([]GetJourneyTitlesByIDsRow, error) {
+	rows, err := q.db.Query(ctx, getJourneyTitlesByIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetJourneyTitlesByIDsRow{}
+	for rows.Next() {
+		var i GetJourneyTitlesByIDsRow
+		if err := rows.Scan(&i.ID, &i.Title); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listChaptersByJourneyID = `-- name: ListChaptersByJourneyID :many
 SELECT
     id,

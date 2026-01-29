@@ -71,5 +71,8 @@ ORDER BY
 -- name: GetJourneyTitleByID :one
 SELECT title FROM journeys WHERE id = $1 AND deleted_at IS NULL;
 
+-- name: GetJourneyTitlesByIDs :many
+SELECT id, title FROM journeys WHERE id = ANY($1::BIGINT[]) AND deleted_at IS NULL;
+
 -- name: UpdateJourneyPrice :exec
 UPDATE journeys SET price = $2, updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL;

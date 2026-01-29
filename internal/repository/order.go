@@ -190,6 +190,45 @@ func (r *OrderRepository) GetOrderItemsByOrderID(ctx context.Context, orderID in
 	return items, nil
 }
 
+// GetOrderItemsByOrderIDs retrieves all order items for multiple orders (batch query)
+func (r *OrderRepository) GetOrderItemsByOrderIDs(ctx context.Context, orderIDs []int64) (map[int64][]model.OrderItem, error) {
+	if len(orderIDs) == 0 {
+		return make(map[int64][]model.OrderItem), nil
+	}
+
+	rows, err := r.queries.GetOrderItemsByOrderIDs(ctx, orderIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Group items by order_id
+	itemsByOrderID := make(map[int64][]model.OrderItem)
+	for _, row := range rows {
+		originalPriceFloat, discountFloat, priceFloat, err := convertPriceFieldsToFloat64(
+			row.OriginalPrice,
+			row.Discount,
+			row.Price,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		item := model.OrderItem{
+			ID:            row.ID,
+			OrderID:       row.OrderID,
+			JourneyID:     row.JourneyID,
+			Quantity:      row.Quantity,
+			OriginalPrice: originalPriceFloat,
+			Discount:      discountFloat,
+			Price:         priceFloat,
+			CreatedAt:     row.CreatedAt.Time,
+		}
+		itemsByOrderID[row.OrderID] = append(itemsByOrderID[row.OrderID], item)
+	}
+
+	return itemsByOrderID, nil
+}
+
 // CheckUserHasPurchasedJourney checks if user has already purchased the journey
 func (r *OrderRepository) CheckUserHasPurchasedJourney(ctx context.Context, userID, journeyID int64) (bool, error) {
 	hasPurchased, err := r.queries.CheckUserHasPurchasedJourney(ctx, db.CheckUserHasPurchasedJourneyParams{
@@ -285,6 +324,62 @@ func (r *OrderRepository) UpdateOrderStatusToPaid(ctx context.Context, orderID i
 	}
 
 	return order, nil
+}
+
+// GetOrdersByUserID retrieves paginated orders for a user
+func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID int64, limit, offset int32) ([]model.Order, error) {
+	rows, err := r.queries.GetOrdersByUserID(ctx, db.GetOrdersByUserIDParams{
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	orders := make([]model.Order, 0, len(rows))
+	for _, row := range rows {
+		originalPriceFloat, discountFloat, priceFloat, err := convertPriceFieldsToFloat64(
+			row.OriginalPrice,
+			row.Discount,
+			row.Price,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		order := model.Order{
+			ID:            row.ID,
+			OrderNumber:   row.OrderNumber,
+			UserID:        row.UserID,
+			Status:        string(row.Status),
+			OriginalPrice: originalPriceFloat,
+			Discount:      discountFloat,
+			Price:         priceFloat,
+			CreatedAt:     row.CreatedAt.Time,
+			UpdatedAt:     row.UpdatedAt.Time,
+		}
+
+		if row.ExpiredAt.Valid {
+			order.ExpiredAt = &row.ExpiredAt.Time
+		}
+		if row.PaidAt.Valid {
+			order.PaidAt = &row.PaidAt.Time
+		}
+
+		orders = append(orders, order)
+	}
+
+	return orders, nil
+}
+
+// CountOrdersByUserID counts total orders for a user
+func (r *OrderRepository) CountOrdersByUserID(ctx context.Context, userID int64) (int64, error) {
+	count, err := r.queries.CountOrdersByUserID(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 // Helper functions for numeric conversions and model construction

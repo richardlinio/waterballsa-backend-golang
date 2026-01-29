@@ -152,6 +152,26 @@ func (r *JourneyRepository) GetJourneyTitleByID(ctx context.Context, journeyID i
 	return title, nil
 }
 
+// GetJourneyTitlesByIDs retrieves journey titles for multiple journey IDs (batch query)
+func (r *JourneyRepository) GetJourneyTitlesByIDs(ctx context.Context, journeyIDs []int64) (map[int64]string, error) {
+	if len(journeyIDs) == 0 {
+		return make(map[int64]string), nil
+	}
+
+	rows, err := r.queries.GetJourneyTitlesByIDs(ctx, journeyIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map journey_id to title
+	titlesByID := make(map[int64]string, len(rows))
+	for _, row := range rows {
+		titlesByID[row.ID] = row.Title
+	}
+
+	return titlesByID, nil
+}
+
 // UpdateJourneyPrice updates the price of a journey
 func (r *JourneyRepository) UpdateJourneyPrice(ctx context.Context, journeyID int64, price float64) error {
 	var priceNumeric pgtype.Numeric

@@ -33,6 +33,12 @@ SELECT id, order_id, journey_id, quantity, original_price, discount, price, crea
 FROM order_items
 WHERE order_id = $1 AND deleted_at IS NULL;
 
+-- name: GetOrderItemsByOrderIDs :many
+SELECT id, order_id, journey_id, quantity, original_price, discount, price, created_at
+FROM order_items
+WHERE order_id = ANY($1::BIGINT[]) AND deleted_at IS NULL
+ORDER BY order_id, id;
+
 -- name: CheckUserHasPurchasedJourney :one
 SELECT EXISTS(
     SELECT 1 FROM user_journeys
@@ -57,3 +63,16 @@ RETURNING id, order_number, user_id, status, original_price, discount, price, cr
 -- name: CreateUserJourney :exec
 INSERT INTO user_journeys (user_id, journey_id, order_id, purchased_at)
 VALUES ($1, $2, $3, now());
+
+-- name: GetOrdersByUserID :many
+SELECT id, order_number, user_id, status, original_price, discount, price,
+       created_at, expired_at, paid_at, updated_at
+FROM orders
+WHERE user_id = $1 AND deleted_at IS NULL
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: CountOrdersByUserID :one
+SELECT COUNT(*)
+FROM orders
+WHERE user_id = $1 AND deleted_at IS NULL;
