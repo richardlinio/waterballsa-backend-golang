@@ -133,7 +133,11 @@ func (r *Router) setupJourneyRoutes() {
 }
 
 func (r *Router) setupMissionRoutes() {
-	r.engine.GET("/journeys/:journeyId/missions/:missionId", r.missionHandler.GetMissionDetail)
+	missions := r.engine.Group("/journeys/:journeyId/missions")
+	missions.Use(middleware.OptionalJWTAuth(r.jwtMiddleware))
+	{
+		missions.GET("/:missionId", r.missionHandler.GetMissionDetail)
+	}
 }
 
 func (r *Router) setupProgressRoutes() {

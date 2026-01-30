@@ -99,6 +99,10 @@ func InvalidWatchPosition() *AppError {
 	return New(CodeInvalidWatchPosition)
 }
 
+func Forbidden() *AppError {
+	return New(CodeForbidden)
+}
+
 func ProgressForbidden() *AppError {
 	return New(CodeProgressForbidden)
 }

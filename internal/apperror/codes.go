@@ -14,6 +14,7 @@ const (
 	CodeUnauthorized = "ERR_UNAUTHORIZED" // Token invalid/missing (for protected endpoints)
 
 	// Forbidden errors (403 - Forbidden)
+	CodeForbidden         = "ERR_FORBIDDEN"
 	CodeProgressForbidden = "ERR_PROGRESS_FORBIDDEN"
 
 	// Not found errors (404 - Not Found)

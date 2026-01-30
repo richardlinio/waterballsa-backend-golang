@@ -17,7 +17,7 @@ import (
 
 // missionService defines the mission service operations needed by the handler
 type missionService interface {
-	GetDetail(ctx context.Context, missionID int64) (*model.MissionDetail, error)
+	GetDetail(ctx context.Context, missionID int64, userID *int64) (*model.MissionDetail, error)
 }
 
 type MissionHandler struct {
@@ -50,35 +50,18 @@ func (h *MissionHandler) GetMissionDetail(c *gin.Context) {
 		return
 	}
 
-	// Get mission detail from service
-	detail, err := h.missionService.GetDetail(ctx, missionID)
+	// Get authenticated user (may be nil for guest users)
+	user := util.GetAuthenticatedUser(c)
+	var userID *int64
+	if user != nil {
+		userID = &user.ID
+	}
+
+	// Get mission detail from service (service handles access control)
+	detail, err := h.missionService.GetDetail(ctx, missionID, userID)
 	if err != nil {
 		_ = c.Error(err)
 		return
-	}
-
-	// Check access level and authentication
-	if detail.Mission.AccessLevel == "AUTHENTICATED" || detail.Mission.AccessLevel == "PURCHASED" {
-		user := util.GetAuthenticatedUser(c)
-		if user == nil {
-			_ = c.Error(apperror.Unauthorized())
-			return
-		}
-
-		// TODO: For PURCHASED missions, implement purchase verification logic
-		// Need to check if user.ID has purchased the journey (detail.JourneyID)
-		// Example implementation:
-		//   if detail.Mission.AccessLevel == "PURCHASED" {
-		//       hasPurchased, err := h.purchaseService.HasUserPurchasedJourney(ctx, user.ID, detail.JourneyID)
-		//       if err != nil {
-		//           _ = c.Error(apperror.DatabaseError(err))
-		//           return
-		//       }
-		//       if !hasPurchased {
-		//           _ = c.Error(apperror.Forbidden())
-		//           return
-		//       }
-		//   }
 	}
 
 	response := dto.ToMissionDetailResponse(detail)
