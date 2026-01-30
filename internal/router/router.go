@@ -160,6 +160,7 @@ func (r *Router) setupUserRoutes() {
 	{
 		users.GET("/me", r.userHandler.GetCurrentUser)
 		users.GET("/:userId/orders", r.orderHandler.GetUserOrders)
+		users.GET("/:userId/journeys", r.userHandler.GetUserJourneys)
 	}
 }
 

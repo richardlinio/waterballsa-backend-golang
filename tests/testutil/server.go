@@ -113,6 +113,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	missionService := service.NewMissionService(missionRepository, orderRepository)
 	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository, st, cfg.Database.TransactionTimeout)
 	userService := service.NewUserService(userRepository)
+	userJourneyService := service.NewUserJourneyService(userJourneyRepository)
 	orderService := service.NewOrderService(orderRepository, journeyRepository, userRepository, userJourneyRepository, st, cfg.Database.TransactionTimeout)
 
 	// Initialize JWT middleware
@@ -132,7 +133,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 	journeyHandler := handler.NewJourneyHandler(journeyService, log, cfg.Server.RequestTimeout)
 	missionHandler := handler.NewMissionHandler(missionService, log, cfg.Server.RequestTimeout)
 	progressHandler := handler.NewProgressHandler(progressService, log, cfg.Server.RequestTimeout)
-	userHandler := handler.NewUserHandler(userService, log, cfg.Server.RequestTimeout)
+	userHandler := handler.NewUserHandler(userService, userJourneyService, log, cfg.Server.RequestTimeout)
 	orderHandler := handler.NewOrderHandler(orderService, log, cfg.Server.RequestTimeout)
 
 	// Initialize blacklist checker middleware

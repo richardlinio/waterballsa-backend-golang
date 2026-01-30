@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/richardlinio/waterballsa-backend-golang/internal/db"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 )
 
 type UserJourneyRepository struct {
@@ -21,4 +22,28 @@ func (r *UserJourneyRepository) CreateUserJourney(ctx context.Context, userID, j
 		JourneyID: journeyID,
 		OrderID:   orderID,
 	})
+}
+
+// GetUserJourneys retrieves all purchased journeys for a user
+func (r *UserJourneyRepository) GetUserJourneys(ctx context.Context, userID int64) ([]dto.UserJourneyItem, error) {
+	rows, err := r.queries.GetUserJourneysByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to DTOs
+	journeys := make([]dto.UserJourneyItem, 0, len(rows))
+	for _, row := range rows {
+		journeys = append(journeys, dto.UserJourneyItem{
+			JourneyID:     row.JourneyID,
+			JourneyTitle:  row.JourneyTitle,
+			JourneySlug:   row.JourneySlug,
+			CoverImageURL: row.CoverImageUrl.String,
+			TeacherName:   row.TeacherName,
+			PurchasedAt:   row.PurchasedAt.Time.UnixMilli(),
+			OrderNumber:   row.OrderNumber,
+		})
+	}
+
+	return journeys, nil
 }

@@ -32,6 +32,7 @@ type Querier interface {
 	GetUnpaidOrderByUserAndJourney(ctx context.Context, arg GetUnpaidOrderByUserAndJourneyParams) (GetUnpaidOrderByUserAndJourneyRow, error)
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error)
+	GetUserJourneysByUserID(ctx context.Context, userID int64) ([]GetUserJourneysByUserIDRow, error)
 	GetUserMissionProgress(ctx context.Context, arg GetUserMissionProgressParams) (GetUserMissionProgressRow, error)
 	InvalidateToken(ctx context.Context, arg InvalidateTokenParams) error
 	IsTokenInvalidated(ctx context.Context, tokenJti string) (bool, error)
