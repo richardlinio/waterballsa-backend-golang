@@ -13,8 +13,8 @@ Feature: 使用者登出 (Release 1.4)
     When "Alice" 執行登出操作
     Then 登出應該成功
 
-  Scenario: 未登入使用者嘗試登出失敗
+  Scenario: 未登入使用者嘗試登出成功
     When 未登入的使用者嘗試執行登出操作
-    Then 登出應該失敗
-    And 系統應該提示 "未授權或權杖無效"
+    Then 登出應該成功
+    And 系統應該提示 "登出成功"
 

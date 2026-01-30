@@ -49,15 +49,15 @@ Feature: User Logout API Implementation
     # Verification: Response values
     And the response body field "message" should equal string "登出成功"
 
-  Scenario: Non-logged-in user attempts to logout and fails
+  Scenario: Non-logged-in user can logout without token
     # No setup needed - no user logged in
 
     # Action: Attempt logout without Authorization header
     When I send "POST" request to "/auth/logout"
 
-    # Verification: HTTP layer
-    Then the response status code should be 401
+    # Verification: HTTP layer - logout always succeeds (clears cookies)
+    Then the response status code should be 200
 
-    # Verification: Error response
-    And the response body should contain field "error"
-    And the response body field "error" should equal string "未授權或權杖無效"
+    # Verification: Response values
+    And the response body should contain field "message"
+    And the response body field "message" should equal string "登出成功"
