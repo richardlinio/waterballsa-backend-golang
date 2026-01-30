@@ -12,6 +12,7 @@ var errorMessages = map[string]string{
 	CodeUnauthorized: "未授權或權杖無效",
 
 	// Forbidden errors (403 - Forbidden)
+	CodeForbidden:         "禁止訪問",
 	CodeProgressForbidden: "無法存取其他使用者的進度",
 
 	// Not found errors (404 - Not Found)

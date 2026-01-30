@@ -12,12 +12,13 @@ import (
 	"github.com/richardlinio/waterballsa-backend-golang/internal/dto"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/model"
 	"github.com/richardlinio/waterballsa-backend-golang/internal/service"
+	"github.com/richardlinio/waterballsa-backend-golang/internal/util"
 )
 
 // journeyService defines the journey service operations needed by the handler
 type journeyService interface {
 	List(ctx context.Context) ([]*model.Journey, error)
-	GetDetail(ctx context.Context, journeyID int64) (*model.JourneyDetail, error)
+	GetDetail(ctx context.Context, journeyID int64, userID *int64) (*model.JourneyDetail, error)
 }
 
 type JourneyHandler struct {
@@ -64,8 +65,14 @@ func (h *JourneyHandler) GetJourneyDetail(c *gin.Context) {
 		return
 	}
 
+	// Extract authenticated user ID (optional - nil for guests)
+	var userID *int64
+	if user := util.GetAuthenticatedUser(c); user != nil {
+		userID = &user.ID
+	}
+
 	// Get journey detail from service
-	detail, err := h.journeyService.GetDetail(ctx, journeyID)
+	detail, err := h.journeyService.GetDetail(ctx, journeyID, userID)
 	if err != nil {
 		_ = c.Error(err)
 		return

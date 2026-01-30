@@ -14,6 +14,7 @@ var httpStatusMap = map[string]int{
 	CodeUnauthorized: http.StatusUnauthorized, // Token invalid/missing
 
 	// Forbidden errors (403 - Forbidden)
+	CodeForbidden:         http.StatusForbidden,
 	CodeProgressForbidden: http.StatusForbidden,
 
 	// Not found errors (404 - Not Found)

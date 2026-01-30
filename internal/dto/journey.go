@@ -40,11 +40,12 @@ type ChapterDTO struct {
 
 // MissionSummaryDTO represents a mission summary in a chapter
 type MissionSummaryDTO struct {
-	ID          int64  `json:"id"`
-	Type        string `json:"type"`
-	Title       string `json:"title"`
-	AccessLevel string `json:"accessLevel"`
-	OrderIndex  int    `json:"orderIndex"`
+	ID          int64   `json:"id"`
+	Type        string  `json:"type"`
+	Title       string  `json:"title"`
+	AccessLevel string  `json:"accessLevel"`
+	OrderIndex  int     `json:"orderIndex"`
+	Status      *string `json:"status"` // nullable, only present for authenticated users
 }
 
 // ToJourneyListResponse converts journey domain models to JourneyListResponse DTO
@@ -86,51 +87,59 @@ func ToJourneyDetailResponse(detail *model.JourneyDetail) JourneyDetailResponse 
 		CoverImageURL: detail.Journey.CoverImageURL,
 		TeacherName:   detail.Journey.TeacherName,
 		Price:         detail.Journey.Price,
-		Chapters:      ToChapterDTOs(detail.Chapters, detail.MissionsByChapter),
+		Chapters:      ToChapterDTOs(detail.Chapters, detail.MissionsByChapter, detail.ProgressByMission),
 	}
 }
 
 // ToChapterDTOs converts chapters and missions to ChapterDTO slice
-func ToChapterDTOs(chapters []*model.Chapter, missionsByChapter map[int64][]*model.Mission) []ChapterDTO {
+func ToChapterDTOs(chapters []*model.Chapter, missionsByChapter map[int64][]*model.Mission, progressByMission map[int64]string) []ChapterDTO {
 	if chapters == nil {
 		return []ChapterDTO{}
 	}
 	chapterDTOs := make([]ChapterDTO, len(chapters))
 	for i, chapter := range chapters {
-		chapterDTOs[i] = ToChapterDTO(chapter, missionsByChapter[chapter.ID])
+		chapterDTOs[i] = ToChapterDTO(chapter, missionsByChapter[chapter.ID], progressByMission)
 	}
 	return chapterDTOs
 }
 
 // ToChapterDTO converts a single chapter with missions to ChapterDTO
-func ToChapterDTO(chapter *model.Chapter, missions []*model.Mission) ChapterDTO {
+func ToChapterDTO(chapter *model.Chapter, missions []*model.Mission, progressByMission map[int64]string) ChapterDTO {
 	return ChapterDTO{
 		ID:         chapter.ID,
 		Title:      chapter.Title,
 		OrderIndex: chapter.OrderIndex,
-		Missions:   ToMissionSummaryDTOs(missions),
+		Missions:   ToMissionSummaryDTOs(missions, progressByMission),
 	}
 }
 
 // ToMissionSummaryDTOs converts missions to MissionSummaryDTO slice
-func ToMissionSummaryDTOs(missions []*model.Mission) []MissionSummaryDTO {
+func ToMissionSummaryDTOs(missions []*model.Mission, progressByMission map[int64]string) []MissionSummaryDTO {
 	if missions == nil {
 		return []MissionSummaryDTO{}
 	}
 	missionDTOs := make([]MissionSummaryDTO, len(missions))
 	for i, mission := range missions {
-		missionDTOs[i] = ToMissionSummaryDTO(mission)
+		// Get status from progress map if available
+		var status *string
+		if progressByMission != nil {
+			if s, exists := progressByMission[mission.ID]; exists {
+				status = &s
+			}
+		}
+		missionDTOs[i] = ToMissionSummaryDTO(mission, status)
 	}
 	return missionDTOs
 }
 
 // ToMissionSummaryDTO converts a single mission to MissionSummaryDTO
-func ToMissionSummaryDTO(mission *model.Mission) MissionSummaryDTO {
+func ToMissionSummaryDTO(mission *model.Mission, status *string) MissionSummaryDTO {
 	return MissionSummaryDTO{
 		ID:          mission.ID,
 		Type:        mission.Type,
 		Title:       mission.Title,
 		AccessLevel: mission.AccessLevel,
 		OrderIndex:  mission.OrderIndex,
+		Status:      status,
 	}
 }

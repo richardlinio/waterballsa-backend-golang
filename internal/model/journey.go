@@ -22,4 +22,5 @@ type JourneyDetail struct {
 	Journey           *Journey
 	Chapters          []*Chapter
 	MissionsByChapter map[int64][]*Mission
+	ProgressByMission map[int64]string // mission_id -> status (optional, only for authenticated users)
 }

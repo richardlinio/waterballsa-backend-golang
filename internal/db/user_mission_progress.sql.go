@@ -60,6 +60,44 @@ func (q *Queries) GetUserMissionProgress(ctx context.Context, arg GetUserMission
 	return i, err
 }
 
+const listUserMissionProgressByMissions = `-- name: ListUserMissionProgressByMissions :many
+SELECT mission_id, status
+FROM user_mission_progress
+WHERE user_id = $1
+  AND mission_id = ANY($2::bigint[])
+  AND deleted_at IS NULL
+`
+
+type ListUserMissionProgressByMissionsParams struct {
+	UserID     int64   `json:"user_id"`
+	MissionIds []int64 `json:"mission_ids"`
+}
+
+type ListUserMissionProgressByMissionsRow struct {
+	MissionID int64          `json:"mission_id"`
+	Status    ProgressStatus `json:"status"`
+}
+
+func (q *Queries) ListUserMissionProgressByMissions(ctx context.Context, arg ListUserMissionProgressByMissionsParams) ([]ListUserMissionProgressByMissionsRow, error) {
+	rows, err := q.db.Query(ctx, listUserMissionProgressByMissions, arg.UserID, arg.MissionIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUserMissionProgressByMissionsRow{}
+	for rows.Next() {
+		var i ListUserMissionProgressByMissionsRow
+		if err := rows.Scan(&i.MissionID, &i.Status); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertUserMissionProgress = `-- name: UpsertUserMissionProgress :one
 INSERT INTO
     user_mission_progress (user_id, mission_id, status, watch_position_seconds, created_at, updated_at)
