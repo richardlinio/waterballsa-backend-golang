@@ -112,18 +112,10 @@ func (r *Router) setupHealthRoutes() {
 func (r *Router) setupAuthRoutes() {
 	auth := r.engine.Group("/auth")
 	{
-		// Public routes
 		auth.POST("/register", r.authHandler.Register)
 		auth.POST("/login", r.authHandler.Login)
 		auth.POST("/refresh", r.authHandler.Refresh)
-	}
-
-	// Protected routes (require JWT authentication and blacklist check)
-	authProtected := r.engine.Group("/auth")
-	authProtected.Use(middleware.JWTAuth(r.jwtMiddleware))
-	authProtected.Use(r.blacklistChecker)
-	{
-		authProtected.POST("/logout", r.authHandler.Logout)
+		auth.POST("/logout", r.authHandler.Logout)
 	}
 }
 
