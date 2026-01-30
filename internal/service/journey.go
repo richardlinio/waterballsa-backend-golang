@@ -17,15 +17,22 @@ type journeyRepository interface {
 	ListMissionsByChapterIDs(ctx context.Context, chapterIDs []int64) ([]*model.Mission, error)
 }
 
+// journeyProgressRepository provides user mission progress data access operations for JourneyService
+type journeyProgressRepository interface {
+	ListByUserAndMissions(ctx context.Context, userID int64, missionIDs []int64) (map[int64]string, error)
+}
+
 // JourneyService implements journey business logic operations.
 type JourneyService struct {
-	journeyRepository journeyRepository
+	journeyRepository  journeyRepository
+	progressRepository journeyProgressRepository
 }
 
 // NewJourneyService creates a new JourneyService instance.
-func NewJourneyService(journeyRepository *repository.JourneyRepository) *JourneyService {
+func NewJourneyService(journeyRepository *repository.JourneyRepository, progressRepository *repository.ProgressRepository) *JourneyService {
 	return &JourneyService{
-		journeyRepository: journeyRepository,
+		journeyRepository:  journeyRepository,
+		progressRepository: progressRepository,
 	}
 }
 
@@ -40,8 +47,9 @@ func (s *JourneyService) List(ctx context.Context) ([]*model.Journey, error) {
 }
 
 // GetDetail retrieves journey details including chapters and missions
+// If userID is provided (authenticated user), also fetches mission progress
 // Returns apperror.JourneyNotFound if journey doesn't exist
-func (s *JourneyService) GetDetail(ctx context.Context, journeyID int64) (*model.JourneyDetail, error) {
+func (s *JourneyService) GetDetail(ctx context.Context, journeyID int64, userID *int64) (*model.JourneyDetail, error) {
 	// Get journey by ID
 	journey, err := s.journeyRepository.GetByID(ctx, journeyID)
 	if err != nil {
@@ -63,6 +71,7 @@ func (s *JourneyService) GetDetail(ctx context.Context, journeyID int64) (*model
 			Journey:           journey,
 			Chapters:          chapters,
 			MissionsByChapter: make(map[int64][]*model.Mission),
+			ProgressByMission: nil,
 		}, nil
 	}
 
@@ -84,9 +93,26 @@ func (s *JourneyService) GetDetail(ctx context.Context, journeyID int64) (*model
 		missionsByChapter[mission.ChapterID] = append(missionsByChapter[mission.ChapterID], mission)
 	}
 
+	// Get user progress if authenticated
+	var progressByMission map[int64]string
+	if userID != nil && len(missions) > 0 {
+		// Collect all mission IDs
+		missionIDs := make([]int64, 0, len(missions))
+		for _, mission := range missions {
+			missionIDs = append(missionIDs, mission.ID)
+		}
+
+		// Fetch progress for all missions
+		progressByMission, err = s.progressRepository.ListByUserAndMissions(ctx, *userID, missionIDs)
+		if err != nil {
+			return nil, apperror.DatabaseError(err)
+		}
+	}
+
 	return &model.JourneyDetail{
 		Journey:           journey,
 		Chapters:          chapters,
 		MissionsByChapter: missionsByChapter,
+		ProgressByMission: progressByMission,
 	}, nil
 }

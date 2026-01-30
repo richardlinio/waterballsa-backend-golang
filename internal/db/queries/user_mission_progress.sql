@@ -35,3 +35,10 @@ RETURNING
     watch_position_seconds,
     created_at,
     updated_at;
+
+-- name: ListUserMissionProgressByMissions :many
+SELECT mission_id, status
+FROM user_mission_progress
+WHERE user_id = sqlc.arg(user_id)
+  AND mission_id = ANY(sqlc.arg(mission_ids)::bigint[])
+  AND deleted_at IS NULL;

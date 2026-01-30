@@ -72,3 +72,24 @@ func (r *ProgressRepository) Upsert(ctx context.Context, userID, missionID int64
 		UpdatedAt:            row.UpdatedAt.Time,
 	}, nil
 }
+
+// ListByUserAndMissions retrieves progress for multiple missions for a specific user
+// Returns a map of mission_id -> status for missions that have progress records
+// Missions without progress records are not included in the map
+func (r *ProgressRepository) ListByUserAndMissions(ctx context.Context, userID int64, missionIDs []int64) (map[int64]string, error) {
+	rows, err := r.queries.ListUserMissionProgressByMissions(ctx, db.ListUserMissionProgressByMissionsParams{
+		UserID:     userID,
+		MissionIds: missionIDs,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert rows to map
+	progressMap := make(map[int64]string, len(rows))
+	for _, row := range rows {
+		progressMap[row.MissionID] = string(row.Status)
+	}
+
+	return progressMap, nil
+}

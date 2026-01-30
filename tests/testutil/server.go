@@ -109,7 +109,7 @@ func NewTestServer(ctx context.Context, dbHost, dbPort string) (*TestServer, err
 
 	// Initialize service layer
 	authService := service.NewAuthService(userRepository, accessTokenRepository, refreshTokenRepository, tokenGenerator, st, cfg.Database.TransactionTimeout)
-	journeyService := service.NewJourneyService(journeyRepository)
+	journeyService := service.NewJourneyService(journeyRepository, progressRepository)
 	missionService := service.NewMissionService(missionRepository)
 	progressService := service.NewProgressService(progressRepository, missionRepository, userRepository, st, cfg.Database.TransactionTimeout)
 	userService := service.NewUserService(userRepository)

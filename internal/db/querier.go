@@ -39,6 +39,7 @@ type Querier interface {
 	ListJourneys(ctx context.Context) ([]ListJourneysRow, error)
 	ListMissionsByChapterIDs(ctx context.Context, dollar_1 []int64) ([]ListMissionsByChapterIDsRow, error)
 	ListResourcesByMissionID(ctx context.Context, missionID int64) ([]ListResourcesByMissionIDRow, error)
+	ListUserMissionProgressByMissions(ctx context.Context, arg ListUserMissionProgressByMissionsParams) ([]ListUserMissionProgressByMissionsRow, error)
 	RevokeAllUserRefreshTokens(ctx context.Context, userID int64) error
 	RevokeRefreshToken(ctx context.Context, tokenJti string) error
 	UpdateJourneyPrice(ctx context.Context, arg UpdateJourneyPriceParams) error
