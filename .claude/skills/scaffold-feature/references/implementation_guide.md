@@ -21,6 +21,22 @@ You can activate it by typing `@go-idiomatic` in the chat.
 
 The following sections cover patterns specific to scaffolding new features in this application.
 
+## Struct Placement by Layer
+
+Each struct type belongs to a specific layer based on what it represents:
+
+| Type                                                | Location            | Criteria                                                            |
+| --------------------------------------------------- | ------------------- | ------------------------------------------------------------------- |
+| Domain entity (`User`, `Order`)                     | `internal/model/`   | Business entity with ID and lifecycle                               |
+| Domain aggregate (`JourneyDetail`, `MissionDetail`) | `internal/model/`   | Composite business concept combining multiple entities              |
+| Service result (`LoginResult`, `OrderResult`)       | `internal/service/` | Return wrapper for a specific service method, not a business entity |
+| Request / Response                                  | `internal/dto/`     | API contract, coupled to HTTP interface                             |
+| DB row struct (sqlc generated)                      | `internal/db/`      | Auto-generated, used only within repository layer                   |
+
+**Rule of thumb:** Would this struct come up when discussing business requirements? Yes → `model`; No, it's just an operation's return value → `service`.
+
+**`db.*` vs `model.*`:** Repository layer converts between `db.*` and `model.*`, acting as an anti-corruption layer so the service layer only works with standard Go types (`time.Time`, `float64`) instead of driver-specific types like `pgtype.*`.
+
 ## Authorization Checks
 
 ✅ **Do:** Perform authorization checks in the handler to protect endpoints. Retrieve the user from the context and verify their permissions against the requested resource.
