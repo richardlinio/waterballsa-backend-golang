@@ -1,6 +1,6 @@
 module github.com/richardlinio/waterballsa-backend-golang
 
-go 1.25.5
+go 1.26.10
 
 require (
 	github.com/appleboy/gin-jwt/v3 v3.4.0
