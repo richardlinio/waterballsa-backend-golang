@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 WaterBall SA Backend - A Golang REST API backend for an educational platform using Gin framework, PostgreSQL, and layer-based architecture.
 
-- **Go Version**: 1.25.5
+- **Go Version**: 1.26.10
 - **Main Framework**: Gin (HTTP server)
 - **Database**: PostgreSQL with pgx/v5 driver
 - **Migration Tool**: Goose
